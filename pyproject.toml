@@ -1,0 +1,24 @@
+[project]
+name = "water-treatment-calculator-workspace"
+version = "0.0.0"
+description = "Workspace for the water-treatment engine and standalone web application."
+requires-python = ">=3.14"
+dependencies = []
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = [
+    "packages/water-treatment-engine",
+    "apps/water-treatment-web",
+]
+
+[dependency-groups]
+dev = [
+    "hypothesis",
+    "mypy",
+    "pytest",
+    "pytest-cov",
+    "ruff",
+]

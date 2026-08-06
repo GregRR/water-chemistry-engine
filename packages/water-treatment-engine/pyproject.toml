@@ -1,0 +1,15 @@
+[project]
+name = "water-treatment-engine"
+version = "0.1.0"
+description = "Reusable water-treatment engineering engine for brewing, mead, and distilling."
+readme = "README.md"
+requires-python = ">=3.14"
+license = "MPL-2.0"
+authors = [
+    { name = "Greg Roe" },
+]
+dependencies = []
+
+[build-system]
+requires = ["uv_build>=0.11.32,<0.12"]
+build-backend = "uv_build"

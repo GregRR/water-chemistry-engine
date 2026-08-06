@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Test and quality checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: Install workspace dependencies
+        run: uv sync --all-packages --dev
+
+      - name: Check formatting
+        run: uv run ruff format --check .
+
+      - name: Run lint checks
+        run: uv run ruff check .
+
+      - name: Run type checks
+        run: uv run mypy packages/water-treatment-engine/src apps/water-treatment-web/src
+
+      - name: Run tests
+        run: uv run pytest
