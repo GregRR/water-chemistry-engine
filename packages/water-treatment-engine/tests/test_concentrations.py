@@ -3,6 +3,7 @@ from fermunits import Q_
 from water_treatment_engine.concentrations import (
     IonConcentration,
     IonConcentrationRange,
+    IonConcentrationUpperBound,
 )
 from water_treatment_engine.ions import Ion
 
@@ -79,4 +80,46 @@ def test_concentration_range_rejects_non_concentration_quantity() -> None:
             ion=Ion.POTASSIUM,
             minimum=Q_(10, "milligram / liter"),
             maximum=Q_(20, "milligram"),
+        )
+
+
+def test_upper_bound_constructor() -> None:
+    concentration = IonConcentrationUpperBound.mg_per_liter(
+        Ion.SODIUM,
+        maximum=5.0,
+    )
+
+    assert concentration.ion is Ion.SODIUM
+    assert concentration.maximum.magnitude == 5.0
+    assert concentration.maximum.units == Q_(1, "milligram / liter").units
+
+
+def test_upper_bound_accepts_convertible_units() -> None:
+    concentration = IonConcentrationUpperBound(
+        ion=Ion.MAGNESIUM,
+        maximum=Q_(0.005, "gram / liter"),
+    )
+
+    assert concentration.maximum.to("milligram / liter").magnitude == 5.0
+
+
+def test_upper_bound_rejects_negative_value() -> None:
+    with pytest.raises(
+        ValueError,
+        match="upper bound cannot be negative",
+    ):
+        IonConcentrationUpperBound.mg_per_liter(
+            Ion.CHLORIDE,
+            maximum=-1.0,
+        )
+
+
+def test_upper_bound_rejects_non_concentration_quantity() -> None:
+    with pytest.raises(
+        ValueError,
+        match="Ion concentration must be convertible to mass per volume",
+    ):
+        IonConcentrationUpperBound(
+            ion=Ion.CALCIUM,
+            maximum=Q_(5, "milligram"),
         )

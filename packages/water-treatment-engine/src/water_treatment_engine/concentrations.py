@@ -65,4 +65,32 @@ class IonConcentrationRange:
         )
 
 
-type IonConcentrationValue = IonConcentration | IonConcentrationRange
+@dataclass(frozen=True, slots=True)
+class IonConcentrationUpperBound:
+    """Reported ion concentration known only to be below an upper bound."""
+
+    ion: Ion
+    maximum: Quantity
+
+    def __post_init__(self) -> None:
+        _validate_mass_concentration(self.maximum)
+
+        if self.maximum.to("milligram / liter").magnitude < 0:
+            raise ValueError("Ion concentration upper bound cannot be negative.")
+
+    @classmethod
+    def mg_per_liter(
+        cls,
+        ion: Ion,
+        maximum: float,
+    ) -> IonConcentrationUpperBound:
+        """Construct a less-than concentration reported in mg/L."""
+        return cls(
+            ion=ion,
+            maximum=Q_(maximum, "milligram / liter"),
+        )
+
+
+type IonConcentrationValue = (
+    IonConcentration | IonConcentrationRange | IonConcentrationUpperBound
+)
