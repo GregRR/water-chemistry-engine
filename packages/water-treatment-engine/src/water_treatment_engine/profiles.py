@@ -14,6 +14,18 @@ from water_treatment_engine.reported_properties import (
 
 
 @dataclass(frozen=True, slots=True)
+class ObservationPeriod:
+    """Inclusive period over which reported water chemistry applies."""
+
+    start: date
+    end: date
+
+    def __post_init__(self) -> None:
+        if self.start > self.end:
+            raise ValueError("Observation period start cannot be after end.")
+
+
+@dataclass(frozen=True, slots=True)
 class SourceWaterProfile:
     """Measured or reported chemistry for a source of water."""
 
@@ -21,6 +33,7 @@ class SourceWaterProfile:
     concentrations: tuple[IonConcentrationValue, ...]
     ph: ReportedPH | None = None
     observed_on: date | None = None
+    observation_period: ObservationPeriod | None = None
     provenance: SourceWaterProvenance | None = None
     alkalinity: Alkalinity | None = None
     total_hardness: TotalHardness | None = None
@@ -30,6 +43,12 @@ class SourceWaterProfile:
     def __post_init__(self) -> None:
         if not self.name.strip():
             raise ValueError("Source water profile name cannot be empty.")
+
+        if self.observed_on is not None and self.observation_period is not None:
+            raise ValueError(
+                "Source water profile cannot have both observed_on "
+                "and observation_period."
+            )
 
         ions = [concentration.ion for concentration in self.concentrations]
         if len(ions) != len(set(ions)):

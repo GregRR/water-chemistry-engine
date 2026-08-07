@@ -7,7 +7,7 @@ from water_treatment_engine.concentrations import (
     IonConcentrationUpperBound,
 )
 from water_treatment_engine.ions import Ion
-from water_treatment_engine.profiles import SourceWaterProfile
+from water_treatment_engine.profiles import ObservationPeriod, SourceWaterProfile
 from water_treatment_engine.provenance import SourceWaterProvenance
 from water_treatment_engine.reported_properties import ReportedPH
 
@@ -159,3 +159,46 @@ def test_source_profile_stores_reported_water_properties() -> None:
     assert profile.total_hardness is not None
     assert profile.total_dissolved_solids is not None
     assert profile.conductivity is not None
+
+
+def test_source_profile_accepts_observation_period() -> None:
+    period = ObservationPeriod(
+        start=date(2025, 1, 1),
+        end=date(2025, 12, 31),
+    )
+
+    profile = SourceWaterProfile(
+        name="2025 Annual Water",
+        concentrations=(),
+        observation_period=period,
+    )
+
+    assert profile.observed_on is None
+    assert profile.observation_period is period
+
+
+def test_observation_period_rejects_reversed_dates() -> None:
+    with pytest.raises(
+        ValueError,
+        match="start cannot be after end",
+    ):
+        ObservationPeriod(
+            start=date(2025, 12, 31),
+            end=date(2025, 1, 1),
+        )
+
+
+def test_profile_rejects_single_date_and_period_together() -> None:
+    with pytest.raises(
+        ValueError,
+        match="cannot have both observed_on and observation_period",
+    ):
+        SourceWaterProfile(
+            name="Example Water",
+            concentrations=(),
+            observed_on=date(2025, 6, 1),
+            observation_period=ObservationPeriod(
+                start=date(2025, 1, 1),
+                end=date(2025, 12, 31),
+            ),
+        )
