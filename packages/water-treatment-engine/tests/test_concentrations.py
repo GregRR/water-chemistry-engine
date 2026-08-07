@@ -14,6 +14,7 @@ def test_mg_per_liter_constructor() -> None:
     assert concentration.ion is Ion.CALCIUM
     assert concentration.value.magnitude == 50.0
     assert concentration.value.units == Q_(1, "milligram / liter").units
+    assert concentration.calculation_value is concentration.value
 
 
 def test_equivalent_mass_concentration_is_accepted() -> None:
@@ -46,6 +47,7 @@ def test_concentration_range_constructor() -> None:
     assert concentration.ion is Ion.SULFATE
     assert concentration.minimum.magnitude == 50.0
     assert concentration.maximum.magnitude == 150.0
+    assert concentration.reported_average is None
 
 
 def test_concentration_range_accepts_convertible_units() -> None:
@@ -57,6 +59,42 @@ def test_concentration_range_accepts_convertible_units() -> None:
 
     assert concentration.minimum.to("milligram / liter").magnitude == 25.0
     assert concentration.maximum.to("milligram / liter").magnitude == 75.0
+
+
+def test_range_without_reported_average_uses_midpoint() -> None:
+    concentration = IonConcentrationRange.mg_per_liter(
+        Ion.SULFATE,
+        minimum=50.0,
+        maximum=150.0,
+    )
+
+    assert concentration.calculation_value.to("milligram / liter").magnitude == 100.0
+
+
+def test_reported_average_is_preserved_and_used_for_calculations() -> None:
+    concentration = IonConcentrationRange.mg_per_liter(
+        Ion.CALCIUM,
+        minimum=50.0,
+        maximum=53.0,
+        reported_average=51.0,
+    )
+
+    assert concentration.reported_average is not None
+    assert concentration.reported_average.to("milligram / liter").magnitude == 51.0
+    assert concentration.calculation_value.to("milligram / liter").magnitude == 51.0
+
+
+def test_reported_average_must_fall_within_range() -> None:
+    with pytest.raises(
+        ValueError,
+        match="reported average must fall within the reported range",
+    ):
+        IonConcentrationRange.mg_per_liter(
+            Ion.CALCIUM,
+            minimum=50.0,
+            maximum=53.0,
+            reported_average=54.0,
+        )
 
 
 def test_concentration_range_rejects_reversed_bounds() -> None:

@@ -114,3 +114,29 @@ def test_valid_ph_is_accepted(ph: float) -> None:
     )
 
     assert profile.ph == ph
+
+
+def test_source_profile_stores_reported_water_properties() -> None:
+    from water_treatment_engine.reported_properties import (
+        Alkalinity,
+        Conductivity,
+        TotalDissolvedSolids,
+        TotalHardness,
+    )
+
+    profile = SourceWaterProfile(
+        name="Example Water",
+        concentrations=(),
+        alkalinity=Alkalinity.mg_per_liter_as_caco3(108.0),
+        total_hardness=TotalHardness.mg_per_liter_as_caco3(140.0),
+        total_dissolved_solids=TotalDissolvedSolids.mg_per_liter(225.0),
+        conductivity=Conductivity.microsiemens_per_cm(
+            350.0,
+            reference_temperature_celsius=25.0,
+        ),
+    )
+
+    assert profile.alkalinity is not None
+    assert profile.total_hardness is not None
+    assert profile.total_dissolved_solids is not None
+    assert profile.conductivity is not None

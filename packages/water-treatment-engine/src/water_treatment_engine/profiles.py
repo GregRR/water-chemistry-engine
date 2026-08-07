@@ -4,6 +4,12 @@ from datetime import date
 from water_treatment_engine.concentrations import IonConcentrationValue
 from water_treatment_engine.ions import Ion
 from water_treatment_engine.provenance import SourceWaterProvenance
+from water_treatment_engine.reported_properties import (
+    Alkalinity,
+    Conductivity,
+    TotalDissolvedSolids,
+    TotalHardness,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -15,6 +21,10 @@ class SourceWaterProfile:
     ph: float | None = None
     observed_on: date | None = None
     provenance: SourceWaterProvenance | None = None
+    alkalinity: Alkalinity | None = None
+    total_hardness: TotalHardness | None = None
+    total_dissolved_solids: TotalDissolvedSolids | None = None
+    conductivity: Conductivity | None = None
 
     def __post_init__(self) -> None:
         if not self.name.strip():

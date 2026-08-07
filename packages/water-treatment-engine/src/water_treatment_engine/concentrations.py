@@ -26,6 +26,11 @@ class IonConcentration:
     def __post_init__(self) -> None:
         _validate_mass_concentration(self.value)
 
+    @property
+    def calculation_value(self) -> Quantity:
+        """Return the value to use for calculations."""
+        return self.value
+
     @classmethod
     def mg_per_liter(cls, ion: Ion, value: float) -> IonConcentration:
         """Construct an exact ion concentration reported in mg/L."""
@@ -39,6 +44,7 @@ class IonConcentrationRange:
     ion: Ion
     minimum: Quantity
     maximum: Quantity
+    reported_average: Quantity | None = None
 
     def __post_init__(self) -> None:
         _validate_mass_concentration(self.minimum)
@@ -50,18 +56,45 @@ class IonConcentrationRange:
         if minimum > maximum:
             raise ValueError("Ion concentration range minimum cannot exceed maximum.")
 
+        if self.reported_average is not None:
+            _validate_mass_concentration(self.reported_average)
+            reported_average = self.reported_average.to("milligram / liter").magnitude
+
+            if not minimum <= reported_average <= maximum:
+                raise ValueError(
+                    "Ion concentration reported average must fall within the "
+                    "reported range."
+                )
+
+    @property
+    def calculation_value(self) -> Quantity:
+        """Return the reported average or derive the midpoint of the range."""
+        if self.reported_average is not None:
+            return self.reported_average
+
+        return (self.minimum + self.maximum) / 2
+
     @classmethod
     def mg_per_liter(
         cls,
         ion: Ion,
         minimum: float,
         maximum: float,
+        *,
+        reported_average: float | None = None,
     ) -> IonConcentrationRange:
         """Construct an ion concentration range reported in mg/L."""
+        average_quantity = (
+            None
+            if reported_average is None
+            else Q_(reported_average, "milligram / liter")
+        )
+
         return cls(
             ion=ion,
             minimum=Q_(minimum, "milligram / liter"),
             maximum=Q_(maximum, "milligram / liter"),
+            reported_average=average_quantity,
         )
 
 
