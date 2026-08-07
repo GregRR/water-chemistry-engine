@@ -8,8 +8,13 @@ license = "MPL-2.0"
 authors = [
     { name = "Greg Roe" },
 ]
-dependencies = []
+dependencies = [
+    "ferm-units>=0.1.0,<0.2.0",
+]
 
 [build-system]
 requires = ["uv_build>=0.11.32,<0.12"]
 build-backend = "uv_build"
+
+[tool.uv.sources]
+ferm-units = { git = "https://github.com/GregRR/ferm-units", tag = "v0.1.0" }
