@@ -80,6 +80,21 @@ standalone graphical interface.
 - Direct integration into Mecha-Brew
 - Stable interfaces suitable for future mobile applications
 
+### AI-assisted water-report import
+
+- Upload municipal, bottled-water, or laboratory water-quality reports as PDF files
+- Extract relevant water chemistry and report metadata automatically
+- Preserve exact values, ranges, detection limits, units, reporting bases, and provenance
+- Preserve reported values separately from calculated or inferred values
+- Never silently convert reported alkalinity into bicarbonate or replace other reported quantities with derived equivalents
+- Identify the source page, table, or section for extracted values where practical
+- Present extracted values for user review and correction before saving
+- Allow extraction-confidence information to be shown where useful
+- Normalize accepted quantities with FermUnits after extraction
+- Apply deterministic validation before creating a SourceWaterProfile
+- Support dated saved reports so users can compare source-water chemistry over time
+- Keep document parsing and AI extraction outside the reusable engineering engine
+
 ## Version 2.0 — Advanced Brewing-Water Chemistry
 
 - Acid additions
