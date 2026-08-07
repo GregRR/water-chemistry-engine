@@ -4,6 +4,8 @@ from enum import StrEnum
 from fermunits import Q_
 from pint import Quantity
 
+from water_treatment_engine.reporting_context import ReportedResultContext
+
 
 class ReportingBasis(StrEnum):
     AS_CACO3 = "as_caco3"
@@ -130,6 +132,8 @@ class Alkalinity:
     reported_average: Quantity | None = None
     basis: ReportingBasis = ReportingBasis.AS_CACO3
 
+    result_context: ReportedResultContext | None = None
+
     def __post_init__(self) -> None:
         _validate_reported_values(
             value=self.value,
@@ -183,6 +187,8 @@ class TotalHardness:
     reported_average: Quantity | None = None
     basis: ReportingBasis = ReportingBasis.AS_CACO3
 
+    result_context: ReportedResultContext | None = None
+
     def __post_init__(self) -> None:
         _validate_reported_values(
             value=self.value,
@@ -234,6 +240,8 @@ class TotalDissolvedSolids:
     minimum: Quantity | None = None
     maximum: Quantity | None = None
     reported_average: Quantity | None = None
+
+    result_context: ReportedResultContext | None = None
 
     def __post_init__(self) -> None:
         _validate_reported_values(
@@ -287,6 +295,8 @@ class Conductivity:
     maximum: Quantity | None = None
     reported_average: Quantity | None = None
     reference_temperature_celsius: float | None = None
+
+    result_context: ReportedResultContext | None = None
 
     def __post_init__(self) -> None:
         _validate_reported_values(
@@ -354,6 +364,8 @@ class ReportedPH:
     minimum: float | None = None
     maximum: float | None = None
     reported_average: float | None = None
+
+    result_context: ReportedResultContext | None = None
 
     def __post_init__(self) -> None:
         for item in (

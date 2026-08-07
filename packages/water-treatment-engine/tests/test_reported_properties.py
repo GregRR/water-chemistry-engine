@@ -254,3 +254,49 @@ def test_exact_ph_cannot_be_combined_with_reported_average() -> None:
             value=7.2,
             reported_average=7.2,
         )
+
+
+def test_reported_property_preserves_result_specific_context() -> None:
+    from datetime import date
+
+    from water_treatment_engine.reporting_context import (
+        ObservationPeriod,
+        ReportedResultContext,
+        ResultCoverage,
+        WaterStage,
+    )
+
+    context = ReportedResultContext(
+        observation_period=ObservationPeriod(
+            start=date(2025, 1, 1),
+            end=date(2025, 12, 31),
+        ),
+        coverage=ResultCoverage.OBSERVATION_PERIOD_SUMMARY,
+        water_stage=WaterStage.TREATMENT_PLANT_OUTPUT,
+        sample_location="Example Treatment Plant",
+    )
+
+    measurement = Alkalinity(
+        value=Q_(108, "milligram / liter"),
+        result_context=context,
+    )
+
+    assert measurement.result_context is context
+
+
+def test_reported_ph_preserves_result_specific_context() -> None:
+    from water_treatment_engine.reporting_context import (
+        ReportedResultContext,
+        ResultCoverage,
+    )
+
+    context = ReportedResultContext(
+        coverage=ResultCoverage.TYPICAL_ANALYSIS,
+    )
+
+    measurement = ReportedPH(
+        reported_average=7.2,
+        result_context=context,
+    )
+
+    assert measurement.result_context is context

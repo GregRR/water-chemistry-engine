@@ -7,9 +7,10 @@ from water_treatment_engine.concentrations import (
     IonConcentrationUpperBound,
 )
 from water_treatment_engine.ions import Ion
-from water_treatment_engine.profiles import ObservationPeriod, SourceWaterProfile
+from water_treatment_engine.profiles import SourceWaterProfile
 from water_treatment_engine.provenance import SourceWaterProvenance
 from water_treatment_engine.reported_properties import ReportedPH
+from water_treatment_engine.reporting_context import ObservationPeriod
 
 
 def test_source_water_profile_stores_reported_chemistry() -> None:

@@ -11,18 +11,7 @@ from water_treatment_engine.reported_properties import (
     TotalDissolvedSolids,
     TotalHardness,
 )
-
-
-@dataclass(frozen=True, slots=True)
-class ObservationPeriod:
-    """Inclusive period over which reported water chemistry applies."""
-
-    start: date
-    end: date
-
-    def __post_init__(self) -> None:
-        if self.start > self.end:
-            raise ValueError("Observation period start cannot be after end.")
+from water_treatment_engine.reporting_context import ObservationPeriod
 
 
 @dataclass(frozen=True, slots=True)

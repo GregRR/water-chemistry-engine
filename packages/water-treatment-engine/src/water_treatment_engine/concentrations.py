@@ -5,6 +5,7 @@ from pint import Quantity
 
 from water_treatment_engine.ions import Ion
 from water_treatment_engine.reported_statistics import ReportedStatistic
+from water_treatment_engine.reporting_context import ReportedResultContext
 
 
 def _validate_mass_concentration(value: Quantity) -> None:
@@ -94,6 +95,7 @@ class IonConcentration:
     ion: Ion
     value: Quantity
     reported_statistic: ReportedStatistic | None = None
+    result_context: ReportedResultContext | None = None
 
     def __post_init__(self) -> None:
         _validate_mass_concentration(self.value)
@@ -118,6 +120,7 @@ class IonConcentrationRange:
     maximum: ConcentrationRangeEndpoint
     reported_average: Quantity | None = None
     reported_statistic: ReportedStatistic | None = None
+    result_context: ReportedResultContext | None = None
 
     def __post_init__(self) -> None:
         if isinstance(self.minimum, ExactConcentrationEndpoint) and isinstance(
@@ -193,6 +196,7 @@ class IonConcentrationUpperBound:
     ion: Ion
     maximum: Quantity
     reported_statistic: ReportedStatistic | None = None
+    result_context: ReportedResultContext | None = None
 
     def __post_init__(self) -> None:
         _validate_mass_concentration(self.maximum)
@@ -219,6 +223,7 @@ class IonConcentrationLowerBound:
     ion: Ion
     minimum: Quantity
     reported_statistic: ReportedStatistic | None = None
+    result_context: ReportedResultContext | None = None
 
     def __post_init__(self) -> None:
         _validate_mass_concentration(self.minimum)
@@ -245,6 +250,7 @@ class IonConcentrationNotDetected:
     ion: Ion
     detection_limit: Quantity | None = None
     reported_statistic: ReportedStatistic | None = None
+    result_context: ReportedResultContext | None = None
 
     def __post_init__(self) -> None:
         if self.detection_limit is not None:

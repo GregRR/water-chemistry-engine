@@ -219,3 +219,46 @@ def test_invalid_endpoint_quantity_is_rejected() -> None:
         match="Ion concentration must be convertible to mass per volume",
     ):
         UpperBoundConcentrationEndpoint(limit=Q_(3, "milligram"))
+
+
+def test_ion_result_preserves_result_specific_context() -> None:
+    from datetime import date
+
+    from water_treatment_engine.reporting_context import (
+        ReportedResultContext,
+        ResultCoverage,
+        WaterStage,
+    )
+
+    context = ReportedResultContext(
+        observed_on=date(2023, 6, 1),
+        coverage=ResultCoverage.SINGLE_OBSERVATION,
+        water_stage=WaterStage.TREATMENT_PLANT_OUTPUT,
+        sample_location="Example Treatment Plant",
+    )
+
+    concentration = IonConcentration(
+        ion=Ion.CALCIUM,
+        value=Q_(50, "milligram / liter"),
+        result_context=context,
+    )
+
+    assert concentration.result_context is context
+
+
+def test_not_detected_result_preserves_result_specific_context() -> None:
+    from water_treatment_engine.reporting_context import (
+        ReportedResultContext,
+        ResultCoverage,
+    )
+
+    context = ReportedResultContext(
+        coverage=ResultCoverage.TYPICAL_ANALYSIS,
+    )
+
+    concentration = IonConcentrationNotDetected(
+        ion=Ion.CHLORIDE,
+        result_context=context,
+    )
+
+    assert concentration.result_context is context
