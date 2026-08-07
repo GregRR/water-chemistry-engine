@@ -4,6 +4,7 @@ from fermunits import Q_
 from pint import Quantity
 
 from water_treatment_engine.ions import Ion
+from water_treatment_engine.reported_statistics import ReportedStatistic
 
 
 def _validate_mass_concentration(value: Quantity) -> None:
@@ -17,11 +18,82 @@ def _validate_mass_concentration(value: Quantity) -> None:
 
 
 @dataclass(frozen=True, slots=True)
+class ExactConcentrationEndpoint:
+    """Exact numeric endpoint of a reported concentration range."""
+
+    value: Quantity
+
+    def __post_init__(self) -> None:
+        _validate_mass_concentration(self.value)
+
+    @classmethod
+    def mg_per_liter(cls, value: float) -> ExactConcentrationEndpoint:
+        return cls(value=Q_(value, "milligram / liter"))
+
+
+@dataclass(frozen=True, slots=True)
+class UpperBoundConcentrationEndpoint:
+    """Range endpoint reported as less than a numerical limit."""
+
+    limit: Quantity
+
+    def __post_init__(self) -> None:
+        _validate_mass_concentration(self.limit)
+
+    @classmethod
+    def mg_per_liter(cls, limit: float) -> UpperBoundConcentrationEndpoint:
+        return cls(limit=Q_(limit, "milligram / liter"))
+
+
+@dataclass(frozen=True, slots=True)
+class LowerBoundConcentrationEndpoint:
+    """Range endpoint reported as greater than a numerical limit."""
+
+    limit: Quantity
+
+    def __post_init__(self) -> None:
+        _validate_mass_concentration(self.limit)
+
+    @classmethod
+    def mg_per_liter(cls, limit: float) -> LowerBoundConcentrationEndpoint:
+        return cls(limit=Q_(limit, "milligram / liter"))
+
+
+@dataclass(frozen=True, slots=True)
+class NotDetectedConcentrationEndpoint:
+    """Range endpoint explicitly reported as not detected."""
+
+    detection_limit: Quantity | None = None
+
+    def __post_init__(self) -> None:
+        if self.detection_limit is not None:
+            _validate_mass_concentration(self.detection_limit)
+
+    @classmethod
+    def with_detection_limit_mg_per_liter(
+        cls,
+        detection_limit: float,
+    ) -> NotDetectedConcentrationEndpoint:
+        return cls(
+            detection_limit=Q_(detection_limit, "milligram / liter"),
+        )
+
+
+type ConcentrationRangeEndpoint = (
+    ExactConcentrationEndpoint
+    | UpperBoundConcentrationEndpoint
+    | LowerBoundConcentrationEndpoint
+    | NotDetectedConcentrationEndpoint
+)
+
+
+@dataclass(frozen=True, slots=True)
 class IonConcentration:
     """Exact reported concentration of a single ion."""
 
     ion: Ion
     value: Quantity
+    reported_statistic: ReportedStatistic | None = None
 
     def __post_init__(self) -> None:
         _validate_mass_concentration(self.value)
@@ -39,40 +111,58 @@ class IonConcentration:
 
 @dataclass(frozen=True, slots=True)
 class IonConcentrationRange:
-    """Reported concentration range for a single ion."""
+    """Reported concentration range whose endpoints may themselves be qualified."""
 
     ion: Ion
-    minimum: Quantity
-    maximum: Quantity
+    minimum: ConcentrationRangeEndpoint
+    maximum: ConcentrationRangeEndpoint
     reported_average: Quantity | None = None
+    reported_statistic: ReportedStatistic | None = None
 
     def __post_init__(self) -> None:
-        _validate_mass_concentration(self.minimum)
-        _validate_mass_concentration(self.maximum)
+        if isinstance(self.minimum, ExactConcentrationEndpoint) and isinstance(
+            self.maximum,
+            ExactConcentrationEndpoint,
+        ):
+            minimum = self.minimum.value.to("milligram / liter").magnitude
+            maximum = self.maximum.value.to("milligram / liter").magnitude
 
-        minimum = self.minimum.to("milligram / liter").magnitude
-        maximum = self.maximum.to("milligram / liter").magnitude
-
-        if minimum > maximum:
-            raise ValueError("Ion concentration range minimum cannot exceed maximum.")
-
-        if self.reported_average is not None:
-            _validate_mass_concentration(self.reported_average)
-            reported_average = self.reported_average.to("milligram / liter").magnitude
-
-            if not minimum <= reported_average <= maximum:
+            if minimum > maximum:
                 raise ValueError(
-                    "Ion concentration reported average must fall within the "
-                    "reported range."
+                    "Ion concentration range minimum cannot exceed maximum."
                 )
+
+            if self.reported_average is not None:
+                _validate_mass_concentration(self.reported_average)
+                reported_average = self.reported_average.to(
+                    "milligram / liter"
+                ).magnitude
+
+                if not minimum <= reported_average <= maximum:
+                    raise ValueError(
+                        "Ion concentration reported average must fall within "
+                        "the reported range."
+                    )
+
+        elif self.reported_average is not None:
+            _validate_mass_concentration(self.reported_average)
 
     @property
     def calculation_value(self) -> Quantity:
-        """Return the reported average or derive the midpoint of the range."""
+        """Return a source average or derive a midpoint only for an exact range."""
         if self.reported_average is not None:
             return self.reported_average
 
-        return (self.minimum + self.maximum) / 2
+        if isinstance(self.minimum, ExactConcentrationEndpoint) and isinstance(
+            self.maximum,
+            ExactConcentrationEndpoint,
+        ):
+            return (self.minimum.value + self.maximum.value) / 2
+
+        raise ValueError(
+            "A qualified concentration range has no automatic representative "
+            "calculation value."
+        )
 
     @classmethod
     def mg_per_liter(
@@ -83,18 +173,16 @@ class IonConcentrationRange:
         *,
         reported_average: float | None = None,
     ) -> IonConcentrationRange:
-        """Construct an ion concentration range reported in mg/L."""
-        average_quantity = (
-            None
-            if reported_average is None
-            else Q_(reported_average, "milligram / liter")
-        )
-
+        """Construct an ordinary exact-endpoint concentration range in mg/L."""
         return cls(
             ion=ion,
-            minimum=Q_(minimum, "milligram / liter"),
-            maximum=Q_(maximum, "milligram / liter"),
-            reported_average=average_quantity,
+            minimum=ExactConcentrationEndpoint.mg_per_liter(minimum),
+            maximum=ExactConcentrationEndpoint.mg_per_liter(maximum),
+            reported_average=(
+                None
+                if reported_average is None
+                else Q_(reported_average, "milligram / liter")
+            ),
         )
 
 
@@ -104,6 +192,7 @@ class IonConcentrationUpperBound:
 
     ion: Ion
     maximum: Quantity
+    reported_statistic: ReportedStatistic | None = None
 
     def __post_init__(self) -> None:
         _validate_mass_concentration(self.maximum)
@@ -117,13 +206,66 @@ class IonConcentrationUpperBound:
         ion: Ion,
         maximum: float,
     ) -> IonConcentrationUpperBound:
-        """Construct a less-than concentration reported in mg/L."""
         return cls(
             ion=ion,
             maximum=Q_(maximum, "milligram / liter"),
         )
 
 
+@dataclass(frozen=True, slots=True)
+class IonConcentrationLowerBound:
+    """Reported ion concentration known only to exceed a lower bound."""
+
+    ion: Ion
+    minimum: Quantity
+    reported_statistic: ReportedStatistic | None = None
+
+    def __post_init__(self) -> None:
+        _validate_mass_concentration(self.minimum)
+
+        if self.minimum.to("milligram / liter").magnitude < 0:
+            raise ValueError("Ion concentration lower bound cannot be negative.")
+
+    @classmethod
+    def mg_per_liter(
+        cls,
+        ion: Ion,
+        minimum: float,
+    ) -> IonConcentrationLowerBound:
+        return cls(
+            ion=ion,
+            minimum=Q_(minimum, "milligram / liter"),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class IonConcentrationNotDetected:
+    """Ion result explicitly reported as not detected."""
+
+    ion: Ion
+    detection_limit: Quantity | None = None
+    reported_statistic: ReportedStatistic | None = None
+
+    def __post_init__(self) -> None:
+        if self.detection_limit is not None:
+            _validate_mass_concentration(self.detection_limit)
+
+    @classmethod
+    def with_detection_limit_mg_per_liter(
+        cls,
+        ion: Ion,
+        detection_limit: float,
+    ) -> IonConcentrationNotDetected:
+        return cls(
+            ion=ion,
+            detection_limit=Q_(detection_limit, "milligram / liter"),
+        )
+
+
 type IonConcentrationValue = (
-    IonConcentration | IonConcentrationRange | IonConcentrationUpperBound
+    IonConcentration
+    | IonConcentrationRange
+    | IonConcentrationUpperBound
+    | IonConcentrationLowerBound
+    | IonConcentrationNotDetected
 )
