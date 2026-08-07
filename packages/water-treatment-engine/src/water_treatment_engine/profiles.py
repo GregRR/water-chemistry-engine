@@ -3,6 +3,7 @@ from datetime import date
 
 from water_treatment_engine.concentrations import IonConcentrationValue
 from water_treatment_engine.ions import Ion
+from water_treatment_engine.provenance import SourceWaterProvenance
 
 
 @dataclass(frozen=True, slots=True)
@@ -13,6 +14,7 @@ class SourceWaterProfile:
     concentrations: tuple[IonConcentrationValue, ...]
     ph: float | None = None
     observed_on: date | None = None
+    provenance: SourceWaterProvenance | None = None
 
     def __post_init__(self) -> None:
         if not self.name.strip():

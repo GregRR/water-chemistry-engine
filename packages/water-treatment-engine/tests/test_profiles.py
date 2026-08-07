@@ -8,6 +8,7 @@ from water_treatment_engine.concentrations import (
 )
 from water_treatment_engine.ions import Ion
 from water_treatment_engine.profiles import SourceWaterProfile
+from water_treatment_engine.provenance import SourceWaterProvenance
 
 
 def test_source_water_profile_stores_reported_chemistry() -> None:
@@ -21,20 +22,36 @@ def test_source_water_profile_stores_reported_chemistry() -> None:
         Ion.SODIUM,
         maximum=5.0,
     )
+    provenance = SourceWaterProvenance(
+        provider="Example Water Company",
+        report_title="2026 Water Quality Report",
+        source_url="https://example.com/water-report.pdf",
+    )
 
     profile = SourceWaterProfile(
         name="Example Municipal Water",
         concentrations=(calcium, sulfate, sodium),
         ph=7.6,
         observed_on=date(2026, 7, 1),
+        provenance=provenance,
     )
 
     assert profile.name == "Example Municipal Water"
     assert profile.ph == 7.6
     assert profile.observed_on == date(2026, 7, 1)
+    assert profile.provenance is provenance
     assert profile.concentration_for(Ion.CALCIUM) is calcium
     assert profile.concentration_for(Ion.SULFATE) is sulfate
     assert profile.concentration_for(Ion.SODIUM) is sodium
+
+
+def test_profile_can_exist_without_provenance() -> None:
+    profile = SourceWaterProfile(
+        name="Manually Entered Water",
+        concentrations=(),
+    )
+
+    assert profile.provenance is None
 
 
 def test_missing_ion_returns_none() -> None:
