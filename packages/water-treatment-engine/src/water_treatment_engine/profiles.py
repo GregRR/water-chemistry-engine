@@ -7,6 +7,7 @@ from water_treatment_engine.provenance import SourceWaterProvenance
 from water_treatment_engine.reported_properties import (
     Alkalinity,
     Conductivity,
+    ReportedPH,
     TotalDissolvedSolids,
     TotalHardness,
 )
@@ -18,7 +19,7 @@ class SourceWaterProfile:
 
     name: str
     concentrations: tuple[IonConcentrationValue, ...]
-    ph: float | None = None
+    ph: ReportedPH | None = None
     observed_on: date | None = None
     provenance: SourceWaterProvenance | None = None
     alkalinity: Alkalinity | None = None
@@ -35,9 +36,6 @@ class SourceWaterProfile:
             raise ValueError(
                 "Source water profile cannot contain duplicate ion concentrations."
             )
-
-        if self.ph is not None and not 0.0 <= self.ph <= 14.0:
-            raise ValueError("Source water profile pH must be between 0 and 14.")
 
     def concentration_for(self, ion: Ion) -> IonConcentrationValue | None:
         """Return the reported concentration for an ion, if present."""

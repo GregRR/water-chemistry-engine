@@ -9,6 +9,7 @@ from water_treatment_engine.concentrations import (
 from water_treatment_engine.ions import Ion
 from water_treatment_engine.profiles import SourceWaterProfile
 from water_treatment_engine.provenance import SourceWaterProvenance
+from water_treatment_engine.reported_properties import ReportedPH
 
 
 def test_source_water_profile_stores_reported_chemistry() -> None:
@@ -31,13 +32,14 @@ def test_source_water_profile_stores_reported_chemistry() -> None:
     profile = SourceWaterProfile(
         name="Example Municipal Water",
         concentrations=(calcium, sulfate, sodium),
-        ph=7.6,
+        ph=ReportedPH.exact(7.6),
         observed_on=date(2026, 7, 1),
         provenance=provenance,
     )
 
     assert profile.name == "Example Municipal Water"
-    assert profile.ph == 7.6
+    assert profile.ph is not None
+    assert profile.ph.calculation_value == 7.6
     assert profile.observed_on == date(2026, 7, 1)
     assert profile.provenance is provenance
     assert profile.concentration_for(Ion.CALCIUM) is calcium
@@ -92,28 +94,45 @@ def test_duplicate_ions_are_rejected() -> None:
         )
 
 
-@pytest.mark.parametrize("ph", [-0.1, 14.1])
-def test_invalid_ph_is_rejected(ph: float) -> None:
-    with pytest.raises(
-        ValueError,
-        match="pH must be between 0 and 14",
-    ):
-        SourceWaterProfile(
-            name="Example Water",
-            concentrations=(),
-            ph=ph,
-        )
+def test_source_profile_accepts_reported_ph_range_and_average() -> None:
+    ph = ReportedPH.range(
+        minimum=7.0,
+        maximum=7.4,
+        reported_average=7.2,
+    )
 
-
-@pytest.mark.parametrize("ph", [0.0, 7.0, 14.0])
-def test_valid_ph_is_accepted(ph: float) -> None:
     profile = SourceWaterProfile(
         name="Example Water",
         concentrations=(),
         ph=ph,
     )
 
-    assert profile.ph == ph
+    assert profile.ph is ph
+    assert profile.ph.minimum == 7.0
+    assert profile.ph.maximum == 7.4
+    assert profile.ph.reported_average == 7.2
+    assert profile.ph.calculation_value == 7.2
+
+
+def test_source_profile_preserves_range_only_ph() -> None:
+    ph = ReportedPH.range(
+        minimum=7.0,
+        maximum=7.4,
+    )
+
+    profile = SourceWaterProfile(
+        name="Example Water",
+        concentrations=(),
+        ph=ph,
+    )
+
+    assert profile.ph is ph
+
+    with pytest.raises(
+        ValueError,
+        match="range alone has no representative calculation value",
+    ):
+        _ = profile.ph.calculation_value
 
 
 def test_source_profile_stores_reported_water_properties() -> None:
