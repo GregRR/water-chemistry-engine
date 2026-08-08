@@ -452,7 +452,7 @@ These values are useful metadata for interpreting a report but they are **not me
 
 If retained, regulatory/reference thresholds must live in a separate structure from reported chemistry.
 
-### 9.12 SourceWaterProvenance
+### 9.12 SourceDocumentMetadata
 
 Source-water provenance is an immutable object that may contain:
 

@@ -3,7 +3,6 @@ from datetime import date
 
 from water_treatment_engine.concentrations import IonConcentrationValue
 from water_treatment_engine.ions import Ion
-from water_treatment_engine.provenance import SourceWaterProvenance
 from water_treatment_engine.reported_properties import (
     Alkalinity,
     Conductivity,
@@ -12,6 +11,8 @@ from water_treatment_engine.reported_properties import (
     TotalHardness,
 )
 from water_treatment_engine.reporting_context import ObservationPeriod
+from water_treatment_engine.source_document import SourceDocumentMetadata
+from water_treatment_engine.water_identity import WaterIdentity
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,7 +24,8 @@ class SourceWaterProfile:
     ph: ReportedPH | None = None
     observed_on: date | None = None
     observation_period: ObservationPeriod | None = None
-    provenance: SourceWaterProvenance | None = None
+    identity: WaterIdentity | None = None
+    source_document: SourceDocumentMetadata | None = None
     alkalinity: Alkalinity | None = None
     total_hardness: TotalHardness | None = None
     total_dissolved_solids: TotalDissolvedSolids | None = None

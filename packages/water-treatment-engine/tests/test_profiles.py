@@ -8,9 +8,9 @@ from water_treatment_engine.concentrations import (
 )
 from water_treatment_engine.ions import Ion
 from water_treatment_engine.profiles import SourceWaterProfile
-from water_treatment_engine.provenance import SourceWaterProvenance
 from water_treatment_engine.reported_properties import ReportedPH
 from water_treatment_engine.reporting_context import ObservationPeriod
+from water_treatment_engine.source_document import SourceDocumentMetadata
 
 
 def test_source_water_profile_stores_reported_chemistry() -> None:
@@ -24,9 +24,9 @@ def test_source_water_profile_stores_reported_chemistry() -> None:
         Ion.SODIUM,
         maximum=5.0,
     )
-    provenance = SourceWaterProvenance(
-        provider="Example Water Company",
-        report_title="2026 Water Quality Report",
+    source_document = SourceDocumentMetadata(
+        publisher="Example Water Company",
+        title="2026 Water Quality Report",
         source_url="https://example.com/water-report.pdf",
     )
 
@@ -35,26 +35,26 @@ def test_source_water_profile_stores_reported_chemistry() -> None:
         concentrations=(calcium, sulfate, sodium),
         ph=ReportedPH.exact(7.6),
         observed_on=date(2026, 7, 1),
-        provenance=provenance,
+        source_document=source_document,
     )
 
     assert profile.name == "Example Municipal Water"
     assert profile.ph is not None
     assert profile.ph.calculation_value == 7.6
     assert profile.observed_on == date(2026, 7, 1)
-    assert profile.provenance is provenance
+    assert profile.source_document is source_document
     assert profile.concentration_for(Ion.CALCIUM) is calcium
     assert profile.concentration_for(Ion.SULFATE) is sulfate
     assert profile.concentration_for(Ion.SODIUM) is sodium
 
 
-def test_profile_can_exist_without_provenance() -> None:
+def test_profile_can_exist_without_source_document() -> None:
     profile = SourceWaterProfile(
         name="Manually Entered Water",
         concentrations=(),
     )
 
-    assert profile.provenance is None
+    assert profile.source_document is None
 
 
 def test_missing_ion_returns_none() -> None:
@@ -203,3 +203,49 @@ def test_profile_rejects_single_date_and_period_together() -> None:
                 end=date(2025, 12, 31),
             ),
         )
+
+
+def test_source_profile_preserves_water_identity() -> None:
+    from water_treatment_engine.water_identity import (
+        PhysicalSourceType,
+        PhysicalWaterSource,
+        WaterIdentity,
+        WaterType,
+    )
+
+    identity = WaterIdentity(
+        provider="Example Water Utility",
+        water_type=WaterType.MUNICIPAL_WATER,
+        physical_sources=(
+            PhysicalWaterSource(
+                source_type=PhysicalSourceType.RESERVOIR,
+                name="Example Reservoir",
+            ),
+        ),
+    )
+
+    profile = SourceWaterProfile(
+        name="Example Municipal Water",
+        concentrations=(),
+        identity=identity,
+    )
+
+    assert profile.identity is identity
+
+
+def test_source_profile_preserves_source_document_metadata() -> None:
+    from water_treatment_engine.source_document import SourceDocumentMetadata
+
+    source_document = SourceDocumentMetadata(
+        publisher="Example Water Utility",
+        analysis_provider="Example Laboratory",
+        title="2025 Water Quality Report",
+    )
+
+    profile = SourceWaterProfile(
+        name="Example Water",
+        concentrations=(),
+        source_document=source_document,
+    )
+
+    assert profile.source_document is source_document
