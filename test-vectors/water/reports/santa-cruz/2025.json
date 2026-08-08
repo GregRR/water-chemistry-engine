@@ -1,0 +1,358 @@
+{
+  "fixture_format": "water-treatment-real-report-v1",
+  "report_id": "santa-cruz-2025",
+  "source_document": {
+    "publisher": "City of Santa Cruz Water Department",
+    "analysis_provider": "City of Santa Cruz Water Department Water Quality Laboratory",
+    "title": "2025 Annual Water Quality Report",
+    "source_url": "https://www.santacruzca.gov/files/assets/city/v/1/wt/documents/water-quality-reports/scwd-wqr-2025.pdf",
+    "retrieved_on": "2026-08-08",
+    "page_reference": "Pages 15-16",
+    "notes": "Treatment-plant averages and ranges reported for calendar year 2025. Regulatory limits are not modeled as source-water chemistry."
+  },
+  "profiles": [
+    {
+      "name": "Santa Cruz 2025 - Graham Hill Water Treatment Plant",
+      "identity": {
+        "provider": "City of Santa Cruz Water Department",
+        "water_type": "municipal_water",
+        "physical_sources": [
+          {
+            "source_type": "river",
+            "name": "San Lorenzo River"
+          },
+          {
+            "source_type": "well",
+            "name": "Tait Wells"
+          },
+          {
+            "source_type": "reservoir",
+            "name": "Loch Lomond Reservoir"
+          },
+          {
+            "source_type": "spring",
+            "name": "Liddell Spring"
+          },
+          {
+            "source_type": "surface_water",
+            "name": "Laguna Creek"
+          },
+          {
+            "source_type": "surface_water",
+            "name": "Majors Creek"
+          }
+        ]
+      },
+      "observation_period": {
+        "start": "2025-01-01",
+        "end": "2025-12-31"
+      },
+      "result_context": {
+        "coverage": "observation_period_summary",
+        "water_stage": "treatment_plant_output",
+        "sample_location": "Graham Hill Water Treatment Plant"
+      },
+      "concentrations": {
+        "calcium": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reported_average": 51.0,
+          "minimum": 50.0,
+          "maximum": 53.0
+        },
+        "magnesium": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reported_average": 9.3,
+          "minimum": 9.1,
+          "maximum": 9.7
+        },
+        "sodium": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reported_average": 22.0,
+          "minimum": 20.0,
+          "maximum": 23.0
+        },
+        "potassium": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reported_average": 2.2,
+          "minimum": 1.9,
+          "maximum": 2.4
+        },
+        "chloride": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reported_average": 22.0,
+          "minimum": 19.0,
+          "maximum": 25.0
+        },
+        "sulfate": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reported_average": 72.0,
+          "minimum": 63.0,
+          "maximum": 75.0
+        }
+      },
+      "ph": {
+        "form": "range",
+        "reported_average": 7.2,
+        "minimum": 7.0,
+        "maximum": 7.4
+      },
+      "properties": {
+        "alkalinity": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reporting_basis": "as_caco3",
+          "reported_average": 108.0,
+          "minimum": 86.0,
+          "maximum": 118.0
+        },
+        "total_hardness": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reporting_basis": "as_caco3",
+          "reported_average": 160.0,
+          "minimum": 136.0,
+          "maximum": 192.0
+        },
+        "total_dissolved_solids": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reported_average": 262.0,
+          "minimum": 260.0,
+          "maximum": 270.0
+        },
+        "conductivity": {
+          "form": "range",
+          "unit": "microsiemens / centimeter",
+          "reference_temperature_celsius": null,
+          "reported_average": 436.0,
+          "minimum": 375.0,
+          "maximum": 455.0
+        }
+      }
+    },
+    {
+      "name": "Santa Cruz 2025 - Beltz Water Treatment Plant",
+      "identity": {
+        "provider": "City of Santa Cruz Water Department",
+        "water_type": "municipal_water",
+        "physical_sources": [
+          {
+            "source_type": "well",
+            "name": "Beltz Well 8"
+          },
+          {
+            "source_type": "well",
+            "name": "Beltz Well 9"
+          },
+          {
+            "source_type": "well",
+            "name": "Beltz Well 10"
+          }
+        ]
+      },
+      "observation_period": {
+        "start": "2025-01-01",
+        "end": "2025-12-31"
+      },
+      "result_context": {
+        "coverage": "observation_period_summary",
+        "water_stage": "treatment_plant_output",
+        "sample_location": "Beltz Water Treatment Plant"
+      },
+      "concentrations": {
+        "calcium": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reported_average": 77.0,
+          "minimum": 73.0,
+          "maximum": 80.0
+        },
+        "magnesium": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reported_average": 19.0,
+          "minimum": 18.0,
+          "maximum": 20.0
+        },
+        "sodium": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reported_average": 50.0,
+          "minimum": 47.0,
+          "maximum": 52.0
+        },
+        "potassium": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reported_average": 7.0,
+          "minimum": 6.3,
+          "maximum": 7.5
+        },
+        "chloride": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reported_average": 57.0,
+          "minimum": 51.0,
+          "maximum": 65.0
+        },
+        "sulfate": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reported_average": 152.0,
+          "minimum": 140.0,
+          "maximum": 160.0
+        }
+      },
+      "ph": {
+        "form": "range",
+        "reported_average": 8.0,
+        "minimum": 7.9,
+        "maximum": 8.4
+      },
+      "properties": {
+        "alkalinity": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reporting_basis": "as_caco3",
+          "reported_average": 149.0,
+          "minimum": 106.0,
+          "maximum": 160.0
+        },
+        "total_hardness": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reporting_basis": "as_caco3",
+          "reported_average": 258.0,
+          "minimum": 200.0,
+          "maximum": 272.0
+        },
+        "total_dissolved_solids": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reported_average": 508.0,
+          "minimum": 490.0,
+          "maximum": 530.0
+        },
+        "conductivity": {
+          "form": "range",
+          "unit": "microsiemens / centimeter",
+          "reference_temperature_celsius": null,
+          "reported_average": 744.0,
+          "minimum": 605.0,
+          "maximum": 785.0
+        }
+      }
+    },
+    {
+      "name": "Santa Cruz 2025 - Beltz 12 Water Treatment Plant",
+      "identity": {
+        "provider": "City of Santa Cruz Water Department",
+        "water_type": "municipal_water",
+        "physical_sources": [
+          {
+            "source_type": "well",
+            "name": "Beltz Well 12"
+          }
+        ]
+      },
+      "observation_period": {
+        "start": "2025-01-01",
+        "end": "2025-12-31"
+      },
+      "result_context": {
+        "coverage": "observation_period_summary",
+        "water_stage": "treatment_plant_output",
+        "sample_location": "Beltz 12 Water Treatment Plant"
+      },
+      "concentrations": {
+        "calcium": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reported_average": 68.0,
+          "minimum": 66.0,
+          "maximum": 70.0
+        },
+        "magnesium": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reported_average": 25.0,
+          "minimum": 20.0,
+          "maximum": 28.0
+        },
+        "sodium": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reported_average": 32.0,
+          "minimum": 30.0,
+          "maximum": 35.0
+        },
+        "potassium": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reported_average": 4.1,
+          "minimum": 3.7,
+          "maximum": 4.3
+        },
+        "chloride": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reported_average": 40.0,
+          "minimum": 38.0,
+          "maximum": 43.0
+        },
+        "sulfate": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reported_average": 91.0,
+          "minimum": 89.0,
+          "maximum": 93.0
+        }
+      },
+      "ph": {
+        "form": "range",
+        "reported_average": 7.4,
+        "minimum": 7.2,
+        "maximum": 7.5
+      },
+      "properties": {
+        "alkalinity": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reporting_basis": "as_caco3",
+          "reported_average": 182.0,
+          "minimum": 164.0,
+          "maximum": 202.0
+        },
+        "total_hardness": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reporting_basis": "as_caco3",
+          "reported_average": 265.0,
+          "minimum": 236.0,
+          "maximum": 288.0
+        },
+        "total_dissolved_solids": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "reported_average": 435.0,
+          "minimum": 400.0,
+          "maximum": 460.0
+        },
+        "conductivity": {
+          "form": "range",
+          "unit": "microsiemens / centimeter",
+          "reference_temperature_celsius": null,
+          "reported_average": 660.0,
+          "minimum": 615.0,
+          "maximum": 690.0
+        }
+      }
+    }
+  ]
+}
