@@ -7,7 +7,7 @@
     "source_url": "https://www.niagarawater.com/wp-content/uploads/2024/06/Niagara-WQR-English-2024_060324CS-lr.pdf",
     "retrieved_on": "2026-08-08",
     "page_reference": "Pages 11-14, Water Quality Analysis (2023)",
-    "notes": "The 2024 report contains a Water Quality Analysis labeled 2023. Level Found values are averages of applicable facility results; the report states that ND results were assigned zero when calculating those averages. The Spring Water column aggregates applicable facilities and does not identify individual spring sources. Internal and third-party laboratories are both described in the report, so no single analysis_provider is asserted for this table. The table also reports Bicarb.Alkalinity at 65 mg/L HCO3 for Spring Water; this fixture preserves that as an unmodeled source result rather than reinterpreting it as bicarbonate ion concentration."
+    "notes": "The 2024 report contains a Water Quality Analysis labeled 2023. Level Found values are averages of applicable facility results; the report states that ND results were assigned zero when calculating those averages. The Spring Water column aggregates applicable facilities and does not identify individual spring sources. Internal and third-party laboratories are both described in the report, so no single analysis_provider is asserted for this table. The table reports Bicarb.Alkalinity at 65 mg/L HCO3 for Spring Water. Because the source explicitly reports this value on an HCO3 mass basis, the fixture normalizes it to the existing bicarbonate ion concentration field; it is not derived from the separately reported total alkalinity."
   },
   "profiles": [
     {
@@ -80,6 +80,15 @@
             "kind": "reported_average",
             "label": "Average of applicable facility results; the source states that ND results were assigned zero when calculating these averages."
           }
+        },
+        "bicarbonate": {
+          "form": "value",
+          "unit": "milligram / liter",
+          "value": 65.0,
+          "reported_statistic": {
+            "kind": "reported_average",
+            "label": "Source label: Bicarb.Alkalinity. Average of applicable facility results; the source states that ND results were assigned zero when calculating these averages."
+          }
         }
       },
       "ph": {
@@ -110,15 +119,7 @@
           "reference_temperature_celsius": 25.0,
           "reported_average": 192.0
         }
-      },
-      "unmodeled_source_results": [
-        {
-          "source_label": "Bicarb.Alkalinity",
-          "reported_value": 65.0,
-          "reported_unit": "mg/L HCO3",
-          "reason": "The source labels this result as bicarbonate alkalinity rather than bicarbonate ion concentration. It is intentionally not mapped to Ion.BICARBONATE."
-        }
-      ]
+      }
     }
   ]
 }
