@@ -24,6 +24,10 @@ from water_treatment_engine.reported_properties import (
     TotalDissolvedSolids,
     TotalHardness,
 )
+from water_treatment_engine.reported_statistics import (
+    ReportedStatistic,
+    ReportedStatisticKind,
+)
 from water_treatment_engine.reporting_context import (
     ObservationPeriod,
     ReportedResultContext,
@@ -129,6 +133,19 @@ def _load_identity(data: Mapping[str, Any] | None) -> WaterIdentity | None:
     )
 
 
+def _load_reported_statistic(
+    data: Mapping[str, Any] | None,
+) -> ReportedStatistic | None:
+    if data is None:
+        return None
+
+    return ReportedStatistic(
+        kind=ReportedStatisticKind(data["kind"]),
+        percentile=data.get("percentile"),
+        label=data.get("label"),
+    )
+
+
 def _load_concentration(
     ion_name: str,
     data: Mapping[str, Any],
@@ -144,11 +161,13 @@ def _load_concentration(
     ion = Ion(ion_name)
     unit = data.get("unit", "milligram / liter")
     form = data["form"]
+    reported_statistic = _load_reported_statistic(data.get("reported_statistic"))
 
-    if form == "exact":
+    if form in {"exact", "value"}:
         return IonConcentration(
             ion=ion,
             value=Q_(data["value"], unit),
+            reported_statistic=reported_statistic,
             result_context=result_context,
         )
 
@@ -162,6 +181,7 @@ def _load_concentration(
                 if data.get("reported_average") is not None
                 else None
             ),
+            reported_statistic=reported_statistic,
             result_context=result_context,
         )
 
@@ -169,6 +189,7 @@ def _load_concentration(
         return IonConcentrationUpperBound(
             ion=ion,
             maximum=Q_(data["maximum"], unit),
+            reported_statistic=reported_statistic,
             result_context=result_context,
         )
 
@@ -176,6 +197,7 @@ def _load_concentration(
         return IonConcentrationLowerBound(
             ion=ion,
             minimum=Q_(data["minimum"], unit),
+            reported_statistic=reported_statistic,
             result_context=result_context,
         )
 
@@ -187,6 +209,7 @@ def _load_concentration(
                 if data.get("detection_limit") is not None
                 else None
             ),
+            reported_statistic=reported_statistic,
             result_context=result_context,
         )
 
@@ -382,6 +405,13 @@ def test_real_report_fixture_preserves_reported_values(
             result = profile.concentration_for(Ion(ion_name))
             assert result is not None
 
+            if raw_result["form"] in {"exact", "value"}:
+                assert isinstance(result, IonConcentration)
+                unit = raw_result["unit"]
+                assert result.value.to(unit).magnitude == pytest.approx(
+                    raw_result["value"]
+                )
+
             if raw_result["form"] == "range":
                 assert isinstance(result, IonConcentrationRange)
                 unit = raw_result["unit"]
@@ -407,6 +437,51 @@ def test_real_report_fixture_preserves_reported_values(
                 assert profile.ph.calculation_value == pytest.approx(
                     raw_ph["reported_average"]
                 )
+
+        for property_name, raw_result in raw_profile.get("properties", {}).items():
+            result = getattr(profile, property_name)
+            assert result is not None
+            unit = raw_result["unit"]
+
+            for field in ("value", "minimum", "maximum", "reported_average"):
+                raw_value = raw_result.get(field)
+                if raw_value is None:
+                    continue
+
+                result_value = getattr(result, field)
+                assert result_value is not None
+                assert result_value.to(unit).magnitude == pytest.approx(raw_value)
+
+            if raw_result.get("reporting_basis") is not None:
+                assert result.basis is ReportingBasis(raw_result["reporting_basis"])
+
+
+@pytest.mark.parametrize(
+    "fixture_path",
+    FIXTURE_PATHS,
+    ids=lambda path: str(path.relative_to(REPORT_FIXTURE_ROOT)),
+)
+def test_real_report_fixture_preserves_reported_statistics(
+    fixture_path: Path,
+) -> None:
+    data, profiles = _load_fixture(fixture_path)
+
+    for raw_profile, profile in zip(data["profiles"], profiles, strict=True):
+        for ion_name, raw_result in raw_profile.get("concentrations", {}).items():
+            raw_statistic = raw_result.get("reported_statistic")
+            if raw_statistic is None:
+                continue
+
+            result = profile.concentration_for(Ion(ion_name))
+            assert result is not None
+            assert result.reported_statistic is not None
+            assert result.reported_statistic.kind is ReportedStatisticKind(
+                raw_statistic["kind"]
+            )
+            assert result.reported_statistic.percentile == raw_statistic.get(
+                "percentile"
+            )
+            assert result.reported_statistic.label == raw_statistic.get("label")
 
 
 @pytest.mark.parametrize(

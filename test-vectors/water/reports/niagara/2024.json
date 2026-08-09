@@ -1,0 +1,124 @@
+{
+  "fixture_format": "water-treatment-real-report-v1",
+  "report_id": "niagara-2024-report-2023-analysis",
+  "source_document": {
+    "publisher": "Niagara Bottling, LLC",
+    "title": "Water Quality Report 2024",
+    "source_url": "https://www.niagarawater.com/wp-content/uploads/2024/06/Niagara-WQR-English-2024_060324CS-lr.pdf",
+    "retrieved_on": "2026-08-08",
+    "page_reference": "Pages 11-14, Water Quality Analysis (2023)",
+    "notes": "The 2024 report contains a Water Quality Analysis labeled 2023. Level Found values are averages of applicable facility results; the report states that ND results were assigned zero when calculating those averages. The Spring Water column aggregates applicable facilities and does not identify individual spring sources. Internal and third-party laboratories are both described in the report, so no single analysis_provider is asserted for this table. The table also reports Bicarb.Alkalinity at 65 mg/L HCO3 for Spring Water; this fixture preserves that as an unmodeled source result rather than reinterpreting it as bicarbonate ion concentration."
+  },
+  "profiles": [
+    {
+      "name": "Niagara Spring Water - 2023 aggregate analysis",
+      "identity": {
+        "provider": "Niagara Bottling, LLC",
+        "product_name": "Spring Water",
+        "water_type": "spring_water",
+        "physical_sources": []
+      },
+      "observation_period": {
+        "start": "2023-01-01",
+        "end": "2023-12-31"
+      },
+      "result_context": {
+        "coverage": "observation_period_summary",
+        "water_stage": "bottled_finished_product"
+      },
+      "concentrations": {
+        "calcium": {
+          "form": "value",
+          "unit": "milligram / liter",
+          "value": 20.0,
+          "reported_statistic": {
+            "kind": "reported_average",
+            "label": "Average of applicable facility results; the source states that ND results were assigned zero when calculating these averages."
+          }
+        },
+        "magnesium": {
+          "form": "value",
+          "unit": "milligram / liter",
+          "value": 6.6,
+          "reported_statistic": {
+            "kind": "reported_average",
+            "label": "Average of applicable facility results; the source states that ND results were assigned zero when calculating these averages."
+          }
+        },
+        "sodium": {
+          "form": "value",
+          "unit": "milligram / liter",
+          "value": 8.0,
+          "reported_statistic": {
+            "kind": "reported_average",
+            "label": "Average of applicable facility results; the source states that ND results were assigned zero when calculating these averages."
+          }
+        },
+        "potassium": {
+          "form": "value",
+          "unit": "milligram / liter",
+          "value": 1.0,
+          "reported_statistic": {
+            "kind": "reported_average",
+            "label": "Average of applicable facility results; the source states that ND results were assigned zero when calculating these averages."
+          }
+        },
+        "chloride": {
+          "form": "value",
+          "unit": "milligram / liter",
+          "value": 10.9,
+          "reported_statistic": {
+            "kind": "reported_average",
+            "label": "Average of applicable facility results; the source states that ND results were assigned zero when calculating these averages."
+          }
+        },
+        "sulfate": {
+          "form": "value",
+          "unit": "milligram / liter",
+          "value": 4.5,
+          "reported_statistic": {
+            "kind": "reported_average",
+            "label": "Average of applicable facility results; the source states that ND results were assigned zero when calculating these averages."
+          }
+        }
+      },
+      "ph": {
+        "form": "average",
+        "reported_average": 6.6
+      },
+      "properties": {
+        "alkalinity": {
+          "form": "average",
+          "unit": "milligram / liter",
+          "reporting_basis": "as_caco3",
+          "reported_average": 74.0
+        },
+        "total_hardness": {
+          "form": "average",
+          "unit": "milligram / liter",
+          "reporting_basis": "as_caco3",
+          "reported_average": 77.0
+        },
+        "total_dissolved_solids": {
+          "form": "average",
+          "unit": "milligram / liter",
+          "reported_average": 117.0
+        },
+        "conductivity": {
+          "form": "average",
+          "unit": "microsiemens / centimeter",
+          "reference_temperature_celsius": 25.0,
+          "reported_average": 192.0
+        }
+      },
+      "unmodeled_source_results": [
+        {
+          "source_label": "Bicarb.Alkalinity",
+          "reported_value": 65.0,
+          "reported_unit": "mg/L HCO3",
+          "reason": "The source labels this result as bicarbonate alkalinity rather than bicarbonate ion concentration. It is intentionally not mapped to Ion.BICARBONATE."
+        }
+      ]
+    }
+  ]
+}

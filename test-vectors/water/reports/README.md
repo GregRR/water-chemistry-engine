@@ -38,3 +38,13 @@ result context, reported ion concentrations, pH, and other reported water
 properties.
 
 Do not treat this internal test-vector format as a compatibility promise.
+
+A single numeric result may carry `reported_statistic` metadata when the source
+identifies the number as an average, percentile, running annual average, or other
+reported statistic. This prevents an aggregate number from being mistaken for a
+single exact observation.
+
+When a source reports a calculator-relevant value that the engine cannot yet
+represent without changing its meaning, a fixture may retain it under
+`unmodeled_source_results`. This is preferable to coercing it into a nearby but
+semantically different engine field.
