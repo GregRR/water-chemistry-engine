@@ -2,7 +2,7 @@
 
 **Document:** `docs/WATER_CHEM_DESIGN.md`  
 **Status:** Working design — active implementation  
-**Revision:** 2026-08-07  
+**Revision:** 2026-08-09
 **Project:** Water Treatment Calculator / Calculators  
 **Repository:** `water-treatment-calculator`  
 **Engine distribution:** `water-treatment-engine`  
@@ -28,13 +28,13 @@ The engine must remain independent of web frameworks, databases, graphical inter
 
 ## 2. Product goals
 
-The project should make sophisticated water treatment approachable without hiding the underlying chemistry or provenance.
+The project should make sophisticated water treatment approachable without hiding the underlying chemistry or source attribution.
 
 The system should:
 
 1. Model source water, target water, blends, treatment additions, and resulting brewing liquor as distinct concepts.
 2. Preserve the difference between reported, measured, inferred, estimated, and calculated data.
-3. Preserve exact values, ranges, qualified bounds, `ND`/not-detected states, reporting bases, named reported statistics, original units, and provenance.
+3. Preserve exact values, ranges, qualified bounds, `ND`/not-detected states, reporting bases, named reported statistics, original units, and source-document metadata.
 4. Blend two or more waters by volume.
 5. Determine practical mineral additions automatically.
 6. Optimize water proportions and treatment additions jointly when appropriate.
@@ -70,7 +70,7 @@ The architecture may permit later use outside brewing, but Version 1 should opti
 1. **Keep chemistry separate from presentation.** No equations, conversion rules, or optimization policies belong in templates, browser handlers, or mobile views.
 2. **Use explicit quantities.** Dimensional inputs and outputs use FermUnits/Pint quantities or are converted into them at a boundary.
 3. **Preserve meaning as well as magnitude.** `mg/L as CaCO3`, bicarbonate concentration, alkalinity, hardness, conductivity, TDS, and pH are not interchangeable merely because numerical conversions can be written.
-4. **Preserve provenance.** Provider, report title, report date, observation date, retrieval date, source URL, page/table reference, and notes must remain attachable to source data.
+4. **Preserve source attribution and document metadata.** Water identity, publisher, analysis provider when explicitly known, report title/date, observation timing, retrieval date, source URL, page/table reference, and notes must remain attachable without conflating the water itself with the document that reported it.
 5. **Preserve reported data exactly.** A value explicitly reported by a source must never be silently replaced by a calculated substitute.
 6. **Keep derived data derived.** Values that can be recalculated from stored source data should normally be calculated on demand rather than persisted as though they were independent measurements.
 7. **Do not disguise estimates as measurements.** Calculated, inferred, representative, bounded, censored, not-detected, and measured values remain distinguishable.
@@ -193,7 +193,7 @@ No `calculators-common` package should be introduced until at least two calculat
 
 ## 8. Current engine package structure
 
-The package is intentionally still small while the domain contracts stabilize.
+The package is intentionally still small while the domain contracts stabilize. The current implemented structure is:
 
 ```text
 packages/water-treatment-engine/
@@ -203,23 +203,34 @@ packages/water-treatment-engine/
 │   └── water_treatment_engine/
 │       ├── __init__.py
 │       ├── py.typed
-│       ├── ions.py
+│       ├── alkalinity_conversions.py
 │       ├── concentrations.py
+│       ├── ions.py
 │       ├── profiles.py
-│       ├── provenance.py
+│       ├── reported_properties.py
+│       ├── reported_statistics.py
+│       ├── reporting_context.py
+│       ├── source_document.py
 │       ├── target_profiles.py
-│       └── reported_properties.py
+│       └── water_identity.py
 └── tests/
+    ├── test_alkalinity_conversions.py
+    ├── test_concentrations.py
     ├── test_engine_package.py
     ├── test_ions.py
-    ├── test_concentrations.py
     ├── test_profiles.py
-    ├── test_provenance.py
+    ├── test_real_report_fixtures.py
+    ├── test_reported_properties.py
+    ├── test_reported_statistics.py
+    ├── test_reporting_context.py
+    ├── test_source_document.py
     ├── test_target_profiles.py
-    └── test_reported_properties.py
+    └── test_water_identity.py
 ```
 
-As blending, stoichiometry, optimization, comparison, serialization, and explanations grow, the package may be reorganized into subpackages. That restructuring should happen when it improves real code organization, not merely to satisfy an early hypothetical directory tree.
+Data-driven real-report fixtures live under `test-vectors/water/reports/` rather than inside the engine package.
+
+As blending, stoichiometry, aqueous-state calculation, optimization, comparison, serialization, and explanations grow, the package may be reorganized into subpackages. That restructuring should happen when it improves real code organization, not merely to satisfy an early hypothetical directory tree.
 
 ## 9. Core domain model
 
@@ -249,11 +260,14 @@ Canonical comparison calculations may normalize to mg/L, but the supplied quanti
 
 ### 9.3 Ranged ion concentration
 
-The current implementation supports numeric linear ranges containing:
+The current implementation supports linear ranges whose endpoints can themselves preserve source qualifiers. Each endpoint is one of:
 
-- `minimum`;
-- `maximum`;
-- optional `reported_average`.
+- exact numeric value;
+- upper bound such as `<X`;
+- lower bound such as `>X`;
+- `ND` / not detected, with an optional explicitly supplied detection limit.
+
+A range may also carry an independently reported ordinary average.
 
 For an ordinary **linear concentration** whose two endpoints are exact numeric values, calculation behavior is:
 
@@ -266,20 +280,18 @@ The midpoint is derived data. It is not stored as `reported_average` and must ne
 
 A `reported_average` field may be populated only when the source explicitly identifies the value as an ordinary average. When a reported average accompanies a reported range, the reported average takes precedence over the mathematical midpoint. For example, a source may report calcium as average `51 mg/L`, range `50–53 mg/L`; calculations use the reported `51 mg/L`, not the midpoint `51.5 mg/L`.
 
-Real reports also demonstrate that range endpoints may themselves be censored or non-numeric. Therefore the current numeric-endpoint range type is an implementation subset, not the final general reported-result model.
+A qualified range without an independently reported average has no automatic representative calculation value.
 
 ### 9.4 Bounds, `ND`, and qualified range endpoints
 
-Real water reports require at least these reported result forms:
+The engine now represents these source-reported concentration forms directly:
 
 - exact numeric value;
-- numeric range;
+- exact or qualified range;
 - upper bound such as `<0.3`;
 - lower bound such as `>X`;
 - `ND` / not detected;
-- a range whose endpoints are themselves qualified, such as `ND–11.1` or `<3–14`.
-
-The engine currently implements exact values, exact numeric ranges, and numeric upper bounds. It must evolve to represent the remaining forms without coercing them into ordinary numbers.
+- ranges such as `ND–11.1` or `<3–14`.
 
 `ND` is a first-class source-reported state:
 
@@ -288,11 +300,11 @@ ND ≠ 0
 ND ≠ automatically <X
 ```
 
-If a report says `ND` but does not publish the applicable detection/reporting limit for that result, the engine must not invent one. If a source separately reports a numerical limit, that limit may be retained explicitly as source metadata.
-
-Qualified range endpoints mean a future generic range cannot assume `minimum: float` and `maximum: float`. Each endpoint may need the same exact/bound/not-detected semantics as a standalone result.
+If a report says `ND` but does not publish the applicable detection/reporting limit for that result, the engine must not invent one. If the source explicitly reports a numerical detection limit, it can be retained on the not-detected result/endpoint.
 
 Bounds, `ND`, and qualified endpoints do not automatically receive a representative calculation value. Any policy that substitutes a numeric value must be explicit, domain-specific, reproducible, and surfaced in assumptions/warnings.
+
+Reported statistic and result-context metadata may accompany exact, bounded, not-detected, and ranged concentration results without changing their source-reported result form.
 
 ### 9.5 Reported water properties
 
@@ -315,7 +327,7 @@ Conductivity may carry a reference temperature when the source provides one. A r
 
 ### 9.6 Alkalinity and bicarbonate are not interchangeable
 
-A reported alkalinity value must remain alkalinity. The engine must not silently derive or overwrite bicarbonate from alkalinity.
+A reported total alkalinity value must remain total alkalinity. The engine must not silently derive or overwrite bicarbonate from total alkalinity.
 
 For example:
 
@@ -325,7 +337,11 @@ Reported: total alkalinity = 108 mg/L as CaCO3
 
 must remain that reported measurement.
 
-If a later chemistry model calculates a bicarbonate-equivalent concentration from alkalinity under explicit assumptions, that result must be labeled **derived**, retain the assumptions/model version, and coexist with—not replace—the original reported alkalinity.
+The engine does, however, support a narrower and chemically different normalization: when a source explicitly identifies a result as **bicarbonate alkalinity** but expresses that bicarbonate result on a CaCO3 mass basis, the equivalent-mass basis can be converted to an HCO3 mass concentration. This is a reporting-basis normalization of an explicitly identified bicarbonate result, not an inference that total alkalinity equals bicarbonate.
+
+Likewise, if a source directly reports a result as `mg/L HCO3`, that value can be represented as the existing bicarbonate ion concentration while preserving its source statistic/context. Niagara's report fixture exercises this case separately from its reported total alkalinity.
+
+Any future model that derives carbonate species from total alkalinity, pH, dissolved inorganic carbon, or other equilibrium inputs must label those species **derived**, retain the assumptions/model version, and coexist with—not replace—the reported alkalinity.
 
 ### 9.7 pH is a logarithmic scientific invariant
 
@@ -367,6 +383,46 @@ derived_pH = -log10(mean_a)
 8. Any such aggregate is **derived pH**, never `reported_average`.
 9. Measurement temperature and activity-model assumptions should be retained when known and when material to the calculation.
 
+#### 9.7.1 Reusable calculated-pH capability
+
+`ReportedPH` describes only what a source actually reported. Calculated pH is a separate **derived engine result**.
+
+The engine should expose one reusable aqueous pH capability, conceptually:
+
+```python
+result = calculate_ph(chemical_state)
+```
+
+The pH algorithm must not be duplicated for source water, blended water, and treated water. The calculation receives a normalized aqueous chemical state and should not care how that state was produced. A chemically equivalent state should therefore yield the same result whether it came from one source profile, several blended sources, or a blend plus treatment additions.
+
+A chemical state may represent useful checkpoints such as:
+
+```text
+source-water state
+        │
+        ├── blend one or more sources ──► blended-water state
+        │                                      │
+        │                                      └── apply additions ──► final treated-water state
+        │
+        └──────────────── each state may be passed to calculate_ph(...)
+```
+
+The main product use case is calculating pH for the **working water** after the user has selected source water(s), blending proportions, and treatment additions. The web UI should expose a single **Calc pH** action for that workflow. One click may evaluate every meaningful current checkpoint and update both the blend pH and final treated-water pH when both states exist. These are two results from the same engine capability, not two different pH algorithms or necessarily two different buttons. If there is no chemically distinct intermediate state, the UI should avoid presenting duplicate values.
+
+A source report that omits pH may optionally offer a separately labeled **Estimate pH** action when sufficient chemistry is present. It must call the same `calculate_ph(...)` capability. Missing source pH is allowed to remain unknown; the engine must never manufacture a value merely to fill a report field.
+
+Calculated pH must obey these rules:
+
+1. It never overwrites or populates `ReportedPH`.
+2. It is stored/returned as derived result data associated with the chemical state being evaluated.
+3. It identifies the chemistry model/version, assumptions, relevant temperature/reference conditions, source fields used, and warnings/approximation status where applicable.
+4. If the supplied state is scientifically insufficient for the selected model, return an explicit insufficient-data result rather than guessing.
+5. Changing source composition, blend fractions, treatment additions, temperature, or other model-relevant inputs invalidates the previously calculated pH for that state.
+6. The calculation should not display precision unsupported by the model or inputs.
+7. The reusable pH capability belongs in `water-treatment-engine`; HTMX handlers and other clients only construct/select the state and request the calculation.
+
+This working-water calculation is distinct from **recipe-aware mash-pH prediction**. Mash pH additionally depends on grain buffering and mash-specific chemistry and remains a later advanced feature even though it may ultimately reuse lower-level acid/base or equilibrium components.
+
 ### 9.8 Reported statistic semantics
 
 Real reports use several statistically distinct summary concepts. At minimum the source/report model must be capable of distinguishing:
@@ -382,7 +438,7 @@ Real reports use several statistically distinct summary concepts. At minimum the
 
 `reported_average` remains narrowly defined: it means an ordinary average explicitly reported by the source. It must not become a generic bucket for RAA, LRAA, percentile, highest/lowest, or other named statistics.
 
-The engine may later introduce a controlled `reported_statistic` concept so imported data can retain the source's statistical meaning without forcing every statistic into a separate top-level property.
+The implemented `ReportedStatistic` / `ReportedStatisticKind` model preserves these meanings without forcing every statistic into a separate top-level property. A percentile retains its percentile value, while `OTHER` requires an explicit label.
 
 ### 9.9 Observation timing and data coverage
 
@@ -395,7 +451,7 @@ A `SourceWaterProfile` currently supports either:
 
 Those two profile-level forms are mutually exclusive.
 
-Real annual reports also demonstrate that individual constituents may have their own dates or periods that differ from the overall report/profile period. The model must therefore be prepared for:
+Real annual reports also demonstrate that individual constituents may have their own dates or periods that differ from the overall report/profile period. The implemented `ReportedResultContext` therefore supports:
 
 ```text
 profile/report observation period
@@ -403,9 +459,9 @@ profile/report observation period
 optional result-specific observation date or period
 ```
 
-When result-level timing is present, it takes precedence for that result.
+When result-level timing is present, it is the more specific timing for that result.
 
-The source model should also be able to represent **coverage semantics** such as:
+The implemented `ResultCoverage` model represents **coverage semantics** such as:
 
 - single observation;
 - observation-period summary;
@@ -433,7 +489,7 @@ Similarly, the chemistry may describe different stages/locations:
 - customer tap;
 - bottled finished product.
 
-The engine should preserve a controlled `sample_context` / `water_stage` concept when importing data because chemistry from these stages is not interchangeable.
+The implemented `WaterIdentity`, `PhysicalWaterSource`, and `WaterStage` models preserve these distinctions. Chemistry from different stages is not interchangeable, and a stage must not be inferred when the source does not say.
 
 ### 9.11 Regulatory and advisory references are not source chemistry
 
@@ -454,38 +510,40 @@ If retained, regulatory/reference thresholds must live in a separate structure f
 
 ### 9.12 SourceDocumentMetadata
 
-Source-water provenance is an immutable object that may contain:
+`SourceDocumentMetadata` identifies the document that reported the water-quality data. It is intentionally separate from `WaterIdentity`, which identifies the supplied/produced water itself.
 
-- provider;
-- report title;
-- report date;
+The current immutable metadata object supports:
+
+- `publisher`;
+- optional `analysis_provider` when the report explicitly identifies one;
+- title;
+- publication date;
 - source URL;
 - retrieval date;
-- page or table reference;
+- page/section reference;
 - notes.
 
-Future provenance fields may include laboratory, analytical method, sampling location, treatment plant, report edition, source-water origin, extraction confidence, brand/product identity, and report/table context.
+`publisher` means the organization issuing the document. `analysis_provider` means the laboratory or other analysis provider only when that role is explicit. Neither field should be guessed from the other. Physical source identity, brand/product identity, sampling location, water stage, and observation timing belong in their own domain concepts rather than being hidden inside source-document metadata.
 
 ### 9.13 SourceWaterProfile
 
-A source-water profile represents water that is actually available for blending or treatment.
+A source-water profile represents measured or reported chemistry for water that is actually available for blending or treatment.
 
-It must support:
+The current `SourceWaterProfile` supports:
 
 - a human-readable name;
-- one concentration entry per ion;
-- optional pH/report properties;
-- single observation date or observation period when genuinely known;
-- provenance;
+- one reported concentration entry per modeled ion;
+- optional `ReportedPH`;
+- mutually exclusive profile-level `observed_on` or `observation_period`;
+- optional `WaterIdentity`;
+- optional `SourceDocumentMetadata`;
+- optional alkalinity;
+- optional total hardness;
+- optional TDS;
+- optional conductivity;
 - no duplicate ion entries.
 
-As the model evolves it should also support or reference:
-
-- richer water identity;
-- data-coverage semantics;
-- sample/water stage;
-- optional result-specific timing;
-- richer reported-result/statistic semantics.
+Individual reported results may additionally carry `ReportedStatistic` and `ReportedResultContext`, allowing result-specific timing, coverage, water stage, and sample location without forcing those details into the whole profile.
 
 Source-water profile types may include:
 
@@ -522,7 +580,7 @@ Future target semantics may add:
 - optimization weight;
 - flavor priority;
 - mash-chemistry priority;
-- provenance and target type.
+- source/reference attribution and target type.
 
 Target types include:
 
@@ -533,7 +591,7 @@ Target types include:
 - historical city or regional profile;
 - application-provided recommendation.
 
-Historical brewing-city tables such as Pilsen, Burton-on-Trent, Dublin, Munich, London, Dortmund, Edinburgh, Vienna, Antwerp, and Cologne are **target/reference profiles**, not claims about present-day municipal source water. Each published version must retain its own provenance; conflicting published profiles should not be silently merged into one supposedly canonical city profile.
+Historical brewing-city tables such as Pilsen, Burton-on-Trent, Dublin, Munich, London, Dortmund, Edinburgh, Vienna, Antwerp, and Cologne are **target/reference profiles**, not claims about present-day municipal source water. Each published version must retain its own source/reference attribution; conflicting published profiles should not be silently merged into one supposedly canonical city profile.
 
 ### 9.15 Future WaterBlend
 
@@ -674,7 +732,7 @@ A **target profile** says:
 
 Consequences:
 
-- source profiles emphasize provenance, dates, plants/locations, report semantics, averages, ranges, and detection limits;
+- source profiles emphasize source-document metadata, water identity, dates, plants/locations, report semantics, averages, ranges, and detection limits;
 - target profiles emphasize desired values, acceptable ranges, weights, hard limits, and use context;
 - historical city profiles belong under target/reference data unless there is a specific historical source-water analysis being represented;
 - an achieved treated liquor from a prior successful batch may later be saved as a target for reproduction without pretending it was the original source water.
@@ -702,28 +760,25 @@ These reports should remain a standing pressure-test corpus for both the calcula
 
 ### 12.2 Source-water fixtures
 
-Candidate source fixtures currently include:
+The repository currently contains five data-driven real-report fixtures under `test-vectors/water/reports/`:
 
-- City of Santa Cruz, California, 2025 Water Quality Report, including distinct treatment-plant profiles and reported average/range data;
-- Niagara Bottling Water Quality Report 2024, whose relevant chemistry includes separate finished-water products and 2023 aggregate analysis;
-- San Francisco Public Utilities Commission 2025 water-quality report;
-- Bend water-quality reporting reviewed with FermentationJSON;
-- California Water Service / Chico 2025 report;
-- Boulder water-quality reporting reviewed with FermentationJSON;
-- Asheville water-quality reporting reviewed with FermentationJSON;
-- Primo Water / Sparkletts report, including Typical Analysis data and `ND`/qualified range examples;
-- Portland 2026 Drinking Water Quality Report;
-- additional laboratory or utility reports as they become useful.
+- **Santa Cruz 2025** — multiple treatment-plant profiles, exact numeric ranges, independently reported averages, pH ranges, and no invented bicarbonate from alkalinity;
+- **Niagara 2024 / 2023 analysis** — bottled finished-product context, multi-facility reported averages, explicit conductivity reference temperature, and directly reported `mg/L HCO3` normalized to the existing bicarbonate ion field while total alkalinity remains separate;
+- **Primo / Sparkletts 2023** — Typical Analysis coverage, sulfate `ND–11.1 mg/L`, ordinary ranges, range-only pH, and conductivity without an invented reference temperature;
+- **California Water Service / Chico 2025** — qualified potassium range `ND–4.2` with an independently reported average, plus several ordinary ranges/averages;
+- **Bend 2025** — result-specific observation timing, including sodium reported in the later annual report from a 2023 sample.
 
-Fixtures must retain provider/report identity, reporting period or coverage type, source URL, page/table location, original units/bases, statistic labels, sampling context when reported, and the original result form.
+Other reviewed reports—including San Francisco, Boulder, Asheville, Portland, and additional municipal/bottled-water examples—remain useful pressure-test material but do not need fixtures unless they expose a genuinely new semantic or scientific requirement.
+
+Fixtures must retain water/report identity, reporting period or coverage type, source URL, page/table location, original units/bases, statistic labels, sampling context when reported, and the original result form.
 
 ### 12.3 Target fixtures
 
-Historical city and brewery profiles may be useful targets but must retain provenance. A source that publishes one Burton profile and another source that publishes a different Burton profile should produce two independently attributable records, not an undocumented average.
+Historical city and brewery profiles may be useful targets but must retain source/reference attribution. A source that publishes one Burton profile and another source that publishes a different Burton profile should produce two independently attributable records, not an undocumented average.
 
 ### 12.4 Reference-data format policy
 
-The repository may use internal version-controlled fixtures that are richer than BeerJSON when necessary to test engine semantics such as ranges, qualified endpoints, reported averages/statistics, `ND`, detection limits, result-level timing, sample context, and provenance.
+The repository may use internal version-controlled fixtures that are richer than BeerJSON when necessary to test engine semantics such as ranges, qualified endpoints, reported averages/statistics, `ND`, detection limits, result-level timing, sample context, and source-document metadata.
 
 Such fixtures are **test/reference formats**, not a new public interchange standard.
 
@@ -742,7 +797,7 @@ BeerJSON 1.0 water concentration fields represent a single concentration value. 
 - min/max concentration ranges;
 - independently reported averages;
 - upper-bound/detection-limit semantics;
-- detailed report provenance;
+- detailed source-document metadata and attribution;
 - richer alkalinity/hardness reporting metadata.
 
 ### 13.2 BeerJSON import
@@ -764,7 +819,7 @@ or, for a range:
     otherwise derived midpoint if export of a representative value is explicitly permitted
 ```
 
-Any discarded range, bound, provenance, or reporting semantics must be surfaced in a structured export-loss report. The adapter must never silently imply that an exported representative value was the only value originally known.
+Any discarded range, bound, source-document metadata, attribution, or reporting semantics must be surfaced in a structured export-loss report. The adapter must never silently imply that an exported representative value was the only value originally known.
 
 For pH, a range-only measurement has no automatically invented representative value and therefore must not be exported as an averaged pH unless an explicit, scientifically valid policy provides one.
 
@@ -785,7 +840,7 @@ FermentationJSON is intended to become the richer portable interchange/archive r
 - measurement/reference conditions such as conductivity temperature;
 - profile-level and result-level observation timing;
 - water identity and sample/water stage;
-- provenance and citations;
+- source-document metadata, attribution, and citations;
 - regulatory/reference thresholds kept separate from chemistry;
 - model assumptions and warnings.
 
@@ -801,7 +856,7 @@ reported result
 ├── optional detection/reporting limits
 ├── observation date/period
 ├── sampling context / water stage
-└── provenance
+└── source-document metadata / attribution
 ```
 
 Canonicalized values and calculator-derived representative values sit outside the immutable description of what the report actually said.
@@ -822,7 +877,7 @@ AI-assisted report import is a planned web-application feature, not an engine de
 4. Deterministic validation checks units, ranges, reporting bases, and value consistency.
 5. FermUnits normalizes accepted dimensional quantities.
 6. The UI shows the extracted values for user review and correction before saving.
-7. Accepted data becomes a `SourceWaterProfile` with provenance.
+7. Accepted data becomes a `SourceWaterProfile` with explicit water identity and source-document metadata.
 
 ### 14.2 Required extraction behavior
 
@@ -884,11 +939,16 @@ Construct available source-water blend space
 Calculate fixed or candidate blends
         │
         ▼
+Construct derived blended-water chemical state
+        │
+        ▼
 Apply treatment-ingredient stoichiometry
         │
         ▼
-Calculate resulting profile and contribution matrix
+Construct final treated-water chemical state and contribution matrix
         │
+        ├────────► calculate_ph(state) when explicitly requested or required
+        │          by a calculation policy, using the same reusable pH engine
         ▼
 Evaluate hard constraints and target deviations
         │
@@ -902,9 +962,11 @@ Generate distinct candidate plans
 Rank, explain, and return structured results
 ```
 
-Blending and treatment remain distinct operations internally even when optimized jointly.
+Blending and treatment remain distinct operations internally even when optimized jointly. The blend state and final treated-water state are useful calculation checkpoints, but they are not separate chemistry engines.
 
 Reported/derived semantics are resolved before a calculation uses a representative value. The calculation layer must never guess silently.
+
+The pH capability is reusable and state-based. The web application's **Calc pH** action may request pH for both the blended-water and final treated-water states in one interaction, while a source-profile **Estimate pH** action may pass a source state to the same engine capability.
 
 ## 16. Version 1.0 scope
 
@@ -914,7 +976,7 @@ Version 1.0 should be a useful end-to-end product rather than only a chemistry-l
 
 1. **Water-profile modeling**
    - Source and target profiles.
-   - Dated and period-based provenance, with result-specific timing where reports require it.
+   - Dated and period-based source-document/report context, with result-specific timing where reports require it.
    - Exact, ranged, bounded, not-detected, qualified-endpoint, and reported-statistic semantics.
    - Explicit alkalinity/hardness bases.
    - Correct nonlinear pH semantics.
@@ -941,11 +1003,19 @@ Version 1.0 should be a useful end-to-end product rather than only a chemistry-l
    - Sodium bicarbonate.
    - Other salts only after composition and use are validated.
 
-5. **Joint blend-and-mineral optimization**
+5. **Reusable working-water pH calculation**
+   - One engine capability accepts a normalized aqueous chemical state rather than a UI-specific source/blend/final-water request.
+   - The same capability can evaluate source, blended, and final treated-water states when the selected model has sufficient inputs.
+   - Calculated pH is derived data and never overwrites `ReportedPH`.
+   - Insufficient chemistry returns an explicit insufficient-data result rather than a guessed value.
+   - Results retain model/version, assumptions, relevant temperature/reference conditions, and warnings.
+   - This is working-water pH, not recipe-aware mash-pH prediction.
+
+6. **Joint blend-and-mineral optimization**
    - Optimize water proportions and mineral quantities together.
    - Do not lock in a water-only optimum when a slightly different blend produces a better complete treatment plan.
 
-6. **Ranked solution policies**
+7. **Ranked solution policies**
    - exact match when feasible;
    - closest practical match;
    - fewest different treatment products;
@@ -955,39 +1025,39 @@ Version 1.0 should be a useful end-to-end product rather than only a chemistry-l
    - no mineral additions / water-only blend;
    - user-selected ingredients only.
 
-7. **Practical dosing**
+8. **Practical dosing**
    - configurable weighing precision;
    - minimum meaningful addition;
    - maximum validated addition rate;
    - recalculation after practical rounding.
 
-8. **Explainability and diagnostics**
+9. **Explainability and diagnostics**
    - machine-readable warning/explanation codes;
    - unreachable-target explanations;
    - source ion already above target;
    - multi-ion salt coupling;
    - explicit assumptions and representative-value choices.
 
-9. **Contribution matrix**
+10. **Contribution matrix**
    - initial source contribution;
    - effect of blending;
    - contribution from each mineral;
    - final total for each modeled ion.
 
-10. **Profile comparison**
+11. **Profile comparison**
     - raw differences;
     - range satisfaction;
     - weighted normalized score;
     - hard-limit violations;
     - charge-balance diagnostic when enough data exists.
 
-11. **Interchange**
+12. **Interchange**
     - BeerJSON 1.0 water import/export for representable information;
     - explicit export-loss reporting for richer engine data;
     - FermentationJSON adapter when the relevant schema stabilizes;
     - versioned calculation/test-vector representation.
 
-12. **Localization readiness**
+13. **Localization readiness**
     - canonical calculations independent of display locale;
     - explicit US, Imperial, and metric identifiers;
     - user-selectable input/display units;
@@ -1000,6 +1070,8 @@ Version 1.0 should be a useful end-to-end product rather than only a chemistry-l
 - Saved and built-in profiles.
 - Multiple source-water rows.
 - Fixed-blend calculation.
+- A single **Calc pH** action for working water that can update every meaningful current derived pH checkpoint, including blend pH and final treated-water pH when both states exist.
+- Optional **Estimate pH** for a source profile with missing reported pH only when the reusable pH model has sufficient chemistry; otherwise pH remains unknown.
 - Target entry using exact values and ranges.
 - Selection of permitted salts.
 - Batch volume and unit selection.
@@ -1016,10 +1088,10 @@ Version 1.0 should be a useful end-to-end product rather than only a chemistry-l
 ### 16.3 Version 1 reference data
 
 - Validated treatment-ingredient definitions.
-- Curated beer, mead, and distilling targets with provenance.
+- Curated beer, mead, and distilling targets with explicit source/reference attribution.
 - Historical-city profiles clearly identified as reference targets.
 - RO and distilled profiles represented explicitly rather than assumed silently.
-- Real municipal/bottled-water fixtures with provenance and report semantics.
+- Real municipal/bottled-water fixtures with source-document metadata and report semantics.
 - Independently calculated stoichiometric reference cases.
 
 ### 16.4 Deliberately deferred from Version 1 core chemistry
@@ -1028,7 +1100,7 @@ Version 1.0 should be a useful end-to-end product rather than only a chemistry-l
 - grain buffering models;
 - acid and alkali optimization;
 - separate mash- and sparge-water optimization;
-- detailed precipitation/equilibrium treatment;
+- general-purpose geochemical equilibrium, precipitation, and solubility modeling beyond the focused validated aqueous chemistry required by Version 1 features;
 - robust uncertainty propagation through optimization;
 - detailed inventory/purchasing/package management;
 - sophisticated cost optimization;
@@ -1045,7 +1117,7 @@ Version 2 should add features that require deeper chemistry models or materially
 - alkalinity neutralization;
 - separate mash and sparge treatment;
 - recipe-aware mash-pH prediction;
-- deeper carbonate/bicarbonate chemistry;
+- deeper carbonate/bicarbonate chemistry beyond the focused working-water pH capability;
 - precipitation and solubility considerations where practical;
 - uncertainty propagation;
 - optimization using uncertain or ranged source-water reports;
@@ -1072,7 +1144,7 @@ Potential independently validated domain modules include:
 - lacto-fermented vegetables;
 - other fermented foods and beverages.
 
-These modules may share source-water composition, blending, provenance, and optimization infrastructure while retaining their own constituents, targets, treatment rules, sensory/process priorities, warnings, references, and validation suites.
+These modules may share source-water composition, blending, source-attribution metadata, and optimization infrastructure while retaining their own constituents, targets, treatment rules, sensory/process priorities, warnings, references, and validation suites.
 
 The project must not imply that one generic ion-matching score predicts sensory quality across all foods or beverages.
 
@@ -1184,7 +1256,7 @@ FermUnits handles physical quantities and conversions. The water engine retains 
 - reported vs. derived status;
 - pH/logarithmic behavior;
 - treatment ingredient identity/hydration state;
-- provenance;
+- source-document/reference attribution metadata;
 - source/target semantics.
 
 ## 22. Public API direction
@@ -1194,9 +1266,10 @@ The eventual public API should accept platform-neutral structured requests and r
 Illustrative direction only:
 
 ```python
-from water_treatment_engine import blend_waters, optimize_treatment
+from water_treatment_engine import blend_waters, calculate_ph, optimize_treatment
 
 blend_result = blend_waters(...)
+ph_result = calculate_ph(chemical_state)
 optimization_result = optimize_treatment(...)
 ```
 
@@ -1246,7 +1319,12 @@ Tests must prove that:
 - a pH range without a reported average does not yield an arithmetic midpoint;
 - range-only pH does not pretend to have a representative average;
 - individual-observation aggregation, if implemented, occurs in linear hydrogen-ion activity/concentration space under an explicit model;
-- any calculated pH aggregate is marked derived, not reported.
+- any calculated pH aggregate is marked derived, not reported;
+- `calculate_ph(...)` never mutates or populates `ReportedPH`;
+- chemically equivalent states produce equivalent pH regardless of whether the state originated as a single source, blend, or treated-water result;
+- insufficient chemical state produces an explicit insufficient-data outcome rather than a guessed pH;
+- calculated pH results retain the selected model/version and material assumptions/reference conditions;
+- changing a model-relevant input invalidates/requires recalculation of the previously derived pH at the application/result-state boundary.
 
 ### 24.3 Property-based tests
 
@@ -1298,41 +1376,37 @@ Portable versioned request/result pairs should allow Swift, Kotlin, Dart, JavaSc
 
 ## 26. Current implementation status
 
-As of this revision, the repository foundation is operational with Python 3.14, uv, Ruff, mypy, pytest, GitHub Actions, independently installable engine/web packages, and FermUnits 0.1.0 integration.
+As of this revision, the repository foundation is operational with Python 3.14, uv, Ruff, mypy, pytest, Hypothesis, GitHub Actions, independently installable engine/web packages, and FermUnits 0.1.0 integration. The reproducible workspace gate uses `uv run --all-packages` so engine, web, FermUnits, and transitive dependencies are present regardless of prior environment state.
 
 Implemented and tested domain work includes:
 
 - canonical ion identifiers;
 - exact ion concentrations;
-- numeric ranged ion concentrations;
+- exact and qualified concentration ranges;
+- exact, upper-bound, lower-bound, and not-detected range endpoints;
+- standalone upper-bound, lower-bound, and not-detected concentration results;
 - independently reported ordinary averages for linear ranges;
-- derived midpoint-on-demand behavior for exact numeric linear ranges without a reported average;
-- numeric upper-bound ion concentrations;
-- source-water profiles;
-- source-water provenance;
-- mutually exclusive single observation dates and observation periods;
+- derived midpoint-on-demand behavior only for exact numeric linear ranges without a reported average;
+- explicit refusal to invent a representative value for qualified ranges without a reported average;
+- controlled reported-statistic semantics including single observation, ordinary average, RAA, LRAA, percentile, highest, lowest, and explicitly labeled other statistics;
+- reusable result context for result-specific timing, coverage semantics, water stage, and sample location;
+- `WaterIdentity` and physical-source identity separate from source-document metadata;
+- `SourceDocumentMetadata` with publisher vs. optional explicit analysis provider, title/date/URL/retrieval/page-reference/notes;
+- source-water profiles with mutually exclusive single observation dates and observation periods;
 - target-water profiles;
 - alkalinity with explicit `as CaCO3` basis;
 - total hardness with explicit `as CaCO3` basis;
 - TDS;
 - conductivity with optional reference temperature;
-- structured `ReportedPH` with exact/range/reported-average semantics;
-- enforced prohibition on arithmetic midpoint/mean behavior for range-only pH.
+- structured `ReportedPH` with exact/range/reported-average semantics and enforced prohibition on arithmetic midpoint/mean behavior for range-only pH;
+- bicarbonate-alkalinity reporting-basis conversion for an explicitly identified bicarbonate result without treating total alkalinity as bicarbonate;
+- five data-driven real-report fixtures: Santa Cruz, Niagara, Primo/Sparkletts, Cal Water/Chico, and Bend.
 
-The most recent clean test gate before this design revision reported **68 passing tests**.
+The latest clean gate after the five-fixture batch reported **155 passing tests**, with Ruff, Ruff format check, and mypy also passing.
 
-The FermentationJSON real-report review has identified the next source-report semantics that should be implemented before serious fixture ingestion:
+The real-report pressure-test phase has served its immediate purpose. Additional reports should be added only when they expose a genuinely new semantic or scientific requirement rather than simply increasing fixture count.
 
-1. `ND` / not-detected as a first-class result state;
-2. lower bounds and a generalized bound representation;
-3. qualified/censored range endpoints such as `ND–11.1` and `<3–14`;
-4. controlled reported-statistic semantics beyond ordinary `reported_average`;
-5. optional result-specific observation date/period;
-6. water identity fields beyond provider alone;
-7. sample/water-stage context;
-8. strict separation of regulatory/reference thresholds from chemistry.
-
-Real Santa Cruz, Niagara, Primo/Sparkletts, and other source fixtures should be added only after the subset of these semantics required by each fixture can be represented faithfully.
+The next implementation focus moves from source-report representation into **deterministic forward treatment calculations**: validated treatment-ingredient identities, generic stoichiometric ion contributions, derived working-water states, blending, and later the reusable aqueous pH capability documented above.
 
 ## 27. Development milestones
 
@@ -1341,33 +1415,40 @@ Real Santa Cruz, Niagara, Primo/Sparkletts, and other source fixtures should be 
 - public repository and MPL-2.0 license;
 - uv workspace;
 - engine and web package skeletons;
-- Ruff, mypy, pytest, CI;
+- Ruff, mypy, pytest, Hypothesis, CI;
 - core design and roadmap documents.
 
-### Milestone 1 — FermUnits and measurement semantics — in progress
+### Milestone 1 — FermUnits and measurement semantics — substantially complete
 
-Completed or underway:
+Completed:
 
 - FermUnits dependency;
 - ion identifiers;
-- exact/range/bound semantics;
-- reported-average semantics;
-- provenance;
-- source profiles;
-- target profiles;
+- exact/range/bound/`ND`/qualified-endpoint semantics;
+- ordinary reported-average and named reported-statistic semantics;
+- source profiles and target profiles;
+- source-document metadata, water identity, physical source, observation timing, coverage, and water-stage context;
 - alkalinity/hardness/TDS/conductivity;
-- structured pH semantics implemented and tested;
-- profile observation periods implemented;
-- `ND`, qualified endpoints, richer statistics, result timing, identity/context next;
-- real report fixtures after required source-report semantics are representable;
-- BeerJSON water adapter after the profile contracts settle sufficiently.
+- structured reported-pH semantics;
+- bicarbonate-alkalinity basis normalization for explicitly identified bicarbonate results;
+- five data-driven real-report fixtures exercising the implemented semantics.
 
-### Milestone 2 — deterministic forward calculations
+Still expected at the boundary as needed:
 
+- BeerJSON water adapter once the profile contracts are sufficiently settled;
+- FermentationJSON adapter when its water schema is ready.
+
+### Milestone 2 — deterministic forward calculations — next
+
+- validated treatment-ingredient identities, including hydration state;
+- generic stoichiometric ion-contribution calculation;
+- forward application of one or more additions to a known water volume;
 - two- and multi-source blending;
-- validated mineral stoichiometry;
+- explicit derived blended-water and final treated-water chemical states;
 - contribution matrices;
-- profile comparison.
+- profile comparison;
+- reusable `calculate_ph(chemical_state)` capability once a scientifically validated aqueous model and minimum-input contract are established;
+- one working-water **Calc pH** action may evaluate both blend and final treated-water checkpoints through that same capability.
 
 ### Milestone 3 — optimization core
 
@@ -1379,7 +1460,8 @@ Completed or underway:
 
 ### Milestone 4 — web application
 
-- HTMX profile-entry/blending workflows;
+- HTMX profile-entry/blending/treatment workflows;
+- working-water **Calc pH** action backed only by the reusable engine capability;
 - ranked results and contribution tables;
 - localization-ready quantity controls;
 - BeerJSON import/export;
@@ -1407,13 +1489,10 @@ Completed or underway:
 9. How target-match scores should be normalized and explained.
 10. Which ions/properties belong in the default UI panel vs. advanced display.
 11. Whether charge-balance diagnostics should only warn or may optionally suggest likely missing information without altering source data.
-12. Exact generalized representation for lower/upper bounds, `ND`, and qualified/censored range endpoints.
-13. Controlled vocabulary and payload for reported statistics such as ordinary average, RAA, LRAA, percentile, highest, and lowest.
-14. Whether result-level timing belongs directly on every reported result or through a reusable measurement-context object.
-15. Controlled vocabulary for water identity/product type and sample/water stage.
-16. How regulatory/reference thresholds should be represented when preserved for report fidelity without contaminating chemistry models.
-17. Whether pH aggregation should use activity directly, a concentration approximation, or model-selectable behavior when raw observations are supplied.
-18. Long-term source for FermUnits dependency after GitHub-tag development use.
+12. How regulatory/reference thresholds should be represented when preserved for report fidelity without contaminating chemistry models.
+13. Exact aqueous equilibrium/activity model, validated reference data, and minimum chemical-state inputs for the reusable `calculate_ph(...)` capability.
+14. Whether optional source-profile **Estimate pH** belongs in the Version 1 UI or should wait until the working-water pH workflow is validated.
+15. Long-term source for FermUnits dependency after GitHub-tag development use.
 
 ## 29. Versioning policy
 
@@ -1432,8 +1511,10 @@ A UI-only patch should not imply that saved chemistry results were produced by a
 
 ## 30. Summary decision
 
-Version 1 will provide a reusable, explainable water-treatment engineering system for beer, mead, and distilling users, especially home producers and small commercial operations. It will preserve real-world source-report semantics—including exact values, ranges, bounds, `ND`, qualified endpoints, named statistics, reporting bases, timing, water identity, and sampling context—while supporting multiple water sources, exact and ranged targets, practical mineral additions, ranked plans, contribution tables, provenance, BeerJSON compatibility, localization, and a responsive HTMX web interface.
+Version 1 will provide a reusable, explainable water-treatment engineering system for beer, mead, and distilling users, especially home producers and small commercial operations. It will preserve real-world source-report semantics—including exact values, ranges, bounds, `ND`, qualified endpoints, named statistics, reporting bases, timing, water identity, sampling context, and source-document metadata—while supporting multiple water sources, exact and ranged targets, practical mineral additions, ranked plans, contribution tables, source/reference attribution, BeerJSON compatibility, localization, and a responsive HTMX web interface.
 
-The engine deliberately distinguishes reported from derived chemistry. Linear ranges may use an on-demand midpoint only when no reported average exists. pH is explicitly excluded from that generic behavior because it is logarithmic: range endpoints are preserved, reported averages are trusted only when actually reported, and any derived pH aggregation requires an explicit scientifically documented linear-space method.
+The engine deliberately distinguishes reported from derived chemistry. Linear ranges may use an on-demand midpoint only when no reported average exists and both endpoints are exact. Qualified ranges do not receive an automatic representative value. pH is explicitly excluded from generic linear averaging because it is logarithmic: range endpoints are preserved, reported averages are trusted only when actually reported, and any derived pH calculation uses an explicit scientifically documented aqueous model.
+
+Calculated working-water pH is one reusable engine capability, conceptually `calculate_ph(chemical_state)`. Source, blended, and final treated-water states may all use that same capability. The standalone UI should normally expose one **Calc pH** action that can refresh every meaningful current working-water pH checkpoint in one interaction; a separately labeled source **Estimate pH** may reuse the same engine only when scientifically sufficient inputs exist. Calculated pH never overwrites `ReportedPH`.
 
 FermentationJSON is expected to become the richer long-term interchange representation without constraining the internal engine model or diminishing BeerJSON compatibility.
