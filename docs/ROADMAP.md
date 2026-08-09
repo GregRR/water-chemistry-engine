@@ -30,6 +30,8 @@ standalone graphical interface.
 - User-created profiles
 - Previously achieved brewing-liquor profiles
 - Profile provenance and citations
+- Preservation of source-reported chlorine/chloramine data and other supported report analytes even when they are not current optimization variables
+- Chloride kept explicitly separate from chlorine/chloramine reporting
 
 ### Water blending
 
@@ -77,7 +79,9 @@ standalone graphical interface.
 - Independently installable Python engine
 - Responsive standalone web interface
 - Server-rendered HTML with HTMX
-- Direct integration into Mecha-Brew
+- Direct integration into Mecha-Brew for the beer, mead, distilling, and related fermentation-water capabilities it needs
+- Shared water core that does not require downstream applications to depend on unrelated future domain modules
+- Standalone web architecture able to host additional domain calculators over time
 - Stable interfaces suitable for future mobile applications
 
 ### AI-assisted water-report import
@@ -85,6 +89,8 @@ standalone graphical interface.
 - Upload municipal, bottled-water, or laboratory water-quality reports as PDF files
 - Extract relevant water chemistry and report metadata automatically
 - Preserve exact values, ranges, detection limits, units, reporting bases, and provenance
+- Preserve free chlorine, total chlorine, combined chlorine, chloramine/named chloramine-species reporting, and related disinfectant labels when the source provides them
+- Never confuse chloride concentration with chlorine/chloramine disinfectant measurements
 - Preserve reported values separately from calculated or inferred values
 - Never silently convert reported alkalinity into bicarbonate or replace other reported quantities with derived equivalents
 - Identify the source page, table, or section for extracted values where practical
@@ -109,12 +115,14 @@ standalone graphical interface.
 - Pareto-front exploration
 - Optional treatment-cost inputs
 - Optional Mecha-Brew inventory integration
+- Purpose-aware brewing/brewery-water guidance where validated, carrying intended water use as calculation context rather than source-water identity
 - Expanded brewery-scale workflows
 
 ## Version 3.0 — Broader Food and Beverage Applications
 
 The shared water engine may be extended through independently validated
-domain modules for:
+domain modules. Coffee is the preferred first non-brewing domain once the
+brewing-water foundation is stable:
 
 - Coffee
 - Tea
@@ -129,7 +137,14 @@ domain modules for:
 
 These modules should share water-composition, blending, provenance, and
 optimization infrastructure while retaining their own scientific models,
-target profiles, warnings, references, and validation suites.
+target profiles, warnings, references, and validation suites. The standalone
+web application may expose several calculators, while downstream applications
+consume only the domains they need.
+
+A generalized non-additive `TreatmentOperation` abstraction may be introduced
+in this stage if concrete brewing or coffee requirements justify it. It should
+not be built into Version 1 merely to anticipate filtration, dechlorination,
+reverse osmosis, ion exchange, softening, or deaeration workflows.
 
 ## Version 4.0 — Selected Industrial Applications
 
@@ -142,6 +157,8 @@ have been researched and documented.
 ## Development principle
 
 Later features should be anticipated in the architecture without delaying a
-scientifically sound and useful Version 1.0. Features must not be advertised
-until their calculations, operating ranges, references, and validation tests
-are implemented and documented.
+scientifically sound and useful Version 1.0. Preserve data now when discarding
+it would make future domains harder to add, but do not introduce generalized
+frameworks until concrete use cases demonstrate the abstraction. Features must
+not be advertised until their calculations, operating ranges, references, and
+validation tests are implemented and documented.

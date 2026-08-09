@@ -48,6 +48,8 @@ The system should:
 14. Remain suitable for future conforming implementations in Swift, Kotlin, Dart, JavaScript, or other languages.
 15. Preserve water identity, sampling stage/context, and result-specific timing when reports distinguish them.
 16. Keep regulatory or advisory limits separate from measured or reported water chemistry.
+17. Preserve source-reported disinfectants and other relevant analytes even when the current optimizer does not use them, beginning with chlorine and chloramine reporting.
+18. Treat intended water use as calculation/application context rather than an intrinsic property of a source-water profile.
 
 ## 3. Non-goals
 
@@ -82,6 +84,8 @@ The architecture may permit later use outside brewing, but Version 1 should opti
 13. **Make model versions visible.** Saved plans should identify the chemistry, optimization, and reference-data versions that produced them.
 14. **Validate against independent reference data.** Legacy calculator code can inform the project but is never authoritative by itself.
 15. **Avoid premature abstraction.** Shared calculator infrastructure should be extracted only after concrete duplication demonstrates a stable shared requirement.
+16. **Preserve before modeling.** A source report may contain chemically or operationally relevant analytes that the current optimizer cannot yet use. Preserve supported reported data faithfully rather than discarding it merely because no calculation consumes it today.
+17. **Keep intended use contextual.** The same source water may be used for brewing liquor, dilution, spirit proofing, coffee brewing, or another purpose. Intended use belongs to the calculation or application context and must not mutate the identity or reported chemistry of the source water.
 
 ## 5. System architecture and dependency direction
 
@@ -108,6 +112,8 @@ Responsibilities are intentionally separated:
 - **Water Treatment Engine** supplies water-chemistry semantics, reported-value semantics, blending, stoichiometry, comparison, optimization, warnings, and structured results.
 - **BeerJSON/FermentationJSON adapters** translate external interchange documents to and from engine boundary/domain models.
 - **Applications** supply persistence, users, forms, visual presentation, import workflows, and product-specific behavior.
+
+The shared water representation and deterministic water-chemistry capabilities must not acquire coffee-, bread-, or other domain-specific sensory assumptions merely because those applications may later use the same code base. Future domain capabilities should depend on the shared water core rather than forcing the core to depend on a particular product domain. The standalone web application may expose several calculators over time, while downstream applications should consume only the domain capabilities they need; for example, Mecha-Brew should integrate the beer, mead, distilling, and related fermentation-water capabilities without depending on future coffee or bread modules.
 
 The engine must never import the web application, Mecha-Brew, a database ORM, or a platform-specific UI framework.
 
@@ -324,6 +330,24 @@ Alkalinity and total hardness currently use an explicit reporting basis, initial
 `as CaCO3` is a chemical reporting basis, not merely a unit label. The engine must preserve it semantically. The model should be extensible to other explicitly reported bases such as bicarbonate alkalinity reported as HCO3 without hiding the basis in an opaque unit string.
 
 Conductivity may carry a reference temperature when the source provides one. A reference temperature must remain optional; the engine must not infer 25 °C or another temperature merely because that is common practice.
+
+#### 9.5.1 Reported disinfectants and non-optimization analytes
+
+Water reports may contain constituents that are important to product quality, treatment decisions, or later domain modules even though they are not part of the current canonical brewing-ion optimization panel. The source-report model and import path must be able to preserve such values without pretending that the optimizer already models their effects.
+
+The first required disinfectant/reporting concepts are:
+
+- free chlorine, when explicitly reported;
+- total chlorine, when explicitly reported;
+- combined chlorine, when explicitly reported;
+- chloramine or a named chloramine species, using the source's terminology when explicitly reported;
+- chlorine dioxide, when explicitly reported.
+
+The original reporting basis or analytical label should be retained when supplied, for example `mg/L as Cl2`. **Chloride (`Cl-`) is chemically and semantically distinct from chlorine, total chlorine, and chloramine and must never be used as a substitute for them.**
+
+The engine/importer must not automatically calculate chloramine or combined chlorine by subtracting free chlorine from total chlorine unless a documented analytical rule for that specific representation supports the derivation. Any such result would be derived data, not a reported measurement.
+
+The same preserve-before-modeling principle may later apply to iron, manganese, nitrate, nitrite, silica, dissolved oxygen, hydrogen sulfide, trihalomethanes, and other report analytes. Adding a reported analyte must not automatically make it an optimization variable or imply that the engine has a validated treatment model for it.
 
 ### 9.6 Alkalinity and bicarbonate are not interchangeable
 
@@ -545,6 +569,10 @@ The current `SourceWaterProfile` supports:
 
 Individual reported results may additionally carry `ReportedStatistic` and `ReportedResultContext`, allowing result-specific timing, coverage, water stage, and sample location without forcing those details into the whole profile.
 
+The source-report representation must also be extensible to reported disinfectants and other supported analytes outside the canonical optimization-ion panel. Preserving such a reported value does not make it an optimizer variable or imply a validated treatment model for it.
+
+A source-water profile describes the water and its provenance. It must not encode the downstream purpose for which a particular calculation happens to use that water.
+
 Source-water profile types may include:
 
 - municipal;
@@ -638,6 +666,14 @@ A complete plan should contain:
 - assumptions;
 - solver status/tolerances;
 - chemistry, solver, and reference-data versions.
+
+### 9.18 Intended water use is calculation context
+
+The same physical source water can be evaluated or treated differently depending on what the user intends to do with it. Brewery examples include brewing liquor, dilution water, spirit-proofing water, and other validated process uses. Future domains may add contexts such as coffee brewing without changing the source-water representation.
+
+The design should therefore leave room for a lightweight `IntendedWaterUse` or equivalent request-context concept. It may select applicable questions, targets, limits, warnings, or calculation models, but it is not part of `SourceWaterProfile` and it must not alter reported source chemistry.
+
+Version 1 does **not** require a generalized cross-domain suitability-criteria framework. Only intended-use distinctions with concrete, validated behavior should be implemented. Additional brewery purposes and future domain-specific criteria can be added when their requirements are established by actual use cases and evidence.
 
 ## 10. Reported, representative, and derived data policy
 
@@ -885,6 +921,8 @@ The importer should attempt to preserve:
 
 - calcium, magnesium, sodium, potassium;
 - chloride, sulfate, bicarbonate only when actually reported;
+- free chlorine, total chlorine, combined chlorine, chloramine/named chloramine species, and chlorine dioxide when actually reported;
+- supported reported analytes that are relevant to later quality or treatment decisions even when the current optimizer does not consume them;
 - pH;
 - alkalinity with explicit reporting basis;
 - hardness with explicit reporting basis;
@@ -917,7 +955,9 @@ The AI/import layer must not:
 - save extracted values without a user-review opportunity in the normal interactive workflow;
 - coerce `ND` to zero;
 - treat a regulatory/advisory limit as the measured result;
-- collapse RAA, LRAA, percentile, highest/lowest, or another named statistic into an ordinary `reported_average`.
+- collapse RAA, LRAA, percentile, highest/lowest, or another named statistic into an ordinary `reported_average`;
+- confuse chloride with chlorine/chloramine or map one into the other;
+- derive combined chlorine or chloramine from total and free chlorine without an explicit, documented analytical rule and derived-data label.
 
 Document parsing and AI extraction remain outside `water-treatment-engine`; the engine receives validated structured data.
 
@@ -982,6 +1022,7 @@ Version 1.0 should be a useful end-to-end product rather than only a chemistry-l
    - Correct nonlinear pH semantics.
    - Water identity and sampling-stage/context preservation.
    - Regulatory/reference thresholds kept separate from chemistry.
+   - Preservation of source-reported disinfectants and other supported non-optimization analytes, beginning with chlorine/chloramine reporting.
 
 2. **Forward water blending**
    - Blend two or more source waters by volume.
@@ -1083,6 +1124,7 @@ Version 1.0 should be a useful end-to-end product rather than only a chemistry-l
 - AI-assisted PDF water-report import after the source-report model is stable.
 - Review/correction of AI-extracted water-report data before saving.
 - Dated saved reports so source-water changes can be compared over time.
+- Carry intended water use as request/application context wherever a supported calculation or warning depends on that distinction; do not infer intended use from the source-water profile itself.
 - No account required for basic calculations.
 
 ### 16.3 Version 1 reference data
@@ -1104,7 +1146,8 @@ Version 1.0 should be a useful end-to-end product rather than only a chemistry-l
 - robust uncertainty propagation through optimization;
 - detailed inventory/purchasing/package management;
 - sophisticated cost optimization;
-- multi-batch production planning.
+- multi-batch production planning;
+- a generalized non-additive `TreatmentOperation` framework for activated-carbon treatment, ion exchange, modeled reverse-osmosis removal, deaeration, softening, and similar processes.
 
 AI-assisted PDF extraction may be developed in the Version 1 web application, but it remains an ingestion workflow and must not force unvalidated chemistry into the engine.
 
@@ -1125,6 +1168,7 @@ Version 2 should add features that require deeper chemistry models or materially
 - Pareto-front exploration;
 - optional treatment cost inputs;
 - optional Mecha-Brew inventory integration;
+- purpose-aware brewing/brewery-water guidance where validated, using intended-water-use context rather than changing source-water identity;
 - expanded brewery-scale workflows.
 
 Mash-pH prediction must clearly separate predicted, calculated, and measured pH and use versioned validated models.
@@ -1133,7 +1177,7 @@ Mash-pH prediction must clearly separate predicted, calculated, and measured pH 
 
 Potential independently validated domain modules include:
 
-- coffee;
+- coffee, the preferred first non-brewing domain once the brewing-water foundation is stable;
 - tea;
 - bread;
 - sourdough;
@@ -1144,7 +1188,9 @@ Potential independently validated domain modules include:
 - lacto-fermented vegetables;
 - other fermented foods and beverages.
 
-These modules may share source-water composition, blending, source-attribution metadata, and optimization infrastructure while retaining their own constituents, targets, treatment rules, sensory/process priorities, warnings, references, and validation suites.
+These modules may share source-water composition, blending, source-attribution metadata, and optimization infrastructure while retaining their own constituents, targets, treatment rules, sensory/process priorities, warnings, references, and validation suites. The standalone web application may host several such calculators over the shared engine, while other applications consume only the domains they need.
+
+A generalized non-additive `TreatmentOperation` abstraction may be introduced in this stage if concrete brewing or coffee requirements justify it. It should not be pre-built in Version 1 merely to anticipate filtration, dechlorination, reverse osmosis, ion exchange, softening, or deaeration workflows.
 
 The project must not imply that one generic ion-matching score predicts sensory quality across all foods or beverages.
 
@@ -1368,6 +1414,7 @@ Portable versioned request/result pairs should allow Swift, Kotlin, Dart, JavaSc
 - Never arithmetic-average pH.
 - Never coerce `ND` to zero or an unspecified detection limit.
 - Never treat a regulatory/advisory threshold as a measured concentration.
+- Never confuse chloride with chlorine, total chlorine, or chloramine; preserve the source's disinfectant terminology and reporting basis.
 - Keep source citations, report periods, and data dates visible.
 - Prevent malformed units and impossible values from reaching optimizers.
 - Put critical calculation limits in the engine, not only in UI validation.
@@ -1406,6 +1453,8 @@ The latest clean gate after the five-fixture batch reported **155 passing tests*
 
 The real-report pressure-test phase has served its immediate purpose. Additional reports should be added only when they expose a genuinely new semantic or scientific requirement rather than simply increasing fixture count.
 
+One remaining near-term source-report extension is first-class preservation of chlorine/chloramine and related disinfectant reporting when source documents provide it. This data should be retained even before any treatment or optimization model consumes it; chloride remains a separate ion and is not a substitute.
+
 The next implementation focus moves from source-report representation into **deterministic forward treatment calculations**: validated treatment-ingredient identities, generic stoichiometric ion contributions, derived working-water states, blending, and later the reusable aqueous pH capability documented above.
 
 ## 27. Development milestones
@@ -1435,6 +1484,7 @@ Completed:
 
 Still expected at the boundary as needed:
 
+- reported disinfectant/analyte preservation beginning with chlorine/chloramine;
 - BeerJSON water adapter once the profile contracts are sufficiently settled;
 - FermentationJSON adapter when its water schema is ready.
 
@@ -1493,6 +1543,8 @@ Still expected at the boundary as needed:
 13. Exact aqueous equilibrium/activity model, validated reference data, and minimum chemical-state inputs for the reusable `calculate_ph(...)` capability.
 14. Whether optional source-profile **Estimate pH** belongs in the Version 1 UI or should wait until the working-water pH workflow is validated.
 15. Long-term source for FermUnits dependency after GitHub-tag development use.
+16. Exact reusable representation for reported disinfectants and other non-optimization analytes once chlorine/chloramine support expands beyond the first concrete cases.
+17. First validated set of intended-water-use values and which belong in Version 1 versus later brewery/domain modules.
 
 ## 29. Versioning policy
 
@@ -1511,7 +1563,7 @@ A UI-only patch should not imply that saved chemistry results were produced by a
 
 ## 30. Summary decision
 
-Version 1 will provide a reusable, explainable water-treatment engineering system for beer, mead, and distilling users, especially home producers and small commercial operations. It will preserve real-world source-report semantics—including exact values, ranges, bounds, `ND`, qualified endpoints, named statistics, reporting bases, timing, water identity, sampling context, and source-document metadata—while supporting multiple water sources, exact and ranged targets, practical mineral additions, ranked plans, contribution tables, source/reference attribution, BeerJSON compatibility, localization, and a responsive HTMX web interface.
+Version 1 will provide a reusable, explainable water-treatment engineering system for beer, mead, and distilling users, especially home producers and small commercial operations. It will preserve real-world source-report semantics—including exact values, ranges, bounds, `ND`, qualified endpoints, named statistics, reporting bases, timing, water identity, sampling context, source-document metadata, and source-reported disinfectants such as chlorine/chloramine—while supporting multiple water sources, exact and ranged targets, practical mineral additions, ranked plans, contribution tables, source/reference attribution, BeerJSON compatibility, localization, and a responsive HTMX web interface. Intended water use remains calculation/application context rather than part of source-water identity.
 
 The engine deliberately distinguishes reported from derived chemistry. Linear ranges may use an on-demand midpoint only when no reported average exists and both endpoints are exact. Qualified ranges do not receive an automatic representative value. pH is explicitly excluded from generic linear averaging because it is logarithmic: range endpoints are preserved, reported averages are trusted only when actually reported, and any derived pH calculation uses an explicit scientifically documented aqueous model.
 

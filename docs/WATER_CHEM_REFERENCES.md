@@ -83,6 +83,33 @@ Where an authoritative ASBC method, table, or formula is known to exist but cann
 - **Relevant topics:** Brewing ions, alkalinity, hardness, mash effects, and practical adjustment.
 - **Use in this project:** Comparison, terminology, and test-case discovery. Formulas should be traced to primary or authoritative sources where possible.
 
+### Eumann and Schildbach (2012)
+
+- **Authors:** Michael Eumann; Stefan Schildbach
+- **Title:** 125th Anniversary Review: Water sources and treatment in brewing
+- **Journal:** *Journal of the Institute of Brewing*, Volume 118, pages 12–21
+- **Year:** 2012
+- **DOI:** 10.1002/jib.18
+- **Type:** Peer-reviewed brewing-science review article
+- **Relevant topics:** Distinct brewery water purposes; brewing-water calcium, alkalinity, chloride, sulfate, nitrate, silica, and disinfectant concerns; dechlorination; reverse osmosis; ion exchange; deaeration; other treatment technologies.
+- **Design implications:**
+  - Intended water use belongs to calculation/application context because brew water, dilution water, service water, and other brewery uses have different requirements.
+  - Chlorine and other oxidizing disinfectants can matter independently of chloride concentration and should not be discarded during report ingestion.
+  - Non-additive treatment processes exist, but a generalized treatment-operation abstraction is not required for Version 1.
+- **Caution:** The paper's numerical water-requirement tables are the authors' recommendations in an industrial-brewery context; they are not assumed to be universal standards for every brewery or product.
+
+### Sutea et al. (2025)
+
+- **Authors:** Corina Maria Sutea et al.
+- **Title:** Beer Aroma Compounds: Key Odorants, Off-Flavour Compounds and Improvement Proposals
+- **Journal:** *Foods*, Volume 14, article 4287
+- **Year:** 2025
+- **DOI:** 10.3390/foods14244287
+- **Type:** Peer-reviewed review article
+- **Relevant topics:** Beer odorants and off-flavours, including chlorophenols, metallic flavour, and water-related contamination sources.
+- **Design implications:** Supports preserving chlorine/chloramine information from source-water reports because chlorine can participate in chlorophenol formation associated with medicinal off-flavours.
+- **Use in this project:** Sensory/mechanistic context and research support; individual thresholds or corrective actions should be verified against primary sources before becoming engine limits.
+
 ## 3. Food science and sensory sources
 
 ### Sheibani and Mohammadi (2018)
@@ -111,6 +138,68 @@ Where an authoritative ASBC method, table, or formula is known to exist but cann
 - **Type:** Introductory food-science source
 - **Relevant topics:** Water polarity, solvent behavior, hydration, food reactions, texture, gluten formation, gelatinization, and stability.
 - **Use in this project:** Roadmap context and educational framing for later food modules; not a quantitative treatment-model source.
+
+### SCAA specialty-coffee water standard (2009)
+
+- **Title:** SCAA Standard | Water for Brewing Specialty Coffee
+- **Publisher:** Specialty Coffee Association of America
+- **Revision:** 2009-11-21; version `21NOV2009A`
+- **Type:** Historical authoritative industry standard
+- **Relevant topics:** Coffee-brewing water target/range concepts for TDS, calcium hardness, alkalinity, pH, sodium, odor/color, and total chlorine.
+- **Design implications:**
+  - Supports preserving total chlorine as source-water data.
+  - Demonstrates that a domain may evaluate water against purpose-specific criteria that are not reducible to a generic ion-distance target.
+- **Caution:** Treat these values as a dated SCAA standard, not automatically as the current Specialty Coffee Association standard.
+
+### Hendon, Colonna-Dashwood, and Colonna-Dashwood (2014)
+
+- **Authors:** Christopher H. Hendon; Lesley Colonna-Dashwood; Maxwell Colonna-Dashwood
+- **Title:** The Role of Dissolved Cations in Coffee Extraction
+- **Journal:** *Journal of Agricultural and Food Chemistry*, Volume 62, pages 4947–4950
+- **Year:** 2014
+- **DOI:** 10.1021/jf501687c
+- **Type:** Primary scientific source
+- **Relevant topics:** Modeled interactions of Na+, Mg2+, and Ca2+ with representative coffee compounds; cation-dependent extraction behavior; interaction with bicarbonate buffering.
+- **Design implications:** Coffee is a strong candidate for the first non-brewing domain because it reuses source-water chemistry while requiring its own validated extraction/sensory logic.
+- **Caution:** The paper does not establish one universally optimal coffee-water composition; do not turn its relative binding results into a generic "more magnesium is better" scoring rule.
+
+### Daily Coffee News practical water guide (2018)
+
+- **Title:** A Practical Water Guide for Coffee Professionals: Part I
+- **Date:** 2018-08-15
+- **URL:** https://dailycoffeenews.com/2018/08/15/a-practical-water-guide-for-coffee-professionals-part-i/
+- **Type:** Specialist secondary source
+- **Relevant topics:** Practical coffee-water composition, hardness/alkalinity, treatment, and distinction between chloride and chlorine-related concerns.
+- **Use in this project:** Workflow and terminology research for a future coffee module. Quantitative rules should be traced to primary or current authoritative sources before implementation.
+
+### Ferreira et al. (2024)
+
+- **Authors:** Fernanda Ferreira et al.
+- **Title:** Harnessing the Power of Natural Mineral Waters in Bread Formulations: Effects on Chemical, Physical, and Physicochemical Properties
+- **Journal:** *Applied Sciences*, Volume 14, article 9179
+- **Year:** 2024
+- **DOI:** 10.3390/app14209179
+- **Type:** Primary scientific source
+- **Relevant topics:** Effects of different mineral waters on bread mineral composition, pH, texture, and related physicochemical properties.
+- **Design implications:** Supports keeping bread/sourdough as a future domain that can reuse source-water data, while providing no basis for a universal bread-water target profile.
+
+### Sourdough Institute tap-water article
+
+- **Title:** The Role of Tap Water in Sourdough Preparation
+- **Publisher/site:** Sourdough Institute
+- **URL:** https://www.sourdoughinstitute.com/post/the-role-of-tap-water-in-sourdough-preparation
+- **Type:** Specialist secondary source / research summary
+- **Relevant topics:** Water composition in starter establishment and bread-making context; possible differences between starter creation, mature starter maintenance, and dough use.
+- **Use in this project:** Future bread/sourdough research questions and workflow design. Trace scientific claims to the underlying primary study before implementing quantitative models.
+
+### Brot Box water-quality article
+
+- **Title:** How Water Quality Affects Bread Baking
+- **Publisher/site:** The Brot Box
+- **URL:** https://thebrotbox.com/blogs/news/how-water-quality-affects-bread-baking
+- **Type:** Practitioner/introductory secondary source
+- **Relevant topics:** Practical discussion of hardness, pH, chlorine/chloramine, yeast, gluten, and bread quality.
+- **Use in this project:** Discovery and user-workflow context only; its numerical recommendations are not accepted as authoritative target profiles without stronger validation.
 
 ## 4. Authoritative and primary sources to acquire or verify
 
@@ -158,7 +247,7 @@ These use cases must remain distinct. A profile suitable for fermentation is not
 
 ## 5. Version 3 research queues
 
-Create separate research notes before implementing each domain:
+Coffee is the preferred first non-brewing research/module candidate after the brewing-water foundation is stable. Create separate research notes before implementing each domain:
 
 - `research/coffee.md`
 - `research/tea.md`
