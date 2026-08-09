@@ -15,6 +15,7 @@ can be modeled later without changing the underlying stoichiometry.
 """
 
 from dataclasses import dataclass
+from typing import Any
 
 from fermunits import Q_
 from pint import Quantity
@@ -50,7 +51,7 @@ class IonStoichiometry:
 
     ion: Ion
     coefficient: int
-    molar_mass: Quantity
+    molar_mass: Quantity[Any]
 
     def __post_init__(self) -> None:
         if self.coefficient <= 0:
@@ -74,7 +75,7 @@ class TreatmentIngredient:
     key: str
     name: str
     formula: str
-    molar_mass: Quantity
+    molar_mass: Quantity[Any]
     ion_stoichiometry: tuple[IonStoichiometry, ...]
 
     def __post_init__(self) -> None:

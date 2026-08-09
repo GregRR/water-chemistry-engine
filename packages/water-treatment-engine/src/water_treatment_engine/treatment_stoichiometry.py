@@ -13,6 +13,7 @@ calculation from masquerading as a complete water-chemistry model.
 """
 
 from dataclasses import dataclass
+from typing import Any
 
 from pint import Quantity
 
@@ -25,7 +26,7 @@ class IonContribution:
     """Derived mass concentration contributed by one treatment ingredient."""
 
     ion: Ion
-    concentration: Quantity
+    concentration: Quantity[Any]
 
     def __post_init__(self) -> None:
         try:
@@ -41,8 +42,8 @@ class IonContribution:
 
 def calculate_ion_contributions(
     ingredient: TreatmentIngredient,
-    addition_mass: Quantity,
-    water_volume: Quantity,
+    addition_mass: Quantity[Any],
+    water_volume: Quantity[Any],
 ) -> tuple[IonContribution, ...]:
     """Calculate theoretical ion contributions for one mineral addition.
 
