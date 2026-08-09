@@ -13,6 +13,9 @@ from water_treatment_engine.concentrations import (
     IonConcentrationNotDetected,
     IonConcentrationRange,
     IonConcentrationUpperBound,
+    LowerBoundConcentrationEndpoint,
+    NotDetectedConcentrationEndpoint,
+    UpperBoundConcentrationEndpoint,
 )
 from water_treatment_engine.ions import Ion
 from water_treatment_engine.profiles import SourceWaterProfile
@@ -69,28 +72,52 @@ def _load_observation_period(
 def _load_result_context(
     data: Mapping[str, Any] | None,
     *,
-    observation_period: ObservationPeriod | None,
+    observation_period: ObservationPeriod | None = None,
+    fallback: ReportedResultContext | None = None,
 ) -> ReportedResultContext | None:
     if data is None:
-        return None
+        return fallback
+
+    observed_on = _parse_date(data.get("observed_on"))
+    explicit_period = _load_observation_period(data.get("observation_period"))
+
+    # A result-specific date is more precise than the profile's broad reporting
+    # period.  Do not accidentally inherit both: ReportedResultContext correctly
+    # treats a single observation date and an observation period as mutually
+    # exclusive.  Other sampling context can still inherit from the profile.
+    if "observation_period" in data:
+        effective_period = explicit_period
+    elif observed_on is not None:
+        effective_period = None
+    elif fallback is not None:
+        effective_period = fallback.observation_period
+    else:
+        effective_period = observation_period
+
     return ReportedResultContext(
-        observed_on=_parse_date(data.get("observed_on")),
-        observation_period=(
-            _load_observation_period(data.get("observation_period"))
-            if data.get("observation_period") is not None
-            else observation_period
-        ),
+        observed_on=observed_on,
+        observation_period=effective_period,
         coverage=(
             ResultCoverage(data["coverage"])
             if data.get("coverage") is not None
+            else fallback.coverage
+            if fallback is not None
             else None
         ),
         water_stage=(
             WaterStage(data["water_stage"])
             if data.get("water_stage") is not None
+            else fallback.water_stage
+            if fallback is not None
             else None
         ),
-        sample_location=data.get("sample_location"),
+        sample_location=(
+            data.get("sample_location")
+            if "sample_location" in data
+            else fallback.sample_location
+            if fallback is not None
+            else None
+        ),
     )
 
 
@@ -146,6 +173,44 @@ def _load_reported_statistic(
     )
 
 
+def _load_range_endpoint(
+    data: Any,
+    *,
+    unit: str,
+) -> (
+    ExactConcentrationEndpoint
+    | UpperBoundConcentrationEndpoint
+    | LowerBoundConcentrationEndpoint
+    | NotDetectedConcentrationEndpoint
+):
+    if isinstance(data, (int, float)):
+        return ExactConcentrationEndpoint(Q_(data, unit))
+    if not isinstance(data, Mapping):
+        raise TypeError(f"Unsupported concentration range endpoint: {data!r}")
+
+    # Keep censoring exactly as the source reported it.  In particular, ND is
+    # not zero, and a '<X' or '>X' endpoint is not silently converted to X.
+    # Any future numeric substitution belongs in an explicit calculation policy,
+    # not in fixture ingestion.
+    form = data["form"]
+    if form == "exact":
+        return ExactConcentrationEndpoint(Q_(data["value"], unit))
+    if form == "upper_bound":
+        return UpperBoundConcentrationEndpoint(Q_(data["limit"], unit))
+    if form == "lower_bound":
+        return LowerBoundConcentrationEndpoint(Q_(data["limit"], unit))
+    if form == "not_detected":
+        return NotDetectedConcentrationEndpoint(
+            detection_limit=(
+                Q_(data["detection_limit"], unit)
+                if data.get("detection_limit") is not None
+                else None
+            )
+        )
+
+    raise ValueError(f"Unsupported concentration range endpoint form: {form}")
+
+
 def _load_concentration(
     ion_name: str,
     data: Mapping[str, Any],
@@ -162,27 +227,31 @@ def _load_concentration(
     unit = data.get("unit", "milligram / liter")
     form = data["form"]
     reported_statistic = _load_reported_statistic(data.get("reported_statistic"))
+    effective_result_context = _load_result_context(
+        data.get("result_context"),
+        fallback=result_context,
+    )
 
     if form in {"exact", "value"}:
         return IonConcentration(
             ion=ion,
             value=Q_(data["value"], unit),
             reported_statistic=reported_statistic,
-            result_context=result_context,
+            result_context=effective_result_context,
         )
 
     if form == "range":
         return IonConcentrationRange(
             ion=ion,
-            minimum=ExactConcentrationEndpoint(Q_(data["minimum"], unit)),
-            maximum=ExactConcentrationEndpoint(Q_(data["maximum"], unit)),
+            minimum=_load_range_endpoint(data["minimum"], unit=unit),
+            maximum=_load_range_endpoint(data["maximum"], unit=unit),
             reported_average=(
                 Q_(data["reported_average"], unit)
                 if data.get("reported_average") is not None
                 else None
             ),
             reported_statistic=reported_statistic,
-            result_context=result_context,
+            result_context=effective_result_context,
         )
 
     if form == "upper_bound":
@@ -190,7 +259,7 @@ def _load_concentration(
             ion=ion,
             maximum=Q_(data["maximum"], unit),
             reported_statistic=reported_statistic,
-            result_context=result_context,
+            result_context=effective_result_context,
         )
 
     if form == "lower_bound":
@@ -198,7 +267,7 @@ def _load_concentration(
             ion=ion,
             minimum=Q_(data["minimum"], unit),
             reported_statistic=reported_statistic,
-            result_context=result_context,
+            result_context=effective_result_context,
         )
 
     if form == "not_detected":
@@ -210,7 +279,7 @@ def _load_concentration(
                 else None
             ),
             reported_statistic=reported_statistic,
-            result_context=result_context,
+            result_context=effective_result_context,
         )
 
     raise ValueError(f"Unsupported concentration result form: {form}")
@@ -224,23 +293,27 @@ def _load_ph(
     if data is None:
         return None
 
+    effective_result_context = _load_result_context(
+        data.get("result_context"),
+        fallback=result_context,
+    )
     form = data["form"]
     if form == "exact":
         return ReportedPH(
             value=data["value"],
-            result_context=result_context,
+            result_context=effective_result_context,
         )
     if form == "range":
         return ReportedPH(
             minimum=data["minimum"],
             maximum=data["maximum"],
             reported_average=data.get("reported_average"),
-            result_context=result_context,
+            result_context=effective_result_context,
         )
     if form == "average":
         return ReportedPH(
             reported_average=data["reported_average"],
-            result_context=result_context,
+            result_context=effective_result_context,
         )
 
     raise ValueError(f"Unsupported pH result form: {form}")
@@ -263,6 +336,10 @@ def _load_property(
     *,
     result_context: ReportedResultContext | None,
 ) -> Alkalinity | TotalHardness | TotalDissolvedSolids | Conductivity:
+    effective_result_context = _load_result_context(
+        data.get("result_context"),
+        fallback=result_context,
+    )
     unit = data["unit"]
     kwargs = {
         "value": _quantity_or_none(data, "value", unit),
@@ -273,7 +350,7 @@ def _load_property(
             "reported_average",
             unit,
         ),
-        "result_context": result_context,
+        "result_context": effective_result_context,
     }
 
     if name == "alkalinity":
@@ -373,6 +450,46 @@ def _load_fixture(path: Path) -> tuple[JsonObject, tuple[SourceWaterProfile, ...
     return data, profiles
 
 
+def _assert_range_endpoint_matches(
+    endpoint: Any,
+    raw_endpoint: Any,
+    *,
+    unit: str,
+) -> None:
+    if isinstance(raw_endpoint, (int, float)):
+        assert isinstance(endpoint, ExactConcentrationEndpoint)
+        assert endpoint.value.to(unit).magnitude == pytest.approx(raw_endpoint)
+        return
+
+    assert isinstance(raw_endpoint, Mapping)
+    form = raw_endpoint["form"]
+    if form == "not_detected":
+        assert isinstance(endpoint, NotDetectedConcentrationEndpoint)
+        raw_limit = raw_endpoint.get("detection_limit")
+        if raw_limit is None:
+            assert endpoint.detection_limit is None
+        else:
+            assert endpoint.detection_limit is not None
+            assert endpoint.detection_limit.to(unit).magnitude == pytest.approx(
+                raw_limit
+            )
+        return
+    if form == "upper_bound":
+        assert isinstance(endpoint, UpperBoundConcentrationEndpoint)
+        assert endpoint.limit.to(unit).magnitude == pytest.approx(raw_endpoint["limit"])
+        return
+    if form == "lower_bound":
+        assert isinstance(endpoint, LowerBoundConcentrationEndpoint)
+        assert endpoint.limit.to(unit).magnitude == pytest.approx(raw_endpoint["limit"])
+        return
+    if form == "exact":
+        assert isinstance(endpoint, ExactConcentrationEndpoint)
+        assert endpoint.value.to(unit).magnitude == pytest.approx(raw_endpoint["value"])
+        return
+
+    raise AssertionError(f"Unhandled fixture range endpoint form: {form}")
+
+
 @pytest.mark.parametrize(
     "fixture_path",
     FIXTURE_PATHS,
@@ -415,11 +532,15 @@ def test_real_report_fixture_preserves_reported_values(
             if raw_result["form"] == "range":
                 assert isinstance(result, IonConcentrationRange)
                 unit = raw_result["unit"]
-                assert result.minimum.value.to(unit).magnitude == pytest.approx(
-                    raw_result["minimum"]
+                _assert_range_endpoint_matches(
+                    result.minimum,
+                    raw_result["minimum"],
+                    unit=unit,
                 )
-                assert result.maximum.value.to(unit).magnitude == pytest.approx(
-                    raw_result["maximum"]
+                _assert_range_endpoint_matches(
+                    result.maximum,
+                    raw_result["maximum"],
+                    unit=unit,
                 )
                 if raw_result.get("reported_average") is not None:
                     assert result.reported_average is not None
@@ -430,6 +551,9 @@ def test_real_report_fixture_preserves_reported_values(
         raw_ph = raw_profile.get("ph")
         if raw_ph is not None:
             assert profile.ph is not None
+            if raw_ph["form"] == "range":
+                assert profile.ph.minimum == pytest.approx(raw_ph["minimum"])
+                assert profile.ph.maximum == pytest.approx(raw_ph["maximum"])
             if raw_ph.get("reported_average") is not None:
                 assert profile.ph.reported_average == pytest.approx(
                     raw_ph["reported_average"]
@@ -489,6 +613,110 @@ def test_real_report_fixture_preserves_reported_statistics(
     FIXTURE_PATHS,
     ids=lambda path: str(path.relative_to(REPORT_FIXTURE_ROOT)),
 )
+def test_qualified_ranges_do_not_invent_numeric_endpoints_or_midpoints(
+    fixture_path: Path,
+) -> None:
+    data, profiles = _load_fixture(fixture_path)
+
+    for raw_profile, profile in zip(data["profiles"], profiles, strict=True):
+        for ion_name, raw_result in raw_profile.get("concentrations", {}).items():
+            if raw_result["form"] != "range":
+                continue
+            if not any(
+                isinstance(raw_result[key], Mapping) for key in ("minimum", "maximum")
+            ):
+                continue
+
+            result = profile.concentration_for(Ion(ion_name))
+            assert isinstance(result, IonConcentrationRange)
+            if raw_result.get("reported_average") is None:
+                with pytest.raises(ValueError):
+                    _ = result.calculation_value
+            else:
+                unit = raw_result["unit"]
+                assert result.calculation_value.to(unit).magnitude == pytest.approx(
+                    raw_result["reported_average"]
+                )
+
+
+@pytest.mark.parametrize(
+    "fixture_path",
+    FIXTURE_PATHS,
+    ids=lambda path: str(path.relative_to(REPORT_FIXTURE_ROOT)),
+)
+def test_range_only_ph_does_not_invent_a_representative_value(
+    fixture_path: Path,
+) -> None:
+    data, profiles = _load_fixture(fixture_path)
+
+    for raw_profile, profile in zip(data["profiles"], profiles, strict=True):
+        raw_ph = raw_profile.get("ph")
+        if (
+            raw_ph is None
+            or raw_ph["form"] != "range"
+            or raw_ph.get("reported_average") is not None
+        ):
+            continue
+
+        assert profile.ph is not None
+        with pytest.raises(ValueError):
+            _ = profile.ph.calculation_value
+
+
+@pytest.mark.parametrize(
+    "fixture_path",
+    FIXTURE_PATHS,
+    ids=lambda path: str(path.relative_to(REPORT_FIXTURE_ROOT)),
+)
+def test_result_specific_context_overrides_profile_timing(
+    fixture_path: Path,
+) -> None:
+    data, profiles = _load_fixture(fixture_path)
+
+    for raw_profile, profile in zip(data["profiles"], profiles, strict=True):
+        profile_context = raw_profile.get("result_context", {})
+        for ion_name, raw_result in raw_profile.get("concentrations", {}).items():
+            raw_context = raw_result.get("result_context")
+            if raw_context is None:
+                continue
+
+            result = profile.concentration_for(Ion(ion_name))
+            assert result is not None
+            assert result.result_context is not None
+
+            if raw_context.get("observed_on") is not None:
+                assert result.result_context.observed_on == date.fromisoformat(
+                    raw_context["observed_on"]
+                )
+                assert result.result_context.observation_period is None
+            if raw_context.get("observation_period") is not None:
+                expected_period = raw_context["observation_period"]
+                assert result.result_context.observation_period == ObservationPeriod(
+                    start=date.fromisoformat(expected_period["start"]),
+                    end=date.fromisoformat(expected_period["end"]),
+                )
+
+            if (
+                raw_context.get("coverage") is None
+                and profile_context.get("coverage") is not None
+            ):
+                assert result.result_context.coverage is ResultCoverage(
+                    profile_context["coverage"]
+                )
+            if (
+                raw_context.get("water_stage") is None
+                and profile_context.get("water_stage") is not None
+            ):
+                assert result.result_context.water_stage is WaterStage(
+                    profile_context["water_stage"]
+                )
+
+
+@pytest.mark.parametrize(
+    "fixture_path",
+    FIXTURE_PATHS,
+    ids=lambda path: str(path.relative_to(REPORT_FIXTURE_ROOT)),
+)
 def test_real_report_fixture_preserves_identity_document_and_context(
     fixture_path: Path,
 ) -> None:
@@ -513,8 +741,14 @@ def test_real_report_fixture_preserves_identity_document_and_context(
         if raw_context is not None and profile.concentrations:
             result_context = profile.concentrations[0].result_context
             assert result_context is not None
-            assert result_context.coverage is ResultCoverage(raw_context["coverage"])
-            assert result_context.water_stage is WaterStage(raw_context["water_stage"])
+            if raw_context.get("coverage") is not None:
+                assert result_context.coverage is ResultCoverage(
+                    raw_context["coverage"]
+                )
+            if raw_context.get("water_stage") is not None:
+                assert result_context.water_stage is WaterStage(
+                    raw_context["water_stage"]
+                )
             assert result_context.sample_location == raw_context.get("sample_location")
 
 

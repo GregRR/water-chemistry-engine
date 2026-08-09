@@ -48,3 +48,13 @@ When a source reports a calculator-relevant value that the engine cannot yet
 represent without changing its meaning, a fixture may retain it under
 `unmodeled_source_results`. This is preferable to coercing it into a nearby but
 semantically different engine field.
+
+A range endpoint may be a plain number for an exact endpoint or an object when
+that endpoint is qualified. For example, `{"form": "not_detected"}` preserves
+`ND` without turning it into zero, while upper/lower-bound endpoint objects
+preserve `<X` and `>X` without treating the limit itself as the measurement.
+
+A result may also supply its own `result_context`. Result-level timing overrides
+profile-level timing for that result while omitted sampling-context fields may
+inherit from the profile. In particular, an explicit single `observed_on` date
+must not be combined with an inherited observation period.

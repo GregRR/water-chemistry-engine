@@ -1,0 +1,133 @@
+{
+  "fixture_format": "water-treatment-real-report-v1",
+  "report_id": "cal-water-chico-2025",
+  "source_document": {
+    "publisher": "California Water Service (Cal Water)",
+    "title": "2025 Water Quality Report",
+    "source_url": "https://www.calwater.com/docs/ccr/2025/ch-ch-2025.pdf",
+    "retrieved_on": "2026-08-08",
+    "page_reference": "Pages 14-15, Secondary Drinking Water Standards and Unregulated Compounds tables",
+    "notes": "Included chemistry is reported for Chico System groundwater. Regulatory limits and source-code columns are not modeled as chemistry. The report gives total alkalinity and total hardness in ppm but does not state an explicit reporting basis such as as CaCO3 in these rows, so those two results are retained as unmodeled source results rather than assigned an unstated basis."
+  },
+  "profiles": [
+    {
+      "name": "Cal Water Chico System groundwater - 2020-2025 summary",
+      "identity": {
+        "provider": "California Water Service (Cal Water)",
+        "product_name": "Chico System",
+        "water_type": "municipal_water",
+        "physical_sources": [
+          {
+            "source_type": "groundwater",
+            "name": "Chico District groundwater wells"
+          }
+        ]
+      },
+      "observation_period": {
+        "start": "2020-01-01",
+        "end": "2025-12-31"
+      },
+      "result_context": {
+        "coverage": "observation_period_summary",
+        "sample_location": "Chico System groundwater"
+      },
+      "concentrations": {
+        "calcium": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "minimum": 16.0,
+          "maximum": 62.0,
+          "reported_average": 24.0
+        },
+        "magnesium": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "minimum": 9.9,
+          "maximum": 41.0,
+          "reported_average": 16.0
+        },
+        "sodium": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "minimum": 7.5,
+          "maximum": 39.0,
+          "reported_average": 14.0
+        },
+        "potassium": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "minimum": {
+            "form": "not_detected"
+          },
+          "maximum": 4.2,
+          "reported_average": 0.63
+        },
+        "chloride": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "minimum": 2.0,
+          "maximum": 56.0,
+          "reported_average": 11.0
+        },
+        "sulfate": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "minimum": 1.4,
+          "maximum": 18.0,
+          "reported_average": 6.2
+        }
+      },
+      "ph": {
+        "form": "range",
+        "minimum": 6.4,
+        "maximum": 8.6,
+        "reported_average": 7.6,
+        "result_context": {
+          "observation_period": {
+            "start": "2022-01-01",
+            "end": "2025-12-31"
+          }
+        }
+      },
+      "properties": {
+        "total_dissolved_solids": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "minimum": 160.0,
+          "maximum": 440.0,
+          "reported_average": 222.0
+        },
+        "conductivity": {
+          "form": "range",
+          "unit": "microsiemens / centimeter",
+          "minimum": 210.0,
+          "maximum": 710.0,
+          "reported_average": 300.0,
+          "reference_temperature_celsius": null
+        }
+      },
+      "unmodeled_source_results": [
+        {
+          "source_label": "Alkalinity (total)",
+          "reported_unit": "ppm",
+          "reported_range": [
+            99.0,
+            280.0
+          ],
+          "reported_average": 133.0,
+          "reason": "The report row does not state the alkalinity reporting basis required by the engine, so the fixture does not assume as CaCO3."
+        },
+        {
+          "source_label": "Hardness (total)",
+          "reported_unit": "ppm",
+          "reported_range": [
+            80.0,
+            322.0
+          ],
+          "reported_average": 124.0,
+          "reason": "The report row does not explicitly state a hardness reporting basis, so the fixture preserves the source result without assigning an unstated basis."
+        }
+      ]
+    }
+  ]
+}

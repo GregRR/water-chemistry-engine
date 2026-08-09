@@ -1,0 +1,47 @@
+{
+  "fixture_format": "water-treatment-real-report-v1",
+  "report_id": "bend-2025",
+  "source_document": {
+    "publisher": "City of Bend Water",
+    "title": "2025 Water Quality and Consumer Confidence Report",
+    "source_url": "https://bendoregon.gov/wp-content/uploads/2026/04/UpdatedFinal2025WaterQualityReport.pdf",
+    "retrieved_on": "2026-08-08",
+    "page_reference": "Pages 2 and 4, 2025 Water Quality Test Results - Surface Water from Bend Municipal Watershed, Bridge Creek",
+    "notes": "The report generally covers January 1 through December 31, 2025 unless otherwise noted. Sodium is explicitly identified as less-than-annual monitoring with a most recent sample date of August 23, 2023. The table is headed Surface Water from Bend Municipal Watershed, Bridge Creek, but it does not state a precise sampling stage for the sodium row, so no water_stage is inferred. Regulatory comparison values in adjacent columns are intentionally excluded from source chemistry."
+  },
+  "profiles": [
+    {
+      "name": "City of Bend - Bend Municipal Watershed / Bridge Creek",
+      "identity": {
+        "provider": "City of Bend Water",
+        "product_name": "Bend Municipal Watershed / Bridge Creek",
+        "water_type": "municipal_water",
+        "physical_sources": [
+          {
+            "source_type": "surface_water",
+            "name": "Bend Municipal Watershed, Bridge Creek"
+          }
+        ]
+      },
+      "observation_period": {
+        "start": "2025-01-01",
+        "end": "2025-12-31"
+      },
+      "result_context": {
+        "coverage": "observation_period_summary",
+        "sample_location": "Bend Municipal Watershed, Bridge Creek"
+      },
+      "concentrations": {
+        "sodium": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "minimum": 4.0,
+          "maximum": 11.0,
+          "result_context": {
+            "observed_on": "2023-08-23"
+          }
+        }
+      }
+    }
+  ]
+}

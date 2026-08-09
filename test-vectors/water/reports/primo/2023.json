@@ -1,0 +1,70 @@
+{
+  "fixture_format": "water-treatment-real-report-v1",
+  "report_id": "primo-ds-services-spring-2023",
+  "source_document": {
+    "publisher": "DS Services of America, Inc. (dba Primo Water North America)",
+    "title": "Water Quality Report",
+    "source_url": "https://dev.sparkletts.com/files/nonbrand/waterqualityreports/Spring_Water_Quality_Report_2023.pdf",
+    "retrieved_on": "2026-08-08",
+    "page_reference": "Pages 3 and 6, DS Services \u2013 Typical Analysis, Table 5: Spring",
+    "notes": "The Spring table is explicitly labeled Typical Analysis rather than a single sample or calendar-year average. ND is defined by the report as not detected, absent, or present below the testing-method detection level; no numerical detection limit is supplied for the sulfate endpoint. FDA Standards of Quality are regulatory references and are not modeled as source-water chemistry."
+  },
+  "profiles": [
+    {
+      "name": "DS Services Spring Water - Typical Analysis",
+      "identity": {
+        "provider": "DS Services of America, Inc.",
+        "product_name": "Spring Water",
+        "water_type": "spring_water",
+        "physical_sources": []
+      },
+      "result_context": {
+        "coverage": "typical_analysis",
+        "water_stage": "bottled_finished_product"
+      },
+      "concentrations": {
+        "chloride": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "minimum": 0.75,
+          "maximum": 6.4
+        },
+        "sulfate": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "minimum": {
+            "form": "not_detected"
+          },
+          "maximum": 11.1
+        }
+      },
+      "ph": {
+        "form": "range",
+        "minimum": 6.0,
+        "maximum": 8.5
+      },
+      "properties": {
+        "total_dissolved_solids": {
+          "form": "range",
+          "unit": "milligram / liter",
+          "minimum": 13.0,
+          "maximum": 198.0
+        },
+        "conductivity": {
+          "form": "range",
+          "unit": "microsiemens / centimeter",
+          "minimum": 20.0,
+          "maximum": 300.0,
+          "reference_temperature_celsius": null
+        }
+      },
+      "source_normalizations": [
+        {
+          "source_label": "Conductivity (umhos)",
+          "normalized_field": "conductivity",
+          "note": "The source uses legacy micromho notation for a quantity explicitly labeled conductivity. The fixture normalizes it to microsiemens per centimeter for the engine conductivity quantity and does not invent a reference temperature."
+        }
+      ]
+    }
+  ]
+}
