@@ -157,8 +157,8 @@ wheels = [
 
 [[package]]
 name = "ferm-units"
-version = "0.1.0"
-source = { git = "https://github.com/GregRR/ferm-units?tag=v0.1.0#9045dc5bdf31ef91cf4f5587b999affcec1002c7" }
+version = "0.1.1"
+source = { git = "https://github.com/GregRR/ferm-units?tag=v0.1.1#de5ae83bb54ccf83786b2cae7056b575883506b5" }
 dependencies = [
     { name = "pint" },
 ]
@@ -504,7 +504,7 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "ferm-units", git = "https://github.com/GregRR/ferm-units?tag=v0.1.0" }]
+requires-dist = [{ name = "ferm-units", git = "https://github.com/GregRR/ferm-units?tag=v0.1.1" }]
 
 [[package]]
 name = "water-treatment-web"
