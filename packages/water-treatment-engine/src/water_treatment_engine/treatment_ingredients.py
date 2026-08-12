@@ -15,12 +15,11 @@ can be modeled later without changing the underlying stoichiometry.
 """
 
 from dataclasses import dataclass
-from typing import Any
 
 from fermunits import Q_
-from pint import Quantity
 
 from water_treatment_engine.ions import Ion
+from water_treatment_engine.quantity_types import ScalarQuantity
 
 # Abridged conventional atomic weights used for ordinary chemical-formulation
 # calculations.  These values follow the current IUPAC/CIAAW periodic-table
@@ -51,7 +50,7 @@ class IonStoichiometry:
 
     ion: Ion
     coefficient: int
-    molar_mass: Quantity[Any]
+    molar_mass: ScalarQuantity
 
     def __post_init__(self) -> None:
         if self.coefficient <= 0:
@@ -75,7 +74,7 @@ class TreatmentIngredient:
     key: str
     name: str
     formula: str
-    molar_mass: Quantity[Any]
+    molar_mass: ScalarQuantity
     ion_stoichiometry: tuple[IonStoichiometry, ...]
 
     def __post_init__(self) -> None:

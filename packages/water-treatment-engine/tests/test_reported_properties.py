@@ -1,3 +1,6 @@
+from decimal import Decimal
+from fractions import Fraction
+
 import pytest
 from fermunits import Q_
 from water_treatment_engine.reported_properties import (
@@ -18,6 +21,27 @@ def test_exact_alkalinity_preserves_as_caco3_basis() -> None:
     assert measurement.reported_average is None
     assert measurement.value.to("milligram / liter").magnitude == 108.0
     assert measurement.calculation_value is measurement.value
+
+
+def test_reported_property_preserves_decimal_magnitude() -> None:
+    value = Q_(Decimal("108.25"), "milligram / liter")
+    measurement = Alkalinity(value=value)
+
+    assert measurement.value is not None
+    assert measurement.value.magnitude == Decimal("108.25")
+    assert measurement.calculation_value is measurement.value
+
+
+def test_reported_property_mixed_scalar_midpoint_is_float() -> None:
+    measurement = TotalDissolvedSolids(
+        minimum=Q_(Fraction(1, 5), "gram / liter"),
+        maximum=Q_(Decimal("0.250"), "gram / liter"),
+    )
+
+    midpoint = measurement.calculation_value.to("milligram / liter")
+
+    assert midpoint.magnitude == pytest.approx(225.0)
+    assert isinstance(midpoint.magnitude, float)
 
 
 def test_alkalinity_range_without_average_uses_midpoint() -> None:

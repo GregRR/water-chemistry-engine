@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from fermunits import Q_
-from pint import Quantity
 
+from water_treatment_engine.quantity_types import ScalarQuantity
 from water_treatment_engine.reporting_context import ReportedResultContext
 
 
@@ -12,7 +12,7 @@ class ReportingBasis(StrEnum):
 
 
 def _validate_quantity(
-    value: Quantity,
+    value: ScalarQuantity,
     *,
     canonical_unit: str,
     label: str,
@@ -26,10 +26,10 @@ def _validate_quantity(
 
 def _validate_reported_values(
     *,
-    value: Quantity | None,
-    minimum: Quantity | None,
-    maximum: Quantity | None,
-    reported_average: Quantity | None,
+    value: ScalarQuantity | None,
+    minimum: ScalarQuantity | None,
+    maximum: ScalarQuantity | None,
+    reported_average: ScalarQuantity | None,
     canonical_unit: str,
     label: str,
     dimension_label: str,
@@ -105,11 +105,11 @@ def _validate_reported_values(
 
 def _calculation_value(
     *,
-    value: Quantity | None,
-    minimum: Quantity | None,
-    maximum: Quantity | None,
-    reported_average: Quantity | None,
-) -> Quantity:
+    value: ScalarQuantity | None,
+    minimum: ScalarQuantity | None,
+    maximum: ScalarQuantity | None,
+    reported_average: ScalarQuantity | None,
+) -> ScalarQuantity:
     if reported_average is not None:
         return reported_average
 
@@ -117,7 +117,13 @@ def _calculation_value(
         return value
 
     if minimum is not None and maximum is not None:
-        return (minimum + maximum) / 2
+        # Preserve source-reported magnitudes as supplied.  The midpoint is a
+        # derived value, so normalize units and deliberately calculate it in
+        # the engine's floating-point calculation layer.
+        unit = minimum.units
+        minimum_value = float(minimum.magnitude)
+        maximum_value = float(maximum.to(unit).magnitude)
+        return Q_((minimum_value + maximum_value) / 2.0, unit)
 
     raise RuntimeError("Validated reported quantity has no calculation value.")
 
@@ -126,10 +132,10 @@ def _calculation_value(
 class Alkalinity:
     """Reported alkalinity with explicit reporting semantics and basis."""
 
-    value: Quantity | None = None
-    minimum: Quantity | None = None
-    maximum: Quantity | None = None
-    reported_average: Quantity | None = None
+    value: ScalarQuantity | None = None
+    minimum: ScalarQuantity | None = None
+    maximum: ScalarQuantity | None = None
+    reported_average: ScalarQuantity | None = None
     basis: ReportingBasis = ReportingBasis.AS_CACO3
 
     result_context: ReportedResultContext | None = None
@@ -146,7 +152,7 @@ class Alkalinity:
         )
 
     @property
-    def calculation_value(self) -> Quantity:
+    def calculation_value(self) -> ScalarQuantity:
         return _calculation_value(
             value=self.value,
             minimum=self.minimum,
@@ -181,10 +187,10 @@ class Alkalinity:
 class TotalHardness:
     """Reported total hardness with explicit reporting semantics and basis."""
 
-    value: Quantity | None = None
-    minimum: Quantity | None = None
-    maximum: Quantity | None = None
-    reported_average: Quantity | None = None
+    value: ScalarQuantity | None = None
+    minimum: ScalarQuantity | None = None
+    maximum: ScalarQuantity | None = None
+    reported_average: ScalarQuantity | None = None
     basis: ReportingBasis = ReportingBasis.AS_CACO3
 
     result_context: ReportedResultContext | None = None
@@ -201,7 +207,7 @@ class TotalHardness:
         )
 
     @property
-    def calculation_value(self) -> Quantity:
+    def calculation_value(self) -> ScalarQuantity:
         return _calculation_value(
             value=self.value,
             minimum=self.minimum,
@@ -236,10 +242,10 @@ class TotalHardness:
 class TotalDissolvedSolids:
     """Reported total dissolved solids."""
 
-    value: Quantity | None = None
-    minimum: Quantity | None = None
-    maximum: Quantity | None = None
-    reported_average: Quantity | None = None
+    value: ScalarQuantity | None = None
+    minimum: ScalarQuantity | None = None
+    maximum: ScalarQuantity | None = None
+    reported_average: ScalarQuantity | None = None
 
     result_context: ReportedResultContext | None = None
 
@@ -255,7 +261,7 @@ class TotalDissolvedSolids:
         )
 
     @property
-    def calculation_value(self) -> Quantity:
+    def calculation_value(self) -> ScalarQuantity:
         return _calculation_value(
             value=self.value,
             minimum=self.minimum,
@@ -290,10 +296,10 @@ class TotalDissolvedSolids:
 class Conductivity:
     """Reported electrical conductivity with optional reference temperature."""
 
-    value: Quantity | None = None
-    minimum: Quantity | None = None
-    maximum: Quantity | None = None
-    reported_average: Quantity | None = None
+    value: ScalarQuantity | None = None
+    minimum: ScalarQuantity | None = None
+    maximum: ScalarQuantity | None = None
+    reported_average: ScalarQuantity | None = None
     reference_temperature_celsius: float | None = None
 
     result_context: ReportedResultContext | None = None
@@ -310,7 +316,7 @@ class Conductivity:
         )
 
     @property
-    def calculation_value(self) -> Quantity:
+    def calculation_value(self) -> ScalarQuantity:
         return _calculation_value(
             value=self.value,
             minimum=self.minimum,

@@ -11,7 +11,10 @@ alkalinity result must remain total alkalinity unless a separate, documented
 chemical model is deliberately used to derive species concentrations.
 """
 
+from fermunits import Q_
 from pint import Quantity
+
+from water_treatment_engine.quantity_types import ScalarQuantity
 
 # USGS PHREEQC documentation uses approximately 50.04 g/eq for alkalinity
 # reported "as CaCO3". Its PHREEQC FAQ gives 61.0173 g/eq for alkalinity
@@ -27,8 +30,8 @@ _BICARBONATE_EQUIVALENT_MASS_G_PER_EQ = 61.0173
 
 
 def bicarbonate_from_bicarbonate_alkalinity_as_caco3(
-    value: Quantity,
-) -> Quantity:
+    value: ScalarQuantity,
+) -> Quantity[float]:
     """Convert bicarbonate alkalinity from a CaCO3 basis to mg/L HCO3.
 
     Use this only when the source explicitly identifies the reported result as
@@ -61,4 +64,11 @@ def bicarbonate_from_bicarbonate_alkalinity_as_caco3(
     conversion_factor = (
         _BICARBONATE_EQUIVALENT_MASS_G_PER_EQ / _CACO3_EQUIVALENT_MASS_G_PER_EQ
     )
-    return concentration * conversion_factor
+    # This is a derived reporting-basis conversion.  Preserve the source
+    # quantity itself, but normalize the calculated result to the engine's
+    # floating-point numerical representation.
+    concentration_mg_per_liter = float(concentration.magnitude)
+    return Q_(
+        concentration_mg_per_liter * conversion_factor,
+        "milligram / liter",
+    )

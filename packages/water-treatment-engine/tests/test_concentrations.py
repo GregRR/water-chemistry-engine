@@ -1,3 +1,6 @@
+from decimal import Decimal
+from fractions import Fraction
+
 import pytest
 from fermunits import Q_
 from water_treatment_engine.concentrations import (
@@ -24,6 +27,36 @@ def test_mg_per_liter_constructor() -> None:
     assert concentration.value.magnitude == 50.0
     assert concentration.value.units == Q_(1, "milligram / liter").units
     assert concentration.calculation_value is concentration.value
+
+
+def test_reported_scalar_magnitudes_are_preserved() -> None:
+    decimal_value = Q_(Decimal("12.50"), "milligram / liter")
+    fraction_value = Q_(Fraction(25, 2), "milligram / liter")
+
+    decimal_concentration = IonConcentration(
+        ion=Ion.CALCIUM,
+        value=decimal_value,
+    )
+    fraction_concentration = IonConcentration(
+        ion=Ion.MAGNESIUM,
+        value=fraction_value,
+    )
+
+    assert decimal_concentration.value.magnitude == Decimal("12.50")
+    assert fraction_concentration.value.magnitude == Fraction(25, 2)
+
+
+def test_mixed_scalar_range_midpoint_is_derived_as_float() -> None:
+    concentration = IonConcentrationRange(
+        ion=Ion.SULFATE,
+        minimum=ExactConcentrationEndpoint(Q_(Decimal("50.0"), "milligram / liter")),
+        maximum=ExactConcentrationEndpoint(Q_(Fraction(3, 20), "gram / liter")),
+    )
+
+    midpoint = concentration.calculation_value.to("milligram / liter")
+
+    assert midpoint.magnitude == pytest.approx(100.0)
+    assert isinstance(midpoint.magnitude, float)
 
 
 def test_exact_result_can_preserve_reported_statistic() -> None:

@@ -1,14 +1,14 @@
 from dataclasses import dataclass
 
 from fermunits import Q_
-from pint import Quantity
 
 from water_treatment_engine.ions import Ion
+from water_treatment_engine.quantity_types import ScalarQuantity
 from water_treatment_engine.reported_statistics import ReportedStatistic
 from water_treatment_engine.reporting_context import ReportedResultContext
 
 
-def _validate_mass_concentration(value: Quantity) -> None:
+def _validate_mass_concentration(value: ScalarQuantity) -> None:
     """Require a quantity convertible to mass per volume."""
     try:
         value.to("milligram / liter")
@@ -22,7 +22,7 @@ def _validate_mass_concentration(value: Quantity) -> None:
 class ExactConcentrationEndpoint:
     """Exact numeric endpoint of a reported concentration range."""
 
-    value: Quantity
+    value: ScalarQuantity
 
     def __post_init__(self) -> None:
         _validate_mass_concentration(self.value)
@@ -36,7 +36,7 @@ class ExactConcentrationEndpoint:
 class UpperBoundConcentrationEndpoint:
     """Range endpoint reported as less than a numerical limit."""
 
-    limit: Quantity
+    limit: ScalarQuantity
 
     def __post_init__(self) -> None:
         _validate_mass_concentration(self.limit)
@@ -50,7 +50,7 @@ class UpperBoundConcentrationEndpoint:
 class LowerBoundConcentrationEndpoint:
     """Range endpoint reported as greater than a numerical limit."""
 
-    limit: Quantity
+    limit: ScalarQuantity
 
     def __post_init__(self) -> None:
         _validate_mass_concentration(self.limit)
@@ -64,7 +64,7 @@ class LowerBoundConcentrationEndpoint:
 class NotDetectedConcentrationEndpoint:
     """Range endpoint explicitly reported as not detected."""
 
-    detection_limit: Quantity | None = None
+    detection_limit: ScalarQuantity | None = None
 
     def __post_init__(self) -> None:
         if self.detection_limit is not None:
@@ -93,7 +93,7 @@ class IonConcentration:
     """Exact reported concentration of a single ion."""
 
     ion: Ion
-    value: Quantity
+    value: ScalarQuantity
     reported_statistic: ReportedStatistic | None = None
     result_context: ReportedResultContext | None = None
 
@@ -101,7 +101,7 @@ class IonConcentration:
         _validate_mass_concentration(self.value)
 
     @property
-    def calculation_value(self) -> Quantity:
+    def calculation_value(self) -> ScalarQuantity:
         """Return the value to use for calculations."""
         return self.value
 
@@ -118,7 +118,7 @@ class IonConcentrationRange:
     ion: Ion
     minimum: ConcentrationRangeEndpoint
     maximum: ConcentrationRangeEndpoint
-    reported_average: Quantity | None = None
+    reported_average: ScalarQuantity | None = None
     reported_statistic: ReportedStatistic | None = None
     result_context: ReportedResultContext | None = None
 
@@ -151,7 +151,7 @@ class IonConcentrationRange:
             _validate_mass_concentration(self.reported_average)
 
     @property
-    def calculation_value(self) -> Quantity:
+    def calculation_value(self) -> ScalarQuantity:
         """Return a source average or derive a midpoint only for an exact range."""
         if self.reported_average is not None:
             return self.reported_average
@@ -160,7 +160,13 @@ class IonConcentrationRange:
             self.maximum,
             ExactConcentrationEndpoint,
         ):
-            return (self.minimum.value + self.maximum.value) / 2
+            # Reported values retain their original scalar representation.
+            # A midpoint is derived data, so normalize both endpoints to the
+            # same unit and deliberately enter the float calculation layer.
+            unit = self.minimum.value.units
+            minimum = float(self.minimum.value.magnitude)
+            maximum = float(self.maximum.value.to(unit).magnitude)
+            return Q_((minimum + maximum) / 2.0, unit)
 
         raise ValueError(
             "A qualified concentration range has no automatic representative "
@@ -194,7 +200,7 @@ class IonConcentrationUpperBound:
     """Reported ion concentration known only to be below an upper bound."""
 
     ion: Ion
-    maximum: Quantity
+    maximum: ScalarQuantity
     reported_statistic: ReportedStatistic | None = None
     result_context: ReportedResultContext | None = None
 
@@ -221,7 +227,7 @@ class IonConcentrationLowerBound:
     """Reported ion concentration known only to exceed a lower bound."""
 
     ion: Ion
-    minimum: Quantity
+    minimum: ScalarQuantity
     reported_statistic: ReportedStatistic | None = None
     result_context: ReportedResultContext | None = None
 
@@ -248,7 +254,7 @@ class IonConcentrationNotDetected:
     """Ion result explicitly reported as not detected."""
 
     ion: Ion
-    detection_limit: Quantity | None = None
+    detection_limit: ScalarQuantity | None = None
     reported_statistic: ReportedStatistic | None = None
     result_context: ReportedResultContext | None = None
 

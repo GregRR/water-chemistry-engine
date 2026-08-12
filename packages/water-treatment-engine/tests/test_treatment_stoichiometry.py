@@ -1,3 +1,6 @@
+from decimal import Decimal
+from fractions import Fraction
+
 import pytest
 from fermunits import Q_
 from water_treatment_engine.ions import Ion
@@ -58,6 +61,24 @@ def test_one_gram_per_liter_has_expected_stoichiometric_contribution(
     assert actual.keys() == expected.keys()
     for ion, expected_value in expected.items():
         assert actual[ion] == pytest.approx(expected_value, abs=0.01)
+
+
+def test_scalar_input_magnitudes_are_normalized_at_calculation_boundary() -> None:
+    contributions = calculate_ion_contributions(
+        SODIUM_CHLORIDE,
+        Q_(Decimal("1.0"), "gram"),
+        Q_(Fraction(1, 1), "liter"),
+    )
+
+    assert all(
+        isinstance(item.concentration.magnitude, float) for item in contributions
+    )
+    actual = {
+        item.ion: item.concentration.to("milligram / liter").magnitude
+        for item in contributions
+    }
+    assert actual[Ion.SODIUM] == pytest.approx(393.393, abs=0.01)
+    assert actual[Ion.CHLORIDE] == pytest.approx(606.607, abs=0.01)
 
 
 def test_doubling_addition_mass_doubles_concentrations() -> None:

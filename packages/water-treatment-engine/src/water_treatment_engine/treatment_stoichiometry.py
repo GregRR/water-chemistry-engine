@@ -13,11 +13,12 @@ calculation from masquerading as a complete water-chemistry model.
 """
 
 from dataclasses import dataclass
-from typing import Any
 
+from fermunits import Q_
 from pint import Quantity
 
 from water_treatment_engine.ions import Ion
+from water_treatment_engine.quantity_types import ScalarQuantity
 from water_treatment_engine.treatment_ingredients import TreatmentIngredient
 
 
@@ -26,7 +27,7 @@ class IonContribution:
     """Derived mass concentration contributed by one treatment ingredient."""
 
     ion: Ion
-    concentration: Quantity[Any]
+    concentration: Quantity[float]
 
     def __post_init__(self) -> None:
         try:
@@ -42,8 +43,8 @@ class IonContribution:
 
 def calculate_ion_contributions(
     ingredient: TreatmentIngredient,
-    addition_mass: Quantity[Any],
-    water_volume: Quantity[Any],
+    addition_mass: ScalarQuantity,
+    water_volume: ScalarQuantity,
 ) -> tuple[IonContribution, ...]:
     """Calculate theoretical ion contributions for one mineral addition.
 
@@ -52,9 +53,10 @@ def calculate_ion_contributions(
 
         mass ingredient -> moles ingredient -> moles ion -> mass ion -> mg/L
 
-    ``addition_mass`` and ``water_volume`` may use any FermUnits/Pint units that
-    are dimensionally compatible with mass and volume.  Returned concentrations
-    are normalized to mg/L so downstream water-treatment calculations have a
+    ``addition_mass`` and ``water_volume`` may use supported scalar
+    FermUnits/Pint quantities in any units dimensionally compatible with mass
+    and volume. Returned concentrations are normalized to mg/L so downstream
+    water-treatment calculations have a
     predictable canonical representation.
 
     A zero addition is valid and returns zero for each ion the ingredient would
@@ -73,22 +75,35 @@ def calculate_ion_contributions(
             "Treatment water volume must be convertible to volume."
         ) from exc
 
-    if mass.magnitude < 0:
+    mass_grams = float(mass.magnitude)
+    volume_liters = float(volume.magnitude)
+
+    if mass_grams < 0:
         raise ValueError("Treatment addition mass cannot be negative.")
-    if volume.magnitude <= 0:
+    if volume_liters <= 0:
         raise ValueError("Treatment water volume must be greater than zero.")
 
-    ingredient_molar_mass = ingredient.molar_mass.to("gram / mole")
-    ingredient_moles = mass / ingredient_molar_mass
+    # Reported/input quantities may preserve int, Decimal, or Fraction
+    # magnitudes.  Stoichiometric contribution is derived numerical data, so
+    # this is the deliberate boundary where the solver normalizes to float.
+    ingredient_molar_mass_g_per_mol = float(
+        ingredient.molar_mass.to("gram / mole").magnitude
+    )
+    ingredient_moles = mass_grams / ingredient_molar_mass_g_per_mol
 
     contributions: list[IonContribution] = []
     for entry in ingredient.ion_stoichiometry:
-        # Hydration water is already represented in ingredient_molar_mass.  Only
-        # the chemically relevant ions listed in ion_stoichiometry are converted
-        # back to mass here, so a hydrate correctly contributes less ion per gram
-        # than its anhydrous counterpart would.
-        ion_mass = ingredient_moles * entry.coefficient * entry.molar_mass
-        concentration = (ion_mass.to("milligram") / volume).to("milligram / liter")
+        # Hydration water is already represented in the ingredient molar mass.
+        # Only the ions in ion_stoichiometry are converted back to mass, so a
+        # hydrate contributes less ion per gram than its anhydrous form would.
+        ion_molar_mass_g_per_mol = float(entry.molar_mass.to("gram / mole").magnitude)
+        ion_mass_mg = (
+            ingredient_moles * entry.coefficient * ion_molar_mass_g_per_mol * 1000.0
+        )
+        concentration = Q_(
+            ion_mass_mg / volume_liters,
+            "milligram / liter",
+        )
         contributions.append(
             IonContribution(
                 ion=entry.ion,

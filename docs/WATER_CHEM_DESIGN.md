@@ -130,7 +130,7 @@ The engine must never import the web application, Mecha-Brew, a database ORM, or
 
 ### 6.2 Current and planned core libraries
 
-- **FermUnits 0.1.x:** required by `water-treatment-engine`; currently sourced from the released GitHub `v0.1.0` tag until the dependency strategy is intentionally changed.
+- **FermUnits 0.1.x:** required by `water-treatment-engine`; currently sourced from the released GitHub `v0.1.1` tag until the dependency strategy is intentionally changed.
 - **Pint:** transitive quantity implementation through FermUnits.
 - **NumPy:** planned for vector/matrix work when the calculation implementation actually requires it.
 - **SciPy:** planned for continuous and mixed-integer optimization when optimization work begins.
@@ -1305,6 +1305,13 @@ FermUnits handles physical quantities and conversions. The water engine retains 
 - source-document/reference attribution metadata;
 - source/target semantics.
 
+Reported/source quantities preserve supported scalar magnitude representations
+(`int`, `float`, `Decimal`, or `Fraction`) rather than erasing Pint's magnitude
+type with `Any` or coercing source data to binary floating point. Derived
+engineering calculations may deliberately normalize to `float` at a documented
+calculation boundary. Array/vectorized quantities remain out of scope until an
+implemented feature requires them.
+
 ## 22. Public API direction
 
 The eventual public API should accept platform-neutral structured requests and return structured results and stable warning/explanation codes.
@@ -1423,7 +1430,7 @@ Portable versioned request/result pairs should allow Swift, Kotlin, Dart, JavaSc
 
 ## 26. Current implementation status
 
-As of this revision, the repository foundation is operational with Python 3.14, uv, Ruff, mypy, pytest, Hypothesis, GitHub Actions, independently installable engine/web packages, and FermUnits 0.1.0 integration. The reproducible workspace gate uses `uv run --all-packages` so engine, web, FermUnits, and transitive dependencies are present regardless of prior environment state.
+As of this revision, the repository foundation is operational with Python 3.14, uv, Ruff, mypy, pytest, Hypothesis, GitHub Actions, independently installable engine/web packages, and FermUnits 0.1.1 integration. The reproducible workspace gate uses `uv run --all-packages` so engine, web, FermUnits, and transitive dependencies are present regardless of prior environment state.
 
 Implemented and tested domain work includes:
 

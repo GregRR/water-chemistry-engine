@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 from fermunits import Q_
 from water_treatment_engine.alkalinity_conversions import (
@@ -14,6 +16,15 @@ def test_bicarbonate_alkalinity_as_caco3_converts_by_equivalent_mass() -> None:
     )
 
     assert result.to("milligram / liter").magnitude == pytest.approx(121.93705035971222)
+
+
+def test_conversion_accepts_decimal_and_returns_float_result() -> None:
+    result = bicarbonate_from_bicarbonate_alkalinity_as_caco3(
+        Q_(Decimal("100.0"), "milligram / liter")
+    )
+
+    assert result.to("milligram / liter").magnitude == pytest.approx(121.93705035971222)
+    assert isinstance(result.magnitude, float)
 
 
 def test_conversion_accepts_other_mass_per_volume_units() -> None:
