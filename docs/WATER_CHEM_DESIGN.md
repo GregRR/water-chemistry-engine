@@ -337,6 +337,7 @@ Water reports may contain constituents that are important to product quality, tr
 
 The first required disinfectant/reporting concepts are:
 
+- unqualified chlorine when the source itself reports only `chlorine` and does not identify a more specific residual/fraction;
 - free chlorine, when explicitly reported;
 - total chlorine, when explicitly reported;
 - combined chlorine, when explicitly reported;
@@ -346,6 +347,8 @@ The first required disinfectant/reporting concepts are:
 The original reporting basis or analytical label should be retained when supplied, for example `mg/L as Cl2`. **Chloride (`Cl-`) is chemically and semantically distinct from chlorine, total chlorine, and chloramine and must never be used as a substitute for them.**
 
 The engine/importer must not automatically calculate chloramine or combined chlorine by subtracting free chlorine from total chlorine unless a documented analytical rule for that specific representation supports the derivation. Any such result would be derived data, not a reported measurement.
+
+The initial engine representation is intentionally focused: `ReportedDisinfectant` carries a stable disinfectant concept, source label, optional reporting basis, source-result context/statistic, and exact/range/reported-average concentration semantics. Named chloramine species preserve the source species name without requiring a universal analyte framework. More general analyte abstractions or additional qualified disinfectant result forms should be introduced only when real reports require them.
 
 The same preserve-before-modeling principle may later apply to iron, manganese, nitrate, nitrite, silica, dissolved oxygen, hydrogen sulfide, trihalomethanes, and other report analytes. Adding a reported analyte must not automatically make it an optimization variable or imply that the engine has a validated treatment model for it.
 
@@ -1454,13 +1457,14 @@ Implemented and tested domain work includes:
 - conductivity with optional reference temperature;
 - structured `ReportedPH` with exact/range/reported-average semantics and enforced prohibition on arithmetic midpoint/mean behavior for range-only pH;
 - bicarbonate-alkalinity reporting-basis conversion for an explicitly identified bicarbonate result without treating total alkalinity as bicarbonate;
-- five data-driven real-report fixtures: Santa Cruz, Niagara, Primo/Sparkletts, Cal Water/Chico, and Bend.
+- five data-driven real-report fixtures: Santa Cruz, Niagara, Primo/Sparkletts, Cal Water/Chico, and Bend;
+- focused reported-disinfectant preservation, including unqualified chlorine, free/total/combined chlorine, chloramine/named chloramine species, chlorine dioxide, source labels/bases, and result context/statistics.
 
-The latest clean gate after the five-fixture batch reported **155 passing tests**, with Ruff, Ruff format check, and mypy also passing.
+The latest clean gate before the reported-disinfectant implementation reported **189 passing tests**, with Ruff, Ruff format check, and strict mypy also passing.
 
 The real-report pressure-test phase has served its immediate purpose. Additional reports should be added only when they expose a genuinely new semantic or scientific requirement rather than simply increasing fixture count.
 
-One remaining near-term source-report extension is first-class preservation of chlorine/chloramine and related disinfectant reporting when source documents provide it. This data should be retained even before any treatment or optimization model consumes it; chloride remains a separate ion and is not a substitute.
+First-class source-report preservation of chlorine/chloramine and related disinfectant reporting is now implemented. The Santa Cruz 2025 fixture pressure-tests an unqualified distribution-system `Chlorine` result as its own reported disinfectant rather than inferring free chlorine or mapping the result to chloride. Treatment/removal modeling remains deliberately out of scope for this representation layer.
 
 The next implementation focus moves from source-report representation into **deterministic forward treatment calculations**: validated treatment-ingredient identities, generic stoichiometric ion contributions, derived working-water states, blending, and later the reusable aqueous pH capability documented above.
 

@@ -249,3 +249,80 @@ def test_source_profile_preserves_source_document_metadata() -> None:
     )
 
     assert profile.source_document is source_document
+
+
+def test_source_profile_preserves_disinfectants_separately_from_chloride() -> None:
+    from water_treatment_engine.reported_disinfectants import (
+        DisinfectantKind,
+        ReportedDisinfectant,
+    )
+
+    chloride = IonConcentration.mg_per_liter(Ion.CHLORIDE, 35.0)
+    chlorine = ReportedDisinfectant.mg_per_liter_range(
+        DisinfectantKind.CHLORINE,
+        minimum=0.11,
+        maximum=1.52,
+        reported_average=0.86,
+        reported_label="Chlorine",
+    )
+
+    profile = SourceWaterProfile(
+        name="Example Municipal Water",
+        concentrations=(chloride,),
+        disinfectants=(chlorine,),
+    )
+
+    assert profile.concentration_for(Ion.CHLORIDE) is chloride
+    assert profile.disinfectant_for(DisinfectantKind.CHLORINE) is chlorine
+    assert profile.disinfectant_for(DisinfectantKind.FREE_CHLORINE) is None
+
+
+def test_source_profile_does_not_derive_combined_chlorine() -> None:
+    from water_treatment_engine.reported_disinfectants import (
+        DisinfectantKind,
+        ReportedDisinfectant,
+    )
+
+    free_chlorine = ReportedDisinfectant.mg_per_liter(
+        DisinfectantKind.FREE_CHLORINE,
+        0.4,
+    )
+    total_chlorine = ReportedDisinfectant.mg_per_liter(
+        DisinfectantKind.TOTAL_CHLORINE,
+        0.9,
+    )
+    profile = SourceWaterProfile(
+        name="Example Municipal Water",
+        concentrations=(),
+        disinfectants=(free_chlorine, total_chlorine),
+    )
+
+    assert profile.disinfectant_for(DisinfectantKind.FREE_CHLORINE) is free_chlorine
+    assert profile.disinfectant_for(DisinfectantKind.TOTAL_CHLORINE) is total_chlorine
+    assert profile.disinfectant_for(DisinfectantKind.COMBINED_CHLORINE) is None
+    assert profile.disinfectant_for(DisinfectantKind.CHLORAMINE) is None
+
+
+def test_source_profile_rejects_duplicate_disinfectant_identity() -> None:
+    from water_treatment_engine.reported_disinfectants import (
+        DisinfectantKind,
+        ReportedDisinfectant,
+    )
+
+    with pytest.raises(ValueError, match="duplicate disinfectant results"):
+        SourceWaterProfile(
+            name="Example Municipal Water",
+            concentrations=(),
+            disinfectants=(
+                ReportedDisinfectant.mg_per_liter(
+                    DisinfectantKind.CHLORAMINE,
+                    0.5,
+                    species_name="Monochloramine",
+                ),
+                ReportedDisinfectant.mg_per_liter(
+                    DisinfectantKind.CHLORAMINE,
+                    0.7,
+                    species_name="monochloramine",
+                ),
+            ),
+        )

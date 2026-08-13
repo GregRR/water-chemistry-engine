@@ -34,8 +34,8 @@ The current internal fixture format is identified by:
 
 The format deliberately mirrors concepts already present in the engine:
 source-document metadata, water identity, profile-level observation timing,
-result context, reported ion concentrations, pH, and other reported water
-properties.
+result context, reported ion concentrations, disinfectant residuals, pH, and
+other reported water properties.
 
 Do not treat this internal test-vector format as a compatibility promise.
 
@@ -58,3 +58,8 @@ A result may also supply its own `result_context`. Result-level timing overrides
 profile-level timing for that result while omitted sampling-context fields may
 inherit from the profile. In particular, an explicit single `observed_on` date
 must not be combined with an inherited observation period.
+
+Disinfectant results are stored separately from ion concentrations. A source label
+such as `Chlorine` must remain unqualified chlorine unless the report explicitly
+identifies free, total, or combined chlorine. `chloride` remains an ion and must
+never be used as a substitute for a chlorine/chloramine disinfectant result.

@@ -19,6 +19,10 @@ from water_treatment_engine.concentrations import (
 )
 from water_treatment_engine.ions import Ion
 from water_treatment_engine.profiles import SourceWaterProfile
+from water_treatment_engine.reported_disinfectants import (
+    DisinfectantKind,
+    ReportedDisinfectant,
+)
 from water_treatment_engine.reported_properties import (
     Alkalinity,
     Conductivity,
@@ -285,6 +289,52 @@ def _load_concentration(
     raise ValueError(f"Unsupported concentration result form: {form}")
 
 
+def _load_disinfectant(
+    data: Mapping[str, Any],
+    *,
+    result_context: ReportedResultContext | None,
+) -> ReportedDisinfectant:
+    unit = data.get("unit", "milligram / liter")
+    effective_result_context = _load_result_context(
+        data.get("result_context"),
+        fallback=result_context,
+    )
+    form = data["form"]
+
+    kwargs = {
+        "kind": DisinfectantKind(data["kind"]),
+        "species_name": data.get("species_name"),
+        "reported_label": data.get("reported_label"),
+        "reporting_basis": data.get("reporting_basis"),
+        "reported_statistic": _load_reported_statistic(data.get("reported_statistic")),
+        "result_context": effective_result_context,
+    }
+
+    if form in {"exact", "value"}:
+        return ReportedDisinfectant(
+            **kwargs,
+            value=Q_(data["value"], unit),
+        )
+    if form == "range":
+        return ReportedDisinfectant(
+            **kwargs,
+            minimum=Q_(data["minimum"], unit),
+            maximum=Q_(data["maximum"], unit),
+            reported_average=(
+                Q_(data["reported_average"], unit)
+                if data.get("reported_average") is not None
+                else None
+            ),
+        )
+    if form == "average":
+        return ReportedDisinfectant(
+            **kwargs,
+            reported_average=Q_(data["reported_average"], unit),
+        )
+
+    raise ValueError(f"Unsupported disinfectant result form: {form}")
+
+
 def _load_ph(
     data: Mapping[str, Any] | None,
     *,
@@ -387,6 +437,13 @@ def _load_profile(
         )
         for ion_name, concentration in data.get("concentrations", {}).items()
     )
+    disinfectants = tuple(
+        _load_disinfectant(
+            disinfectant,
+            result_context=result_context,
+        )
+        for disinfectant in data.get("disinfectants", ())
+    )
 
     properties = data.get("properties", {})
 
@@ -434,6 +491,7 @@ def _load_profile(
             if "conductivity" in properties
             else None
         ),
+        disinfectants=disinfectants,
     )
 
 
@@ -579,6 +637,26 @@ def test_real_report_fixture_preserves_reported_values(
             if raw_result.get("reporting_basis") is not None:
                 assert result.basis is ReportingBasis(raw_result["reporting_basis"])
 
+        for raw_result in raw_profile.get("disinfectants", ()):
+            kind = DisinfectantKind(raw_result["kind"])
+            result = profile.disinfectant_for(
+                kind,
+                species_name=raw_result.get("species_name"),
+            )
+            assert result is not None
+            assert result.reported_label == raw_result.get("reported_label")
+            assert result.reporting_basis == raw_result.get("reporting_basis")
+
+            unit = raw_result["unit"]
+            for field in ("value", "minimum", "maximum", "reported_average"):
+                raw_value = raw_result.get(field)
+                if raw_value is None:
+                    continue
+
+                result_value = getattr(result, field)
+                assert result_value is not None
+                assert result_value.to(unit).magnitude == pytest.approx(raw_value)
+
 
 @pytest.mark.parametrize(
     "fixture_path",
@@ -597,6 +675,25 @@ def test_real_report_fixture_preserves_reported_statistics(
                 continue
 
             result = profile.concentration_for(Ion(ion_name))
+            assert result is not None
+            assert result.reported_statistic is not None
+            assert result.reported_statistic.kind is ReportedStatisticKind(
+                raw_statistic["kind"]
+            )
+            assert result.reported_statistic.percentile == raw_statistic.get(
+                "percentile"
+            )
+            assert result.reported_statistic.label == raw_statistic.get("label")
+
+        for raw_result in raw_profile.get("disinfectants", ()):
+            raw_statistic = raw_result.get("reported_statistic")
+            if raw_statistic is None:
+                continue
+
+            result = profile.disinfectant_for(
+                DisinfectantKind(raw_result["kind"]),
+                species_name=raw_result.get("species_name"),
+            )
             assert result is not None
             assert result.reported_statistic is not None
             assert result.reported_statistic.kind is ReportedStatisticKind(
@@ -750,6 +847,36 @@ def test_real_report_fixture_preserves_identity_document_and_context(
                     raw_context["water_stage"]
                 )
             assert result_context.sample_location == raw_context.get("sample_location")
+
+
+def test_santa_cruz_fixture_preserves_distribution_system_chlorine() -> None:
+    fixture_path = REPORT_FIXTURE_ROOT / "santa-cruz" / "2025.json"
+    _, profiles = _load_fixture(fixture_path)
+    distribution_profile = next(
+        profile
+        for profile in profiles
+        if profile.name == "Santa Cruz 2025 - Distribution System"
+    )
+
+    chlorine = distribution_profile.disinfectant_for(DisinfectantKind.CHLORINE)
+    assert chlorine is not None
+    assert chlorine.reported_label == "Chlorine"
+    assert chlorine.reporting_basis is None
+    assert chlorine.reported_average is not None
+    assert chlorine.minimum is not None
+    assert chlorine.maximum is not None
+    assert chlorine.reported_average.to("milligram / liter").magnitude == pytest.approx(
+        0.86
+    )
+    assert chlorine.minimum.to("milligram / liter").magnitude == pytest.approx(0.11)
+    assert chlorine.maximum.to("milligram / liter").magnitude == pytest.approx(1.52)
+    assert chlorine.result_context is not None
+    assert chlorine.result_context.water_stage is WaterStage.DISTRIBUTION_SYSTEM
+
+    # The report calls this result only "Chlorine".  Do not reinterpret it as
+    # free chlorine, and do not confuse it with the chloride ion.
+    assert distribution_profile.disinfectant_for(DisinfectantKind.FREE_CHLORINE) is None
+    assert distribution_profile.concentration_for(Ion.CHLORIDE) is None
 
 
 @pytest.mark.parametrize(

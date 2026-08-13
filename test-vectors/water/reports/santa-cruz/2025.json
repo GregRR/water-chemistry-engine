@@ -7,8 +7,8 @@
     "title": "2025 Annual Water Quality Report",
     "source_url": "https://www.santacruzca.gov/files/assets/city/v/1/wt/documents/water-quality-reports/scwd-wqr-2025.pdf",
     "retrieved_on": "2026-08-08",
-    "page_reference": "Pages 15-16",
-    "notes": "Treatment-plant averages and ranges reported for calendar year 2025. Regulatory limits are not modeled as source-water chemistry."
+    "page_reference": "Pages 13, 15-16",
+    "notes": "Treatment-plant averages and ranges and the distribution-system chlorine residual are reported for calendar year 2025. Regulatory limits are not modeled as source-water chemistry."
   },
   "profiles": [
     {
@@ -353,6 +353,32 @@
           "maximum": 690.0
         }
       }
+    },
+    {
+      "name": "Santa Cruz 2025 - Distribution System",
+      "identity": {
+        "provider": "City of Santa Cruz Water Department",
+        "water_type": "municipal_water"
+      },
+      "observation_period": {
+        "start": "2025-01-01",
+        "end": "2025-12-31"
+      },
+      "result_context": {
+        "coverage": "observation_period_summary",
+        "water_stage": "distribution_system"
+      },
+      "disinfectants": [
+        {
+          "kind": "chlorine",
+          "reported_label": "Chlorine",
+          "form": "range",
+          "unit": "milligram / liter",
+          "reported_average": 0.86,
+          "minimum": 0.11,
+          "maximum": 1.52
+        }
+      ]
     }
   ]
 }
