@@ -755,6 +755,8 @@ Derived values should carry or be reproducibly associated with:
 - calculation method;
 - warning/approximation status where applicable.
 
+The deterministic calculation layer uses an exact derived aqueous chemical state with canonical float concentrations in mg/L. An ion omitted from that state is **unknown/not represented**, not zero. Forward treatment application may report a known contribution to an omitted ion, but it must not call that contribution the final total concentration unless the starting state explicitly contains a known value (including an explicit zero when zero is genuinely known).
+
 Canonical unit normalization is not permission to erase original reporting semantics. Derived or normalized values must not overwrite source measurements.
 
 ## 11. Source versus target semantics
@@ -1460,13 +1462,13 @@ Implemented and tested domain work includes:
 - five data-driven real-report fixtures: Santa Cruz, Niagara, Primo/Sparkletts, Cal Water/Chico, and Bend;
 - focused reported-disinfectant preservation, including unqualified chlorine, free/total/combined chlorine, chloramine/named chloramine species, chlorine dioxide, source labels/bases, and result context/statistics.
 
-The latest clean gate before the reported-disinfectant implementation reported **189 passing tests**, with Ruff, Ruff format check, and strict mypy also passing.
+The latest clean gate after the reported-disinfectant implementation reported **204 passing tests**, with Ruff, Ruff format check, and strict mypy also passing.
 
 The real-report pressure-test phase has served its immediate purpose. Additional reports should be added only when they expose a genuinely new semantic or scientific requirement rather than simply increasing fixture count.
 
 First-class source-report preservation of chlorine/chloramine and related disinfectant reporting is now implemented. The Santa Cruz 2025 fixture pressure-tests an unqualified distribution-system `Chlorine` result as its own reported disinfectant rather than inferring free chlorine or mapping the result to chloride. Treatment/removal modeling remains deliberately out of scope for this representation layer.
 
-The next implementation focus moves from source-report representation into **deterministic forward treatment calculations**: validated treatment-ingredient identities, generic stoichiometric ion contributions, derived working-water states, blending, and later the reusable aqueous pH capability documented above.
+The implementation focus has moved from source-report representation into **deterministic forward treatment calculations**. Validated simple treatment-ingredient identities and generic stoichiometric ion contributions are already implemented; the current work adds exact derived aqueous chemical states and forward application of one or more additions to a known water volume. Blending, source-to-derived-state resolution, contribution matrices, and later the reusable aqueous pH capability follow from that boundary.
 
 ## 27. Development milestones
 
@@ -1491,19 +1493,26 @@ Completed:
 - alkalinity/hardness/TDS/conductivity;
 - structured reported-pH semantics;
 - bicarbonate-alkalinity basis normalization for explicitly identified bicarbonate results;
-- five data-driven real-report fixtures exercising the implemented semantics.
+- five data-driven real-report fixtures exercising the implemented semantics;
+- reported disinfectant preservation beginning with chlorine/chloramine.
 
 Still expected at the boundary as needed:
 
-- reported disinfectant/analyte preservation beginning with chlorine/chloramine;
 - BeerJSON water adapter once the profile contracts are sufficiently settled;
 - FermentationJSON adapter when its water schema is ready.
 
-### Milestone 2 — deterministic forward calculations — next
+### Milestone 2 — deterministic forward calculations — in progress
 
-- validated treatment-ingredient identities, including hydration state;
+Completed:
+
+- validated simple treatment-ingredient identities, including hydration state;
 - generic stoichiometric ion-contribution calculation;
-- forward application of one or more additions to a known water volume;
+- exact derived aqueous ion-state representation;
+- forward application of zero or more simple mineral additions to a known water volume with per-treatment contribution detail.
+
+Next:
+
+- explicit source-profile-to-derived-state resolution under the representative-value policy;
 - two- and multi-source blending;
 - explicit derived blended-water and final treated-water chemical states;
 - contribution matrices;
