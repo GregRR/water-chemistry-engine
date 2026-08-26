@@ -127,7 +127,7 @@ Where an authoritative ASBC method, table, or formula is known to exist but cann
   - Leave room for constituents beyond the initial brewing-ion panel.
   - Keep sensory annotations evidence-based and domain-specific.
   - Do not claim direct prediction of taste from a generic ion-match score.
-- **Roadmap:** Primarily version 3 and later, with provenance and extensibility designed into version 1.
+- **Roadmap:** Supports early generic target/reference data where defensible; domain-specific sensory/process modeling remains later work.
 
 ### Food Science Toolbox overview
 
@@ -160,7 +160,7 @@ Where an authoritative ASBC method, table, or formula is known to exist but cann
 - **DOI:** 10.1021/jf501687c
 - **Type:** Primary scientific source
 - **Relevant topics:** Modeled interactions of Na+, Mg2+, and Ca2+ with representative coffee compounds; cation-dependent extraction behavior; interaction with bicarbonate buffering.
-- **Design implications:** Coffee is a strong candidate for the first non-brewing domain because it reuses source-water chemistry while requiring its own validated extraction/sensory logic.
+- **Design implications:** Supports early coffee target/reference data using the generic water engine while reinforcing that a later coffee-specific extraction/sensory model is a separate capability.
 - **Caution:** The paper does not establish one universally optimal coffee-water composition; do not turn its relative binding results into a generic "more magnesium is better" scoring rule.
 
 ### Daily Coffee News practical water guide (2018)
@@ -170,7 +170,7 @@ Where an authoritative ASBC method, table, or formula is known to exist but cann
 - **URL:** https://dailycoffeenews.com/2018/08/15/a-practical-water-guide-for-coffee-professionals-part-i/
 - **Type:** Specialist secondary source
 - **Relevant topics:** Practical coffee-water composition, hardness/alkalinity, treatment, and distinction between chloride and chlorine-related concerns.
-- **Use in this project:** Workflow and terminology research for a future coffee module. Quantitative rules should be traced to primary or current authoritative sources before implementation.
+- **Use in this project:** Workflow and terminology research for early coffee target/reference data and later coffee-specific modeling. Quantitative rules should be traced to primary or current authoritative sources before implementation.
 
 ### Ferreira et al. (2024)
 
@@ -181,7 +181,7 @@ Where an authoritative ASBC method, table, or formula is known to exist but cann
 - **DOI:** 10.3390/app14209179
 - **Type:** Primary scientific source
 - **Relevant topics:** Effects of different mineral waters on bread mineral composition, pH, texture, and related physicochemical properties.
-- **Design implications:** Supports keeping bread/sourdough as a future domain that can reuse source-water data, while providing no basis for a universal bread-water target profile.
+- **Design implications:** The reported waters are legitimate experimental reference profiles and may be bundled as such if admission rules are met, but the study provides no basis for a universal optimal bread-water target. Deeper bread/sourdough modeling remains future domain work.
 
 ### Sourdough Institute tap-water article
 
@@ -245,9 +245,9 @@ Version 1 requires a focused research set for:
 
 These use cases must remain distinct. A profile suitable for fermentation is not automatically suitable for proofing finished spirits.
 
-## 5. Version 3 research queues
+## 5. Cross-domain profile and domain-model research queues
 
-Coffee is the preferred first non-brewing research/module candidate after the brewing-water foundation is stable. Create separate research notes before implementing each domain:
+Research now has two distinct purposes: (1) admit well-sourced target/reference data that the generic engine can already use, and (2) prepare later domain-specific predictive/guidance models. Coffee is the strongest early profile-data candidate; deeper coffee, tea, and dough science remains separate later work. Create separate research notes as needed:
 
 - `research/coffee.md`
 - `research/tea.md`
@@ -298,6 +298,8 @@ Historical city profiles must not be labeled as a brewery's actual treated liquo
 1. Validate the chemical definitions and ion yields for the version 1 salts.
 2. Establish authoritative semantics for alkalinity, hardness, bicarbonate, carbonate, and `as CaCO3` reporting.
 3. Identify defensible initial beer, mead, and distilling target profiles with redistribution rights.
-4. Find primary or authoritative water-blending and charge-balance references.
-5. Catalogue the legacy BrewSession water-calculator formulas and compare them against stronger sources.
-6. Define a citation and versioning format for bundled reference data.
+4. Identify the first defensible coffee target/reference profiles and classify each as standard, recommendation, practitioner reference, experimental reference, or optimized target as appropriate.
+5. Identify tea and dough/bread/pizza reference profiles only where the evidence and redistribution status support admission; do not manufacture optimal profiles from regional analyses.
+6. Find primary or authoritative water-blending and charge-balance references.
+7. Catalogue the legacy BrewSession water-calculator formulas and compare them against stronger sources.
+8. Define a citation, evidentiary-classification, and versioning format for bundled reference data.
