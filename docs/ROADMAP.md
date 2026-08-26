@@ -25,9 +25,10 @@ Implemented foundations include:
 - validated simple treatment-ingredient identities and hydration states;
 - generic stoichiometric ion contributions;
 - exact derived aqueous ion states;
-- forward application of one or more supported mineral additions while preserving unknown values as unknown.
+- forward application of one or more supported mineral additions while preserving unknown values as unknown;
+- explicit source-profile resolution into calculation-ready ion states, with exact-range midpoints allowed only by a caller-supplied policy and unresolved values preserved as unknown.
 
-The current implementation focus is completing the deterministic forward path.
+The current implementation focus is fixed source-water blending and the remaining deterministic forward path.
 
 ## 0.2 — Deterministic Forward Calculator
 
@@ -38,7 +39,6 @@ Complete the reusable engine path needed to answer:
 
 ### Required work
 
-- Resolve source profiles into derived calculation states only under explicit representative-value rules.
 - Blend two or more source waters by fixed user-entered volumes or fractions.
 - Preserve source contributions to the blend.
 - Apply supported mineral additions to the blended state.

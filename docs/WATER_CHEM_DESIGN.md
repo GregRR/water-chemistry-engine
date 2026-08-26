@@ -750,6 +750,8 @@ Likewise:
 
 Any numeric substitution policy must be explicit and must produce **derived** data with assumptions/warnings.
 
+The implemented source-profile resolution boundary requires a caller-supplied `SourceResolutionPolicy`. Exact reported ion values and independently reported averages can resolve directly. An exact-ended linear range resolves to a derived midpoint only when `allow_exact_range_midpoints` is explicitly enabled. Bounds, `ND`, and qualified ranges without an independently reported average remain unresolved and are omitted from the derived aqueous state rather than treated as zero. Each reported ion receives a structured resolved/unresolved outcome so the calculation method or unresolved reason remains auditable.
+
 ### 10.7 Nonlinear quantities
 
 A generic midpoint policy must never be applied automatically to nonlinear/logarithmic quantities such as pH. Each such quantity requires its own scientifically justified aggregation semantics.
@@ -1454,7 +1456,7 @@ The real-report pressure-test phase has served its immediate purpose. Additional
 
 First-class source-report preservation of chlorine/chloramine and related disinfectant reporting is now implemented. The Santa Cruz 2025 fixture pressure-tests an unqualified distribution-system `Chlorine` result as its own reported disinfectant rather than inferring free chlorine or mapping the result to chloride. Treatment/removal modeling remains deliberately out of scope for this representation layer.
 
-The implementation focus has moved from source-report representation into **deterministic forward treatment calculations**. Validated simple treatment-ingredient identities and generic stoichiometric ion contributions are already implemented; the current work adds exact derived aqueous chemical states and forward application of one or more additions to a known water volume. Blending, source-to-derived-state resolution, contribution matrices, and later the reusable aqueous pH capability follow from that boundary.
+The implementation focus is **deterministic forward treatment calculations**. Validated simple treatment-ingredient identities, generic stoichiometric ion contributions, exact derived aqueous chemical states, forward application of one or more additions to a known water volume, and explicit source-profile-to-derived-state resolution are implemented. Fixed blending, source/treatment contribution matrices, target/reference comparison, and later the reusable aqueous pH capability follow from that boundary.
 
 ## 27. Development milestones
 
@@ -1491,11 +1493,11 @@ Completed:
 - validated simple treatment-ingredient identities, including hydration state;
 - generic stoichiometric ion-contribution calculation;
 - exact derived aqueous ion-state representation;
-- forward application of zero or more simple mineral additions to a known water volume with per-treatment contribution detail.
+- forward application of zero or more simple mineral additions to a known water volume with per-treatment contribution detail;
+- explicit source-profile-to-derived-state resolution under a caller-supplied representative-value policy, including auditable unresolved reasons.
 
 Next:
 
-- explicit source-profile-to-derived-state resolution under the representative-value policy;
 - two- and multi-source fixed blending;
 - explicit blended-water and final treated-water states;
 - source/treatment contribution matrices;
