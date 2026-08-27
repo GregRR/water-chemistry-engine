@@ -77,4 +77,5 @@ coverage.xml
 # Project Specific
 # ==========================================
 my-notes/
+.claudeignore
 notes-and-references/
