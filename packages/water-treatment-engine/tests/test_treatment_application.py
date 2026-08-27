@@ -8,7 +8,10 @@ from water_treatment_engine.chemical_state import (
 )
 from water_treatment_engine.ions import Ion
 from water_treatment_engine.treatment_application import (
+    ResolvedTreatmentIon,
     TreatmentAddition,
+    UnresolvedTreatmentIon,
+    UnresolvedTreatmentIonReason,
     apply_treatment_additions,
 )
 from water_treatment_engine.treatment_ingredients import (
@@ -76,6 +79,21 @@ def test_missing_initial_ion_remains_unknown_after_known_contribution() -> None:
     )
     assert result.final_state.concentration_for(Ion.CHLORIDE) is None
 
+    chloride_resolution = result.resolution_for(Ion.CHLORIDE)
+    assert isinstance(chloride_resolution, UnresolvedTreatmentIon)
+    assert (
+        chloride_resolution.reason
+        is UnresolvedTreatmentIonReason.MISSING_INITIAL_CONCENTRATION
+    )
+    assert len(chloride_resolution.known_treatment_contributions) == 1
+    audit_contribution = chloride_resolution.known_treatment_contributions[0]
+    assert audit_contribution.treatment_index == 0
+    assert audit_contribution.addition.ingredient is CALCIUM_CHLORIDE_DIHYDRATE
+    assert audit_contribution.contribution.concentration.magnitude == pytest.approx(
+        48.2286,
+        abs=0.001,
+    )
+
     chloride_contribution = next(
         item
         for item in result.applied_treatments[0].ion_contributions
@@ -138,6 +156,65 @@ def test_per_treatment_contributions_remain_auditable() -> None:
         Ion.SODIUM,
         Ion.CHLORIDE,
     }
+
+
+def test_known_initial_ion_has_resolved_audit_record() -> None:
+    result = apply_treatment_additions(
+        _state(calcium=50.0, chloride=0.0),
+        Q_(10, "liter"),
+        (
+            TreatmentAddition(
+                CALCIUM_CHLORIDE_DIHYDRATE,
+                Q_(1, "gram"),
+            ),
+        ),
+    )
+
+    chloride_resolution = result.resolution_for(Ion.CHLORIDE)
+    assert isinstance(chloride_resolution, ResolvedTreatmentIon)
+    assert chloride_resolution.initial_concentration.concentration.magnitude == 0.0
+    assert chloride_resolution.concentration.concentration.magnitude == pytest.approx(
+        48.2286,
+        abs=0.001,
+    )
+    assert len(chloride_resolution.treatment_contributions) == 1
+
+
+def test_missing_unaffected_ion_has_explicit_unresolved_audit_record() -> None:
+    result = apply_treatment_additions(
+        _state(calcium=50.0),
+        Q_(10, "liter"),
+        (),
+    )
+
+    sulfate_resolution = result.resolution_for(Ion.SULFATE)
+    assert isinstance(sulfate_resolution, UnresolvedTreatmentIon)
+    assert (
+        sulfate_resolution.reason
+        is UnresolvedTreatmentIonReason.MISSING_INITIAL_CONCENTRATION
+    )
+    assert sulfate_resolution.known_treatment_contributions == ()
+
+
+def test_per_ion_audit_links_multiple_contributions_to_treatment_indices() -> None:
+    first = TreatmentAddition(CALCIUM_CHLORIDE_DIHYDRATE, Q_(1, "gram"))
+    second = TreatmentAddition(SODIUM_CHLORIDE, Q_(1, "gram"))
+    result = apply_treatment_additions(
+        _state(chloride=10.0),
+        Q_(10, "liter"),
+        (first, second),
+    )
+
+    chloride_resolution = result.resolution_for(Ion.CHLORIDE)
+    assert isinstance(chloride_resolution, ResolvedTreatmentIon)
+    assert [
+        contribution.treatment_index
+        for contribution in chloride_resolution.treatment_contributions
+    ] == [0, 1]
+    assert [
+        contribution.addition
+        for contribution in chloride_resolution.treatment_contributions
+    ] == [first, second]
 
 
 def test_zero_additions_leave_chemical_state_unchanged() -> None:

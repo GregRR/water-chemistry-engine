@@ -768,7 +768,7 @@ Derived values should carry or be reproducibly associated with:
 - calculation method;
 - warning/approximation status where applicable.
 
-The deterministic calculation layer uses an exact derived aqueous chemical state with canonical float concentrations in mg/L. An ion omitted from that state is **unknown/not represented**, not zero. Forward treatment application may report a known contribution to an omitted ion, but it must not call that contribution the final total concentration unless the starting state explicitly contains a known value (including an explicit zero when zero is genuinely known).
+The deterministic calculation layer uses an exact derived aqueous chemical state with canonical float concentrations in mg/L. An ion omitted from that state is **unknown/not represented**, not zero. Forward treatment application records a structured per-ion resolved/unresolved outcome. A known treatment contribution to an omitted ion remains available for audit, including the treatment index and requested addition that produced it, but it is not called the final total concentration unless the starting state explicitly contains a known value (including an explicit zero when zero is genuinely known).
 
 Canonical unit normalization is not permission to erase original reporting semantics. Derived or normalized values must not overwrite source measurements.
 
@@ -1458,7 +1458,7 @@ The real-report pressure-test phase has served its immediate purpose. Additional
 
 First-class source-report preservation of chlorine/chloramine and related disinfectant reporting is now implemented. The Santa Cruz 2025 fixture pressure-tests an unqualified distribution-system `Chlorine` result as its own reported disinfectant rather than inferring free chlorine or mapping the result to chloride. Treatment/removal modeling remains deliberately out of scope for this representation layer.
 
-The implementation focus is **deterministic forward treatment calculations**. Validated simple treatment-ingredient identities, generic stoichiometric ion contributions, exact derived aqueous chemical states, forward application of one or more additions to a known water volume, explicit source-profile-to-derived-state resolution, and fixed source-water blending by volume or fraction are implemented. The blend result preserves normalized source volumes/fractions and per-source ion contribution detail while keeping any ion with an unknown positive-volume source contribution unknown. End-to-end blended/final workflow results, combined source/treatment contribution detail, target/reference comparison, and later the reusable aqueous pH capability follow from that boundary.
+The implementation focus is **deterministic forward treatment calculations**. Validated simple treatment-ingredient identities, generic stoichiometric ion contributions, exact derived aqueous chemical states, forward application of one or more additions to a known water volume, explicit source-profile-to-derived-state resolution, and fixed source-water blending by volume or fraction are implemented. Blend and treatment results both preserve structured per-ion resolution outcomes and contribution detail while keeping unknown totals unknown. End-to-end blended/final workflow results, combined source/treatment contribution presentation, target/reference comparison, and later the reusable aqueous pH capability follow from that boundary.
 
 ## 27. Development milestones
 

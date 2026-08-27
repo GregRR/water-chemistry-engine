@@ -8,6 +8,7 @@ model precipitation, or redistribute carbonate species.
 """
 
 from dataclasses import dataclass
+from enum import StrEnum
 
 from fermunits import Q_
 from pint import Quantity
@@ -53,6 +54,50 @@ class AppliedTreatment:
 
 
 @dataclass(frozen=True, slots=True)
+class TreatmentIonContribution:
+    """One treatment's known contribution to one ion in the result."""
+
+    treatment_index: int
+    addition: TreatmentAddition
+    contribution: IonContribution
+
+    @property
+    def ion(self) -> Ion:
+        return self.contribution.ion
+
+
+@dataclass(frozen=True, slots=True)
+class ResolvedTreatmentIon:
+    """One ion whose treated-water total is fully known."""
+
+    concentration: DerivedIonConcentration
+    initial_concentration: DerivedIonConcentration
+    treatment_contributions: tuple[TreatmentIonContribution, ...]
+
+    @property
+    def ion(self) -> Ion:
+        return self.concentration.ion
+
+
+class UnresolvedTreatmentIonReason(StrEnum):
+    """Why one treated-water ion could not be assigned a final total."""
+
+    MISSING_INITIAL_CONCENTRATION = "missing_initial_concentration"
+
+
+@dataclass(frozen=True, slots=True)
+class UnresolvedTreatmentIon:
+    """One ion whose final total is unknown despite any known additions."""
+
+    ion: Ion
+    reason: UnresolvedTreatmentIonReason
+    known_treatment_contributions: tuple[TreatmentIonContribution, ...]
+
+
+type TreatmentIonResolution = ResolvedTreatmentIon | UnresolvedTreatmentIon
+
+
+@dataclass(frozen=True, slots=True)
 class TreatmentApplicationResult:
     """Derived final state and auditable contribution detail for a treatment set."""
 
@@ -60,6 +105,15 @@ class TreatmentApplicationResult:
     water_volume: Quantity[float]
     applied_treatments: tuple[AppliedTreatment, ...]
     final_state: AqueousChemicalState
+    ion_resolutions: tuple[TreatmentIonResolution, ...]
+
+    def resolution_for(self, ion: Ion) -> TreatmentIonResolution:
+        """Return the treatment-resolution outcome for one supported ion."""
+        for resolution in self.ion_resolutions:
+            if resolution.ion is ion:
+                return resolution
+
+        raise ValueError(f"Unsupported treatment ion: {ion!r}")
 
 
 def _normalize_water_volume(water_volume: ScalarQuantity) -> Quantity[float]:
@@ -92,18 +146,26 @@ def apply_treatment_additions(
     should represent that zero explicitly in the derived state.
 
     The returned per-treatment records preserve how much each requested
-    addition contributed.  This is the treatment side of the contribution
-    matrix that later blend-and-treatment planning will expose to users.
+    addition contributed.  Per-ion resolution records additionally state
+    whether the final total is known and retain the treatment contributions
+    even when a missing initial concentration keeps that total unknown.
     """
     normalized_volume = _normalize_water_volume(water_volume)
 
-    concentrations_mg_per_liter = {
-        concentration.ion: float(concentration.concentration.magnitude)
+    initial_concentrations = {
+        concentration.ion: concentration
         for concentration in initial_state.concentrations
+    }
+    concentrations_mg_per_liter = {
+        ion: float(concentration.concentration.magnitude)
+        for ion, concentration in initial_concentrations.items()
+    }
+    contributions_by_ion: dict[Ion, list[TreatmentIonContribution]] = {
+        ion: [] for ion in Ion
     }
 
     applied_treatments: list[AppliedTreatment] = []
-    for addition in additions:
+    for treatment_index, addition in enumerate(additions):
         contributions = calculate_ion_contributions(
             addition.ingredient,
             addition.mass,
@@ -117,21 +179,50 @@ def apply_treatment_additions(
         )
 
         for contribution in contributions:
+            contributions_by_ion[contribution.ion].append(
+                TreatmentIonContribution(
+                    treatment_index=treatment_index,
+                    addition=addition,
+                    contribution=contribution,
+                )
+            )
             if contribution.ion in concentrations_mg_per_liter:
                 concentrations_mg_per_liter[contribution.ion] += float(
                     contribution.concentration.magnitude
                 )
 
+    resolutions: list[TreatmentIonResolution] = []
+    for ion in Ion:
+        treatment_contributions = tuple(contributions_by_ion[ion])
+        initial_concentration = initial_concentrations.get(ion)
+        if initial_concentration is None:
+            resolutions.append(
+                UnresolvedTreatmentIon(
+                    ion=ion,
+                    reason=UnresolvedTreatmentIonReason.MISSING_INITIAL_CONCENTRATION,
+                    known_treatment_contributions=treatment_contributions,
+                )
+            )
+            continue
+
+        resolutions.append(
+            ResolvedTreatmentIon(
+                concentration=DerivedIonConcentration.mg_per_liter(
+                    ion,
+                    concentrations_mg_per_liter[ion],
+                ),
+                initial_concentration=initial_concentration,
+                treatment_contributions=treatment_contributions,
+            )
+        )
+
     # Enum declaration order gives the derived state a stable ordering that is
     # independent of dict insertion details or the order in which treatments
     # happened to be supplied.
     final_concentrations = tuple(
-        DerivedIonConcentration.mg_per_liter(
-            ion,
-            concentrations_mg_per_liter[ion],
-        )
-        for ion in Ion
-        if ion in concentrations_mg_per_liter
+        resolution.concentration
+        for resolution in resolutions
+        if isinstance(resolution, ResolvedTreatmentIon)
     )
 
     return TreatmentApplicationResult(
@@ -139,4 +230,5 @@ def apply_treatment_additions(
         water_volume=normalized_volume,
         applied_treatments=tuple(applied_treatments),
         final_state=AqueousChemicalState(concentrations=final_concentrations),
+        ion_resolutions=tuple(resolutions),
     )

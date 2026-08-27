@@ -25,7 +25,7 @@ Implemented foundations include:
 - validated simple treatment-ingredient identities and hydration states;
 - generic stoichiometric ion contributions;
 - exact derived aqueous ion states;
-- forward application of one or more supported mineral additions while preserving unknown values as unknown;
+- forward application of one or more supported mineral additions while preserving unknown values as unknown and retaining per-ion resolution/contribution audit detail;
 - explicit source-profile resolution into calculation-ready ion states, with exact-range midpoints allowed only by a caller-supplied policy and unresolved values preserved as unknown;
 - fixed volume- or fraction-based blending of one or more derived source states, with actual volumes/fractions and per-source ion contributions preserved and unknown source concentrations propagated as unknown.
 
