@@ -4,6 +4,10 @@ from enum import StrEnum
 from fermunits import Q_
 
 from water_treatment_engine.quantity_types import ScalarQuantity
+from water_treatment_engine.reported_values import (
+    SourceResolutionPolicy,
+    linear_calculation_value,
+)
 from water_treatment_engine.reporting_context import ReportedResultContext
 
 
@@ -103,31 +107,6 @@ def _validate_reported_values(
     )
 
 
-def _calculation_value(
-    *,
-    value: ScalarQuantity | None,
-    minimum: ScalarQuantity | None,
-    maximum: ScalarQuantity | None,
-    reported_average: ScalarQuantity | None,
-) -> ScalarQuantity:
-    if reported_average is not None:
-        return reported_average
-
-    if value is not None:
-        return value
-
-    if minimum is not None and maximum is not None:
-        # Preserve source-reported magnitudes as supplied.  The midpoint is a
-        # derived value, so normalize units and deliberately calculate it in
-        # the engine's floating-point calculation layer.
-        unit = minimum.units
-        minimum_value = float(minimum.magnitude)
-        maximum_value = float(maximum.to(unit).magnitude)
-        return Q_((minimum_value + maximum_value) / 2.0, unit)
-
-    raise RuntimeError("Validated reported quantity has no calculation value.")
-
-
 @dataclass(frozen=True, slots=True)
 class Alkalinity:
     """Reported alkalinity with explicit reporting semantics and basis."""
@@ -153,11 +132,28 @@ class Alkalinity:
 
     @property
     def calculation_value(self) -> ScalarQuantity:
-        return _calculation_value(
+        """Return only a representative value actually reported by the source."""
+        return linear_calculation_value(
             value=self.value,
             minimum=self.minimum,
             maximum=self.maximum,
             reported_average=self.reported_average,
+            policy=None,
+            label=type(self).__name__,
+        )
+
+    def calculation_value_with_policy(
+        self,
+        policy: SourceResolutionPolicy,
+    ) -> ScalarQuantity:
+        """Return a reported value or a policy-authorized range midpoint."""
+        return linear_calculation_value(
+            value=self.value,
+            minimum=self.minimum,
+            maximum=self.maximum,
+            reported_average=self.reported_average,
+            policy=policy,
+            label=type(self).__name__,
         )
 
     @classmethod
@@ -208,11 +204,28 @@ class TotalHardness:
 
     @property
     def calculation_value(self) -> ScalarQuantity:
-        return _calculation_value(
+        """Return only a representative value actually reported by the source."""
+        return linear_calculation_value(
             value=self.value,
             minimum=self.minimum,
             maximum=self.maximum,
             reported_average=self.reported_average,
+            policy=None,
+            label=type(self).__name__,
+        )
+
+    def calculation_value_with_policy(
+        self,
+        policy: SourceResolutionPolicy,
+    ) -> ScalarQuantity:
+        """Return a reported value or a policy-authorized range midpoint."""
+        return linear_calculation_value(
+            value=self.value,
+            minimum=self.minimum,
+            maximum=self.maximum,
+            reported_average=self.reported_average,
+            policy=policy,
+            label=type(self).__name__,
         )
 
     @classmethod
@@ -262,11 +275,28 @@ class TotalDissolvedSolids:
 
     @property
     def calculation_value(self) -> ScalarQuantity:
-        return _calculation_value(
+        """Return only a representative value actually reported by the source."""
+        return linear_calculation_value(
             value=self.value,
             minimum=self.minimum,
             maximum=self.maximum,
             reported_average=self.reported_average,
+            policy=None,
+            label=type(self).__name__,
+        )
+
+    def calculation_value_with_policy(
+        self,
+        policy: SourceResolutionPolicy,
+    ) -> ScalarQuantity:
+        """Return a reported value or a policy-authorized range midpoint."""
+        return linear_calculation_value(
+            value=self.value,
+            minimum=self.minimum,
+            maximum=self.maximum,
+            reported_average=self.reported_average,
+            policy=policy,
+            label=type(self).__name__,
         )
 
     @classmethod
@@ -317,11 +347,28 @@ class Conductivity:
 
     @property
     def calculation_value(self) -> ScalarQuantity:
-        return _calculation_value(
+        """Return only a representative value actually reported by the source."""
+        return linear_calculation_value(
             value=self.value,
             minimum=self.minimum,
             maximum=self.maximum,
             reported_average=self.reported_average,
+            policy=None,
+            label=type(self).__name__,
+        )
+
+    def calculation_value_with_policy(
+        self,
+        policy: SourceResolutionPolicy,
+    ) -> ScalarQuantity:
+        """Return a reported value or a policy-authorized range midpoint."""
+        return linear_calculation_value(
+            value=self.value,
+            minimum=self.minimum,
+            maximum=self.maximum,
+            reported_average=self.reported_average,
+            policy=policy,
+            label=type(self).__name__,
         )
 
     @classmethod

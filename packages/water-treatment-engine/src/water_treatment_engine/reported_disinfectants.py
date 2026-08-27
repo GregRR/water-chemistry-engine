@@ -5,6 +5,10 @@ from fermunits import Q_
 
 from water_treatment_engine.quantity_types import ScalarQuantity
 from water_treatment_engine.reported_statistics import ReportedStatistic
+from water_treatment_engine.reported_values import (
+    SourceResolutionPolicy,
+    linear_calculation_value,
+)
 from water_treatment_engine.reporting_context import ReportedResultContext
 
 
@@ -139,22 +143,29 @@ class ReportedDisinfectant:
 
     @property
     def calculation_value(self) -> ScalarQuantity:
-        """Return a representative linear concentration when one is available."""
-        if self.reported_average is not None:
-            return self.reported_average
+        """Return only a representative value actually reported by the source."""
+        return linear_calculation_value(
+            value=self.value,
+            minimum=self.minimum,
+            maximum=self.maximum,
+            reported_average=self.reported_average,
+            policy=None,
+            label="Reported disinfectant concentration",
+        )
 
-        if self.value is not None:
-            return self.value
-
-        if self.minimum is not None and self.maximum is not None:
-            # Preserve source magnitudes exactly.  A midpoint is derived data, so
-            # normalize units and deliberately enter the float calculation layer.
-            unit = self.minimum.units
-            minimum = float(self.minimum.magnitude)
-            maximum = float(self.maximum.to(unit).magnitude)
-            return Q_((minimum + maximum) / 2.0, unit)
-
-        raise RuntimeError("Validated disinfectant result has no calculation value.")
+    def calculation_value_with_policy(
+        self,
+        policy: SourceResolutionPolicy,
+    ) -> ScalarQuantity:
+        """Return a reported value or a policy-authorized range midpoint."""
+        return linear_calculation_value(
+            value=self.value,
+            minimum=self.minimum,
+            maximum=self.maximum,
+            reported_average=self.reported_average,
+            policy=policy,
+            label="Reported disinfectant concentration",
+        )
 
     @classmethod
     def mg_per_liter(

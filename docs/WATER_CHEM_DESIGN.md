@@ -752,7 +752,7 @@ Likewise:
 
 Any numeric substitution policy must be explicit and must produce **derived** data with assumptions/warnings.
 
-The implemented source-profile resolution boundary requires a caller-supplied `SourceResolutionPolicy`. Exact reported ion values and independently reported averages can resolve directly. An exact-ended linear range resolves to a derived midpoint only when `allow_exact_range_midpoints` is explicitly enabled. Bounds, `ND`, and qualified ranges without an independently reported average remain unresolved and are omitted from the derived aqueous state rather than treated as zero. Each reported ion receives a structured resolved/unresolved outcome so the calculation method or unresolved reason remains auditable.
+The implemented source-profile resolution boundary requires a caller-supplied `SourceResolutionPolicy`. Exact reported values and independently reported averages remain directly usable, but a range-only linear reported quantity has no default `calculation_value`. Ion concentrations, alkalinity, total hardness, TDS, conductivity, and reported disinfectant concentrations expose policy-controlled resolution for an exact numeric range, and derive a midpoint only when `allow_exact_range_midpoints` is explicitly enabled. This prevents later comparison or optimization code from silently opting into midpoint substitution merely by reading a convenience property. Bounds, `ND`, and qualified ion ranges without an independently reported average remain unresolved and are omitted from the derived aqueous state rather than treated as zero. Each reported ion receives a structured resolved/unresolved outcome so the calculation method or unresolved reason remains auditable.
 
 ### 10.7 Nonlinear quantities
 

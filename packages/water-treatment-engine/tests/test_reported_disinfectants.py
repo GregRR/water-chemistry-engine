@@ -7,11 +7,15 @@ from water_treatment_engine.reported_disinfectants import (
     DisinfectantKind,
     ReportedDisinfectant,
 )
+from water_treatment_engine.reported_values import SourceResolutionPolicy
 from water_treatment_engine.reporting_context import (
     ReportedResultContext,
     ResultCoverage,
     WaterStage,
 )
+
+ALLOW_MIDPOINTS = SourceResolutionPolicy(allow_exact_range_midpoints=True)
+REPORTED_ONLY = SourceResolutionPolicy(allow_exact_range_midpoints=False)
 
 
 def test_exact_disinfectant_preserves_source_metadata() -> None:
@@ -50,14 +54,25 @@ def test_disinfectant_range_prefers_reported_average() -> None:
     )
 
 
-def test_disinfectant_range_midpoint_is_derived_as_float() -> None:
+def test_disinfectant_range_midpoint_requires_explicit_policy() -> None:
     result = ReportedDisinfectant(
         kind=DisinfectantKind.FREE_CHLORINE,
         minimum=Q_(Decimal("0.20"), "milligram / liter"),
         maximum=Q_(Fraction(4, 5), "milligram / liter"),
     )
 
-    midpoint = result.calculation_value.to("milligram / liter")
+    with pytest.raises(
+        ValueError,
+        match="range alone has no representative calculation value",
+    ):
+        _ = result.calculation_value
+
+    with pytest.raises(ValueError, match="explicit midpoint permission"):
+        result.calculation_value_with_policy(REPORTED_ONLY)
+
+    midpoint = result.calculation_value_with_policy(ALLOW_MIDPOINTS).to(
+        "milligram / liter"
+    )
     assert midpoint.magnitude == pytest.approx(0.5)
     assert isinstance(midpoint.magnitude, float)
 

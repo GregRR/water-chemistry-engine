@@ -11,6 +11,10 @@ from water_treatment_engine.reported_properties import (
     TotalDissolvedSolids,
     TotalHardness,
 )
+from water_treatment_engine.reported_values import SourceResolutionPolicy
+
+ALLOW_MIDPOINTS = SourceResolutionPolicy(allow_exact_range_midpoints=True)
+REPORTED_ONLY = SourceResolutionPolicy(allow_exact_range_midpoints=False)
 
 
 def test_exact_alkalinity_preserves_as_caco3_basis() -> None:
@@ -38,20 +42,32 @@ def test_reported_property_mixed_scalar_midpoint_is_float() -> None:
         maximum=Q_(Decimal("0.250"), "gram / liter"),
     )
 
-    midpoint = measurement.calculation_value.to("milligram / liter")
+    midpoint = measurement.calculation_value_with_policy(ALLOW_MIDPOINTS).to(
+        "milligram / liter"
+    )
 
     assert midpoint.magnitude == pytest.approx(225.0)
     assert isinstance(midpoint.magnitude, float)
 
 
-def test_alkalinity_range_without_average_uses_midpoint() -> None:
+def test_alkalinity_range_without_average_requires_midpoint_policy() -> None:
     measurement = Alkalinity.mg_per_liter_as_caco3_range(
         minimum=100.0,
         maximum=140.0,
     )
 
     assert measurement.reported_average is None
-    assert measurement.calculation_value.to("milligram / liter").magnitude == 120.0
+    with pytest.raises(
+        ValueError,
+        match="range alone has no representative calculation value",
+    ):
+        _ = measurement.calculation_value
+
+    with pytest.raises(ValueError, match="explicit midpoint permission"):
+        measurement.calculation_value_with_policy(REPORTED_ONLY)
+
+    midpoint = measurement.calculation_value_with_policy(ALLOW_MIDPOINTS)
+    assert midpoint.to("milligram / liter").magnitude == 120.0
 
 
 def test_alkalinity_reported_average_takes_precedence_over_midpoint() -> None:
@@ -77,6 +93,32 @@ def test_total_hardness_preserves_as_caco3_basis() -> None:
     assert measurement.calculation_value.to("milligram / liter").magnitude == 138.0
 
 
+def test_total_hardness_range_without_average_requires_midpoint_policy() -> None:
+    measurement = TotalHardness.mg_per_liter_as_caco3_range(
+        minimum=130.0,
+        maximum=150.0,
+    )
+
+    with pytest.raises(ValueError):
+        _ = measurement.calculation_value
+
+    midpoint = measurement.calculation_value_with_policy(ALLOW_MIDPOINTS)
+    assert midpoint.to("milligram / liter").magnitude == 140.0
+
+
+def test_conductivity_range_without_average_requires_midpoint_policy() -> None:
+    measurement = Conductivity.microsiemens_per_cm_range(
+        minimum=180.0,
+        maximum=210.0,
+    )
+
+    with pytest.raises(ValueError):
+        _ = measurement.calculation_value
+
+    midpoint = measurement.calculation_value_with_policy(ALLOW_MIDPOINTS)
+    assert midpoint.to("microsiemens / centimeter").magnitude == 195.0
+
+
 def test_total_dissolved_solids_accepts_mass_concentration() -> None:
     measurement = TotalDissolvedSolids(
         value=Q_(0.225, "gram / liter"),
@@ -85,13 +127,17 @@ def test_total_dissolved_solids_accepts_mass_concentration() -> None:
     assert measurement.calculation_value.to("milligram / liter").magnitude == 225.0
 
 
-def test_tds_range_without_reported_average_uses_midpoint() -> None:
+def test_tds_range_without_reported_average_requires_midpoint_policy() -> None:
     measurement = TotalDissolvedSolids.mg_per_liter_range(
         minimum=200.0,
         maximum=250.0,
     )
 
-    assert measurement.calculation_value.to("milligram / liter").magnitude == 225.0
+    with pytest.raises(ValueError):
+        _ = measurement.calculation_value
+
+    midpoint = measurement.calculation_value_with_policy(ALLOW_MIDPOINTS)
+    assert midpoint.to("milligram / liter").magnitude == 225.0
 
 
 def test_conductivity_preserves_reference_temperature_and_reported_average() -> None:

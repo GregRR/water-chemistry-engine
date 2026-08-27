@@ -5,6 +5,10 @@ from fermunits import Q_
 from water_treatment_engine.ions import Ion
 from water_treatment_engine.quantity_types import ScalarQuantity
 from water_treatment_engine.reported_statistics import ReportedStatistic
+from water_treatment_engine.reported_values import (
+    SourceResolutionPolicy,
+    linear_calculation_value,
+)
 from water_treatment_engine.reporting_context import ReportedResultContext
 
 
@@ -152,7 +156,34 @@ class IonConcentrationRange:
 
     @property
     def calculation_value(self) -> ScalarQuantity:
-        """Return a source average or derive a midpoint only for an exact range."""
+        """Return only a representative value actually reported by the source."""
+        if self.reported_average is not None:
+            return self.reported_average
+
+        if self._has_exact_endpoints():
+            raise ValueError(
+                "An exact concentration range alone has no representative "
+                "calculation value. Use calculation_value_with_policy() to "
+                "authorize a derived midpoint."
+            )
+
+        raise ValueError(
+            "A qualified concentration range has no automatic representative "
+            "calculation value."
+        )
+
+    def _has_exact_endpoints(self) -> bool:
+        """Return whether both range endpoints are exact reported values."""
+        return isinstance(self.minimum, ExactConcentrationEndpoint) and isinstance(
+            self.maximum,
+            ExactConcentrationEndpoint,
+        )
+
+    def calculation_value_with_policy(
+        self,
+        policy: SourceResolutionPolicy,
+    ) -> ScalarQuantity:
+        """Return a reported average or a policy-authorized exact-range midpoint."""
         if self.reported_average is not None:
             return self.reported_average
 
@@ -160,13 +191,14 @@ class IonConcentrationRange:
             self.maximum,
             ExactConcentrationEndpoint,
         ):
-            # Reported values retain their original scalar representation.
-            # A midpoint is derived data, so normalize both endpoints to the
-            # same unit and deliberately enter the float calculation layer.
-            unit = self.minimum.value.units
-            minimum = float(self.minimum.value.magnitude)
-            maximum = float(self.maximum.value.to(unit).magnitude)
-            return Q_((minimum + maximum) / 2.0, unit)
+            return linear_calculation_value(
+                value=None,
+                minimum=self.minimum.value,
+                maximum=self.maximum.value,
+                reported_average=None,
+                policy=policy,
+                label="Ion concentration",
+            )
 
         raise ValueError(
             "A qualified concentration range has no automatic representative "

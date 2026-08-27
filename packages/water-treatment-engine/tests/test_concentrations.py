@@ -18,6 +18,10 @@ from water_treatment_engine.reported_statistics import (
     ReportedStatistic,
     ReportedStatisticKind,
 )
+from water_treatment_engine.reported_values import SourceResolutionPolicy
+
+ALLOW_MIDPOINTS = SourceResolutionPolicy(allow_exact_range_midpoints=True)
+REPORTED_ONLY = SourceResolutionPolicy(allow_exact_range_midpoints=False)
 
 
 def test_mg_per_liter_constructor() -> None:
@@ -53,7 +57,9 @@ def test_mixed_scalar_range_midpoint_is_derived_as_float() -> None:
         maximum=ExactConcentrationEndpoint(Q_(Fraction(3, 20), "gram / liter")),
     )
 
-    midpoint = concentration.calculation_value.to("milligram / liter")
+    midpoint = concentration.calculation_value_with_policy(ALLOW_MIDPOINTS).to(
+        "milligram / liter"
+    )
 
     assert midpoint.magnitude == pytest.approx(100.0)
     assert isinstance(midpoint.magnitude, float)
@@ -95,14 +101,24 @@ def test_exact_concentration_range_constructor() -> None:
     assert concentration.reported_average is None
 
 
-def test_exact_range_without_reported_average_uses_midpoint() -> None:
+def test_exact_range_without_reported_average_requires_midpoint_policy() -> None:
     concentration = IonConcentrationRange.mg_per_liter(
         Ion.SULFATE,
         minimum=50.0,
         maximum=150.0,
     )
 
-    assert concentration.calculation_value.to("milligram / liter").magnitude == 100.0
+    with pytest.raises(
+        ValueError,
+        match="range alone has no representative calculation value",
+    ):
+        _ = concentration.calculation_value
+
+    with pytest.raises(ValueError, match="explicit midpoint permission"):
+        concentration.calculation_value_with_policy(REPORTED_ONLY)
+
+    midpoint = concentration.calculation_value_with_policy(ALLOW_MIDPOINTS)
+    assert midpoint.to("milligram / liter").magnitude == 100.0
 
 
 def test_reported_average_takes_precedence_over_midpoint() -> None:

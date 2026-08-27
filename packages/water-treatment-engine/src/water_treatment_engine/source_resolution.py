@@ -27,13 +27,7 @@ from water_treatment_engine.concentrations import (
 )
 from water_treatment_engine.ions import Ion
 from water_treatment_engine.profiles import SourceWaterProfile
-
-
-@dataclass(frozen=True, slots=True)
-class SourceResolutionPolicy:
-    """Explicit rules for selecting representative linear source values."""
-
-    allow_exact_range_midpoints: bool
+from water_treatment_engine.reported_values import SourceResolutionPolicy
 
 
 class SourceIonResolutionMethod(StrEnum):
@@ -141,7 +135,7 @@ def _resolve_concentration(
                 source_result=result,
                 concentration=DerivedIonConcentration.from_quantity(
                     result.ion,
-                    result.calculation_value,
+                    result.calculation_value_with_policy(policy),
                 ),
                 method=SourceIonResolutionMethod.DERIVED_EXACT_RANGE_MIDPOINT,
             )
