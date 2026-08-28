@@ -18,10 +18,10 @@ from water_treatment_engine.reported_statistics import (
     ReportedStatistic,
     ReportedStatisticKind,
 )
+from water_treatment_engine.reported_values import SourceResolutionPolicy
 from water_treatment_engine.source_resolution import (
     ResolvedSourceIon,
     SourceIonResolutionMethod,
-    SourceResolutionPolicy,
     UnresolvedSourceIon,
     UnresolvedSourceIonReason,
     resolve_source_profile,
