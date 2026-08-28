@@ -31,9 +31,10 @@ Implemented foundations include:
 - deterministic comparison of derived states with exact, ranged, and one-sided numeric target/reference criteria, with unknown and unsupported criteria surfaced explicitly and target pH retained as not calculated;
 - end-to-end deterministic orchestration from reported source profiles through resolution, fixed blending, mineral additions, explicit blend/final states, and optional source/blend/final target comparison while preserving each stage's audit detail;
 - a combined row-per-ion contribution matrix spanning every source and treatment addition, with positive-volume unknown source chemistry kept explicitly unknown and zero-volume/noncontributing columns distinguished from missing data;
-- structured human-readable preparation instructions that preserve actionable source volumes and treatment-addition order without recalculating chemistry.
+- structured human-readable preparation instructions that preserve actionable source volumes and treatment-addition order without recalculating chemistry;
+- machine-readable forward-result notices for midpoint assumptions, unresolved contributing source values, carbonate-blending approximation, the complete-dissolution treatment model, unknown target actuals, unsupported target criteria, and deferred target-pH comparison.
 
-The current implementation focus is final 0.2 structured-result presentation hardening around the forward result, contribution matrix, and preparation instructions.
+The implementation work scoped for 0.2 is complete. The current implementation focus is the 0.3 first usable web application.
 
 ## 0.2 — Deterministic Forward Calculator
 
@@ -51,6 +52,7 @@ Complete the reusable engine path needed to answer:
 - Return structured treatment/result information suitable for a UI.
 - Generate straightforward human-readable treatment instructions.
 - Surface insufficient/unknown inputs explicitly rather than treating them as zero.
+- Return structured notices for assumptions and result limitations a UI should surface.
 
 ### Not required for 0.2
 

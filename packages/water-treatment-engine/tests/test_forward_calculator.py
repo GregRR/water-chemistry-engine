@@ -10,6 +10,7 @@ from water_treatment_engine.forward_calculator import (
     ForwardWaterSource,
     calculate_forward_water,
 )
+from water_treatment_engine.forward_notices import ForwardNoticeCode
 from water_treatment_engine.ions import Ion
 from water_treatment_engine.profiles import SourceWaterProfile
 from water_treatment_engine.reported_values import SourceResolutionPolicy
@@ -167,6 +168,10 @@ def test_range_policy_remains_auditable_through_blend_and_final_state() -> None:
     assert (
         result.final_target_comparison.comparison_for(Ion.SULFATE).status
         is TargetIonComparisonStatus.ACTUAL_UNKNOWN
+    )
+    assert tuple(notice.code for notice in result.notices) == (
+        ForwardNoticeCode.SOURCE_ION_UNRESOLVED,
+        ForwardNoticeCode.TARGET_ACTUAL_UNKNOWN,
     )
 
 

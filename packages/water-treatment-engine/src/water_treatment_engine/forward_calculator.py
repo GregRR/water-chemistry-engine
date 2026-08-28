@@ -18,6 +18,10 @@ from water_treatment_engine.contribution_matrix import (
     WaterContributionMatrix,
     build_contribution_matrix,
 )
+from water_treatment_engine.forward_notices import (
+    ForwardCalculationNotice,
+    build_forward_notices,
+)
 from water_treatment_engine.preparation_instructions import (
     WaterPreparationInstructions,
     build_preparation_instructions,
@@ -76,6 +80,7 @@ class ForwardWaterCalculationResult:
     final_target_comparison: TargetProfileComparison | None
     contribution_matrix: WaterContributionMatrix
     preparation_instructions: WaterPreparationInstructions
+    notices: tuple[ForwardCalculationNotice, ...]
 
     @property
     def blend_state(self) -> AqueousChemicalState:
@@ -163,6 +168,20 @@ def calculate_forward_water(
         blend_result,
         treatment_result,
     )
+    blend_target_comparison = _compare_if_requested(
+        blend_result.state,
+        target_profile,
+    )
+    final_target_comparison = _compare_if_requested(
+        treatment_result.final_state,
+        target_profile,
+    )
+    notices = build_forward_notices(
+        resolved_sources,
+        blend_result,
+        treatment_result,
+        final_target_comparison,
+    )
 
     return ForwardWaterCalculationResult(
         source_resolution_policy=source_resolution_policy,
@@ -170,14 +189,9 @@ def calculate_forward_water(
         source_results=source_results,
         blend_result=blend_result,
         treatment_result=treatment_result,
-        blend_target_comparison=_compare_if_requested(
-            blend_result.state,
-            target_profile,
-        ),
-        final_target_comparison=_compare_if_requested(
-            treatment_result.final_state,
-            target_profile,
-        ),
+        blend_target_comparison=blend_target_comparison,
+        final_target_comparison=final_target_comparison,
         contribution_matrix=contribution_matrix,
         preparation_instructions=preparation_instructions,
+        notices=notices,
     )
