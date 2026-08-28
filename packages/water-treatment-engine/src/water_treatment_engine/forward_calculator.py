@@ -14,6 +14,10 @@ from dataclasses import dataclass
 
 from water_treatment_engine.blending import BlendSource, WaterBlendResult, blend_waters
 from water_treatment_engine.chemical_state import AqueousChemicalState
+from water_treatment_engine.contribution_matrix import (
+    WaterContributionMatrix,
+    build_contribution_matrix,
+)
 from water_treatment_engine.profiles import SourceWaterProfile
 from water_treatment_engine.quantity_types import ScalarQuantity
 from water_treatment_engine.reported_values import SourceResolutionPolicy
@@ -66,6 +70,7 @@ class ForwardWaterCalculationResult:
     treatment_result: TreatmentApplicationResult
     blend_target_comparison: TargetProfileComparison | None
     final_target_comparison: TargetProfileComparison | None
+    contribution_matrix: WaterContributionMatrix
 
     @property
     def blend_state(self) -> AqueousChemicalState:
@@ -159,5 +164,9 @@ def calculate_forward_water(
         final_target_comparison=_compare_if_requested(
             treatment_result.final_state,
             target_profile,
+        ),
+        contribution_matrix=build_contribution_matrix(
+            blend_result,
+            treatment_result,
         ),
     )

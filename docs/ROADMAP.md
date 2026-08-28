@@ -29,9 +29,10 @@ Implemented foundations include:
 - explicit source-profile resolution into calculation-ready ion states, with exact-range midpoints allowed only by a caller-supplied policy and unresolved values preserved as unknown;
 - fixed volume- or fraction-based blending of one or more derived source states, with actual volumes/fractions and per-source ion contributions preserved and unknown source concentrations propagated as unknown;
 - deterministic comparison of derived states with exact, ranged, and one-sided numeric target/reference criteria, with unknown and unsupported criteria surfaced explicitly and target pH retained as not calculated;
-- end-to-end deterministic orchestration from reported source profiles through resolution, fixed blending, mineral additions, explicit blend/final states, and optional source/blend/final target comparison while preserving each stage's audit detail.
+- end-to-end deterministic orchestration from reported source profiles through resolution, fixed blending, mineral additions, explicit blend/final states, and optional source/blend/final target comparison while preserving each stage's audit detail;
+- a combined row-per-ion contribution matrix spanning every source and treatment addition, with positive-volume unknown source chemistry kept explicitly unknown and zero-volume/noncontributing columns distinguished from missing data.
 
-The current implementation focus is combined source/treatment contribution presentation and straightforward treatment instructions for the structured result.
+The current implementation focus is straightforward human-readable blending/treatment instructions and final 0.2 structured-result presentation around the now-combined contribution matrix.
 
 ## 0.2 — Deterministic Forward Calculator
 
