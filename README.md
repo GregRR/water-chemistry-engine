@@ -1,34 +1,44 @@
 # Water Treatment Calculator
 
-A reusable water-treatment engineering system for brewing, mead making, and distilling.
-
-The project will provide:
-
-- water-profile storage and comparison;
-- blending of multiple water sources;
-- mineral-addition calculations;
-- automatic treatment-plan optimization;
-- ranked solutions with explanations;
-- FermentationJSON import and export;
-- a standalone web interface;
-- reusable calculation engines for Mecha-Brew and other applications.
+A reusable water-treatment engineering system for brewing, mead making, and
+distilling, with a standalone web application built on the same engine.
 
 ## Project status
 
-Early design and repository setup.
+The **0.2 deterministic forward-calculator milestone is complete**. The engine
+can now resolve reported source-water chemistry, blend multiple characterized
+sources, apply supported mineral additions, calculate the resulting water,
+compare it with target/reference criteria, and return auditable contribution,
+instruction, and notice data.
 
-The first release will focus on:
+The next milestone, **0.3**, is the first usable Django/HTMX web application.
+The web package is still a scaffold; no user-facing calculator has been
+implemented yet.
 
-- dated source-water profiles;
-- target-water profiles;
-- beer, mead, and distilling profiles;
-- water blending;
-- common brewing mineral additions;
-- ranked treatment plans;
-- unit-safe calculations through FermUnits;
-- a responsive server-rendered web interface.
+### Implemented in the 0.2 engine
 
-Acid treatment, mash-pH prediction, advanced carbonate chemistry, and broader food-science applications are planned for later releases.
+- source-water and target/reference profile models;
+- preservation of exact values, ranges, bounds, `ND`, reported statistics,
+  reporting context, source-document metadata, and chlorine/chloramine data;
+- explicit source-resolution policy, including opt-in exact-range midpoints;
+- fixed multi-source blending with conservative unknown propagation;
+- supported mineral-addition stoichiometry and deterministic treatment;
+- source, blend, and final target/reference comparison;
+- combined source/treatment ion-contribution reporting;
+- structured preparation instructions;
+- structured notices for assumptions, unresolved inputs, model limitations,
+  and deferred target-pH calculation.
+
+### Planned after 0.2
+
+- **0.3:** usable Django/HTMX web calculator;
+- **0.4:** curated target/reference profiles;
+- **0.5–0.6:** automatic and ranked treatment optimization;
+- **0.7:** reusable working-water pH if a defensible model is ready;
+- **0.8:** BeerJSON/FermentationJSON interchange and 1.0 hardening.
+
+AI-assisted report ingestion and deeper domain-specific food/beverage models
+are intentionally outside the immediate release path.
 
 ## Repository structure
 
@@ -45,50 +55,41 @@ Acid treatment, mash-pH prediction, advanced carbonate chemistry, and broader fo
 
 ### `water-treatment-engine`
 
-The reusable Python engineering package.
-
-It will contain:
-
-- domain models;
-- water blending;
-- mineral contribution calculations;
-- profile comparison;
-- optimization;
-- validation;
-- warnings and explanations.
-
-It must remain independent of databases, web frameworks, and user interfaces.
+The reusable Python engineering package. It owns scientific calculations,
+domain models, validation, warnings/notices, and structured calculation
+results. It must remain independent of databases, web frameworks, and user
+interfaces.
 
 ### `water-treatment-web`
 
-The standalone web application.
+The standalone web application. Beginning with 0.3, it will provide a
+server-rendered Django/HTMX interface while using the engine for all scientific
+calculations.
 
-It will provide the graphical interface while using the engine package for all scientific calculations.
+Mechani-Brew and other applications can consume the engine directly and provide
+their own interfaces.
 
-Mecha-Brew will integrate the engine directly and provide its own interface.
+## Development stack
 
-## Dependencies
-
-The project will use:
-
-- Python 3.14
+- Python 3.14+
 - uv
 - FermUnits
-- pytest
-- Hypothesis
+- pytest and Hypothesis
 - Ruff
 - mypy
-
-The standalone web application is planned to use server-rendered HTML with HTMX.
+- GitHub Actions
 
 ## Documentation
 
 Primary project documents are stored under `docs/`:
 
-- `WATER_CHEM_DESIGN.md`
-- `WATER_CHEM_REFERENCES.md`
-- `ROADMAP.md`
-- `PROJECT_STRUCTURE.md`
+- `WATER_CHEM_DESIGN.md` — scientific and architectural design;
+- `WATER_CHEM_REFERENCES.md` — source and reference register;
+- `ROADMAP.md` — active release path;
+- `PROJECT_STRUCTURE.md` — repository/package boundaries;
+- `reviews/` — point-in-time external review records.
+
+Release history is summarized in `CHANGELOG.md`.
 
 ## License
 

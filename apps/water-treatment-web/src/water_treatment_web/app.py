@@ -1,5 +1,5 @@
-"""Application entry point for the standalone water-treatment web interface.
+"""Reserved entry point for the standalone water-treatment web interface.
 
-The ASGI framework has not yet been selected. This module reserves the
-application entry-point location without introducing a framework dependency.
+Django is the selected application framework for milestone 0.3, but it is not
+introduced as a dependency until the first usable web application is built.
 """

@@ -1,6 +1,6 @@
 [project]
 name = "water-treatment-calculator-workspace"
-version = "0.0.0"
+version = "0.2.0"
 description = "Workspace for the water-treatment engine and standalone web application."
 requires-python = ">=3.14"
 dependencies = []

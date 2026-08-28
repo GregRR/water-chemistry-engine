@@ -20,7 +20,7 @@ It is not intended merely to reproduce traditional brewing-water calculators tha
 The engine must remain independent of web frameworks, databases, graphical interfaces, operating systems, and hardware. It should be usable by:
 
 - the standalone calculator web application;
-- Mecha-Brew;
+- Mechani-Brew;
 - future native mobile and desktop applications;
 - Python scripts and notebooks;
 - APIs and third-party software;
@@ -63,7 +63,7 @@ The initial project is not intended to be:
 - a laboratory information-management system;
 - a replacement for qualified laboratory analysis;
 - a claim that matching an ion profile guarantees flavor or product quality;
-- dependent on Mecha-Brew, Django, a database, or any particular application framework.
+- dependent on Mechani-Brew, Django, a database, or any particular application framework.
 
 The architecture may permit later use outside brewing, but Version 1 should optimize for beer, mead, distilling, and closely related fermentation uses.
 
@@ -96,7 +96,7 @@ FermUnits
 water-treatment-engine
     │
     ├── water-treatment-web
-    ├── Mecha-Brew
+    ├── Mechani-Brew
     ├── future native applications
     ├── Python/API consumers
     └── test and research tooling
@@ -113,9 +113,9 @@ Responsibilities are intentionally separated:
 - **BeerJSON/FermentationJSON adapters** translate external interchange documents to and from engine boundary/domain models.
 - **Applications** supply persistence, users, forms, visual presentation, import workflows, and product-specific behavior.
 
-The shared water representation and deterministic water-chemistry capabilities must not acquire coffee-, bread-, or other domain-specific sensory assumptions merely because those applications may later use the same code base. Future domain capabilities should depend on the shared water core rather than forcing the core to depend on a particular product domain. The standalone web application may expose several calculators over time, while downstream applications should consume only the domain capabilities they need; for example, Mecha-Brew should integrate the beer, mead, distilling, and related fermentation-water capabilities without depending on future coffee or bread modules.
+The shared water representation and deterministic water-chemistry capabilities must not acquire coffee-, bread-, or other domain-specific sensory assumptions merely because those applications may later use the same code base. Future domain capabilities should depend on the shared water core rather than forcing the core to depend on a particular product domain. The standalone web application may expose several calculators over time, while downstream applications should consume only the domain capabilities they need; for example, Mechani-Brew should integrate the beer, mead, distilling, and related fermentation-water capabilities without depending on future coffee or bread modules.
 
-The engine must never import the web application, Mecha-Brew, a database ORM, or a platform-specific UI framework.
+The engine must never import the web application, Mechani-Brew, a database ORM, or a platform-specific UI framework.
 
 ## 6. Tooling decisions
 
@@ -126,7 +126,7 @@ The engine must never import the web application, Mecha-Brew, a database ORM, or
 - `uv_build` for the current pure-Python workspace packages.
 - Standard `src/` package layouts.
 - A non-installable root workspace project.
-- Tooling should remain as consistent as practical with FermUnits, Mecha-Brew, and the other Calculators projects.
+- Tooling should remain as consistent as practical with FermUnits, Mechani-Brew, and the other Calculators projects.
 
 ### 6.2 Current and planned core libraries
 
@@ -145,9 +145,10 @@ NumPy, SciPy, and other substantial dependencies should not be added merely beca
 - HTMX for dynamic form fragments, recalculation, profile selection, ranked results, and progressive disclosure.
 - Minimal vanilla JavaScript only where browser-only behavior genuinely requires it.
 - No mandatory React or Node build pipeline for Version 1.
-- Exact Python ASGI framework remains deliberately undecided until the web implementation requires a concrete choice.
+- Django is the selected server application framework for `water-treatment-web`; it will be introduced when 0.3 implementation begins.
+- Django ORM persistence remains an application-layer concern and does not enter the reusable engine.
 
-The standalone web application is an adapter around the engine. Mecha-Brew will import the same engine directly and render its own seamless interface.
+The standalone web application is an adapter around the engine. Mechani-Brew will import the same engine directly and render its own seamless interface. See ADR 0002 for the web-stack decision.
 
 ### 6.4 Quality tooling
 
@@ -199,44 +200,30 @@ No `calculators-common` package should be introduced until at least two calculat
 
 ## 8. Current engine package structure
 
-The package is intentionally still small while the domain contracts stabilize. The current implemented structure is:
+The 0.2 engine remains a flat package while the domain boundaries are still
+small enough to be understandable without premature subpackages. Major module
+groups are:
 
-```text
-packages/water-treatment-engine/
-├── pyproject.toml
-├── README.md
-├── src/
-│   └── water_treatment_engine/
-│       ├── __init__.py
-│       ├── py.typed
-│       ├── alkalinity_conversions.py
-│       ├── concentrations.py
-│       ├── ions.py
-│       ├── profiles.py
-│       ├── reported_properties.py
-│       ├── reported_statistics.py
-│       ├── reporting_context.py
-│       ├── source_document.py
-│       ├── target_profiles.py
-│       └── water_identity.py
-└── tests/
-    ├── test_alkalinity_conversions.py
-    ├── test_concentrations.py
-    ├── test_engine_package.py
-    ├── test_ions.py
-    ├── test_profiles.py
-    ├── test_real_report_fixtures.py
-    ├── test_reported_properties.py
-    ├── test_reported_statistics.py
-    ├── test_reporting_context.py
-    ├── test_source_document.py
-    ├── test_target_profiles.py
-    └── test_water_identity.py
-```
+- reported/source semantics: `concentrations`, `reported_values`,
+  `reported_properties`, `reported_statistics`, `reported_disinfectants`,
+  `reporting_context`, `source_document`, `water_identity`, and `profiles`;
+- calculation-ready state and resolution: `chemical_state` and
+  `source_resolution`;
+- deterministic water construction: `blending`, `treatment_ingredients`,
+  `treatment_stoichiometry`, and `treatment_application`;
+- result interpretation/presentation data: `target_profiles`,
+  `target_comparison`, `contribution_matrix`, `preparation_instructions`,
+  `forward_notices`, and `forward_calculator`;
+- internal cross-stage validation: `_workflow_validation`;
+- reusable supporting semantics: `ions`, `alkalinity_conversions`, and
+  `quantity_types`.
 
-Data-driven real-report fixtures live under `test-vectors/water/reports/` rather than inside the engine package.
+Data-driven real-report fixtures live under `test-vectors/water/reports/` rather
+than inside the engine package.
 
-As blending, stoichiometry, aqueous-state calculation, optimization, comparison, serialization, and explanations grow, the package may be reorganized into subpackages. That restructuring should happen when it improves real code organization, not merely to satisfy an early hypothetical directory tree.
+The package may be reorganized into subpackages when real code size and import
+boundaries justify it. The design document intentionally avoids maintaining an
+exhaustive file-by-file tree that can drift from the repository.
 
 ## 9. Core domain model
 
@@ -275,18 +262,23 @@ The current implementation supports linear ranges whose endpoints can themselves
 
 A range may also carry an independently reported ordinary average.
 
-For an ordinary **linear concentration** whose two endpoints are exact numeric values, calculation behavior is:
+For an ordinary **linear concentration** whose two endpoints are exact numeric values, calculation behavior is explicit:
 
 ```text
-reported_average exists  → use reported_average
-otherwise                → derive midpoint(minimum, maximum) on demand
+reported_average exists                    → use reported_average
+policy allows exact-range midpoint         → derive midpoint(minimum, maximum)
+otherwise                                  → remain unresolved
 ```
 
-The midpoint is derived data. It is not stored as `reported_average` and must never be presented as though the source reported it.
+There is no default midpoint substitution. A caller must supply a
+`SourceResolutionPolicy` with `allow_exact_range_midpoints=True` before an
+exact-ended range without a reported average becomes calculation-ready. The
+midpoint is derived data; it is not stored as `reported_average` and must never
+be presented as though the source reported it.
 
 A `reported_average` field may be populated only when the source explicitly identifies the value as an ordinary average. When a reported average accompanies a reported range, the reported average takes precedence over the mathematical midpoint. For example, a source may report calcium as average `51 mg/L`, range `50–53 mg/L`; calculations use the reported `51 mg/L`, not the midpoint `51.5 mg/L`.
 
-A qualified range without an independently reported average has no automatic representative calculation value.
+A qualified range without an independently reported average has no automatic representative calculation value under the current policy.
 
 ### 9.4 Bounds, `ND`, and qualified range endpoints
 
@@ -1575,7 +1567,7 @@ A weak pH approximation is not a release requirement; unsupported derived pH may
 ## 28. Open design questions
 
 1. Exact boundary between frozen dataclasses and Pydantic boundary models.
-2. Exact ASGI framework for `water-treatment-web`.
+2. Exact Django model/form boundaries and persistence workflow for `water-treatment-web` as 0.3 implementation begins.
 3. Whether SciPy's MILP support is sufficient for all Version 1 discrete policies.
 4. First authoritative composition sources for each included treatment ingredient.
 5. Redistribution/licensing policy for historical city, brewery, and style targets.
@@ -1614,7 +1606,7 @@ The project now prioritizes a complete usable vertical slice before advanced opt
 
 Version 1 will provide a reusable, explainable water-treatment engineering system for supported beer, mead, and distilling workflows while keeping the underlying water engine generic. It preserves real-world source-report semantics—including exact values, ranges, bounds, `ND`, qualified endpoints, named statistics, reporting bases, timing, water identity, sampling context, source-document metadata, and source-reported disinfectants such as chlorine/chloramine—while supporting multiple sources, exact and ranged targets/references, practical mineral additions, final-state comparison, automatic and ranked treatment plans, contribution tables, source/reference attribution, localization, and a responsive web interface. Intended water use remains calculation/application context rather than part of source-water identity.
 
-The engine deliberately distinguishes reported from derived chemistry. Linear ranges may use an on-demand midpoint only when no reported average exists and both endpoints are exact. Qualified ranges do not receive an automatic representative value. pH is explicitly excluded from generic linear averaging because it is logarithmic: range endpoints are preserved, reported averages are trusted only when actually reported, and any derived pH calculation uses an explicit scientifically documented aqueous model. A missing derived-pH model must not block otherwise valid forward treatment calculations.
+The engine deliberately distinguishes reported from derived chemistry. Linear ranges may use an on-demand midpoint only when no reported average exists, both endpoints are exact, and the caller explicitly enables midpoint resolution through `SourceResolutionPolicy`. Qualified ranges do not receive an automatic representative value. pH is explicitly excluded from generic linear averaging because it is logarithmic: range endpoints are preserved, reported averages are trusted only when actually reported, and any derived pH calculation uses an explicit scientifically documented aqueous model. A missing derived-pH model must not block otherwise valid forward treatment calculations.
 
 Well-sourced coffee, tea, bread, sourdough, or pizza target/reference data may be added early when the generic water machinery can represent it. This does not imply that a complete domain-specific predictive engine exists. Regional, historical, practitioner, experimental, standard, and optimized profiles must retain distinct evidentiary classifications.
 

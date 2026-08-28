@@ -25,10 +25,10 @@
     │       ├── README.md
     │       ├── src/
     │       │   └── water_treatment_engine/
-    │       │       ├── __init__.py
+    │       │       ├── ... scientific/calculation modules
     │       │       └── py.typed
     │       └── tests/
-    │           └── test_package.py
+    │           └── ... engine tests
     ├── docs/
     │   ├── decisions/
     │   ├── research/
@@ -95,9 +95,9 @@ The engine must remain independent of:
 - web frameworks
 - operating-system interfaces
 - application-specific storage
-- Mecha-Brew internals
+- Mechani-Brew internals
 
-The same engine should be usable by Mecha-Brew, the standalone web
+The same engine should be usable by Mechani-Brew, the standalone web
 application, scripts, APIs, tests, and third-party applications.
 
 ## `water-treatment-web`
@@ -129,11 +129,11 @@ It depends on `water-treatment-engine` for all scientific calculations.
 No chemistry equation, optimization rule, or treatment model should be
 implemented only in the web application.
 
-## Mecha-Brew integration
+## Mechani-Brew integration
 
-Mecha-Brew will depend directly on `water-treatment-engine`.
+Mechani-Brew will depend directly on `water-treatment-engine`.
 
-Mecha-Brew will provide its own:
+Mechani-Brew will provide its own:
 
 - Django models
 - database records
@@ -146,8 +146,8 @@ Mecha-Brew will provide its own:
 - navigation
 - styling
 
-This allows the calculator to appear as a seamless native Mecha-Brew feature
-without coupling the engine to Mecha-Brew’s interface or database.
+This allows the calculator to appear as a seamless native Mechani-Brew feature
+without coupling the engine to Mechani-Brew’s interface or database.
 
 ## FermUnits
 
@@ -215,7 +215,7 @@ Portable inputs and expected outputs used to validate:
 
 - the Python engine;
 - future alternative-language implementations;
-- Mecha-Brew integration;
+- Mechani-Brew integration;
 - mobile implementations;
 - regression behavior across releases.
 
@@ -237,7 +237,7 @@ logic.
 
     Other applications ──> water-treatment-engine
 
-The engine must never depend on the standalone web application or Mecha-Brew.
+The engine must never depend on the standalone web application or Mechani-Brew.
 
 ## Packaging names
 

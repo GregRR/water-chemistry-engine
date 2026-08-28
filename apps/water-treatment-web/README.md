@@ -2,54 +2,50 @@
 
 Standalone web interface for the Water Treatment Engine.
 
-The application will provide a graphical interface for:
+## Status
 
-- entering source-water chemistry;
-- selecting or creating target profiles;
-- blending multiple water sources;
-- choosing permitted mineral additions;
-- generating ranked treatment plans;
-- comparing predicted and target profiles;
-- viewing per-source and per-treatment ion contributions;
-- importing and exporting FermentationJSON data.
+The package is currently a scaffold. The **0.3 milestone** will implement the
+first usable web calculator on top of the completed deterministic 0.2 engine.
+
+The selected interface stack is:
+
+- Django;
+- server-rendered HTML templates;
+- HTMX for progressive enhancement;
+- minimal vanilla JavaScript where browser-only behavior requires it.
+
+Django is intentionally not a 0.2 dependency; it will be added when 0.3 web
+implementation begins.
+
+## 0.3 interface scope
+
+The first usable application will support:
+
+- manual source-water entry;
+- built-in and user-entered target/reference profiles;
+- fixed blending of multiple characterized sources;
+- supported mineral-addition rows;
+- source, blend, final, and target comparison displays;
+- source/treatment contribution detail;
+- preparation instructions;
+- clear unknown, unavailable, assumption, and not-calculated states;
+- responsive layouts with no account required for basic calculations.
+
+Automatic optimization, ranked plans, and BeerJSON/FermentationJSON adapters
+are later milestones and do not block the first UI.
 
 ## Architecture
 
-This application depends on `water-treatment-engine` for all scientific and engineering calculations.
+This application depends on `water-treatment-engine` for all scientific and
+engineering calculations.
 
-The web layer is responsible for:
+The web layer owns forms, navigation, templates, localized presentation,
+validation display, saved application state, charts/tables, and eventual Django
+ORM persistence. Scientific formulas, treatment models, and optimization logic
+remain in the engine.
 
-- forms;
-- page navigation;
-- HTML rendering;
-- unit-display preferences;
-- validation presentation;
-- saved application state;
-- charts and tables.
-
-Scientific formulas and optimization logic must remain in the engine package.
-
-## Planned interface stack
-
-The interface is planned to use:
-
-- server-rendered HTML;
-- HTMX;
-- a lightweight Python ASGI framework;
-- progressively enhanced forms;
-- responsive layouts for desktop, tablet, and mobile use.
-
-The exact ASGI framework has not yet been selected.
-
-## Mecha-Brew integration
-
-Mecha-Brew will use `water-treatment-engine` directly and provide its own native interface.
-
-This standalone web application is a separate consumer of the same engine and is not intended to be embedded inside Mecha-Brew.
-
-## Status
-
-Early repository setup. No web interface has been implemented yet.
+Mechani-Brew consumes `water-treatment-engine` directly and provides its own
+interface rather than embedding this standalone application.
 
 ## License
 

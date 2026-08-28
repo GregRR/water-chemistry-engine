@@ -10,9 +10,8 @@ science should not block the first complete source-to-result workflow.
 
 ## Current state
 
-The repository already has the core source-report semantics and the beginning of
-deterministic treatment calculations needed for the next product increment.
-Implemented foundations include:
+The repository now has the complete deterministic source-to-result calculation
+path needed for the next product increment. Implemented foundations include:
 
 - source-water and target-water domain models;
 - `SourceDocumentMetadata` and `SourceWaterProfile.source_document`;
@@ -38,7 +37,9 @@ The implementation work scoped for 0.2 is complete. The current implementation f
 
 ## 0.2 — Deterministic Forward Calculator
 
-Complete the reusable engine path needed to answer:
+**Status: complete.**
+
+The reusable engine path answers:
 
 > Given this source water, this fixed blend, and these mineral additions, what
 > water did I make and how does it compare with my target?
@@ -231,6 +232,8 @@ They must not delay 0.3.
 - Expanded reference and conformance vectors.
 - Documentation of operating limits and unsupported calculations.
 - Public API cleanup and compatibility review.
+- Extend property-based invariants to forward orchestration, notices, and
+  preparation instructions where they materially improve coverage.
 
 ## 1.0 — Stable General-Purpose Water Treatment Application
 

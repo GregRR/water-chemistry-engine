@@ -15,7 +15,7 @@ The engine will contain all scientific calculations, validation, optimization, w
 
 The web application will provide the standalone graphical interface and will depend on the engine.
 
-Mecha-Brew will consume the engine directly rather than embedding the standalone web application.
+Mechani-Brew will consume the engine directly rather than embedding the standalone web application.
 
 FermUnits will be an external required dependency.
 

@@ -472,7 +472,7 @@ wheels = [
 
 [[package]]
 name = "water-treatment-calculator-workspace"
-version = "0.0.0"
+version = "0.2.0"
 source = { virtual = "." }
 
 [package.dev-dependencies]
@@ -497,7 +497,7 @@ dev = [
 
 [[package]]
 name = "water-treatment-engine"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "packages/water-treatment-engine" }
 dependencies = [
     { name = "ferm-units" },
