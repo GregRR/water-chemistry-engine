@@ -12,11 +12,13 @@ calculation, but they are omitted from actionable instructions.
 """
 
 from dataclasses import dataclass
-from math import isclose
 
 from fermunits import Q_
 from pint import Quantity
 
+from water_treatment_engine._workflow_validation import (
+    require_treatment_matches_blend,
+)
 from water_treatment_engine.blending import WaterBlendResult
 from water_treatment_engine.treatment_application import (
     TreatmentAddition,
@@ -126,17 +128,7 @@ def build_preparation_instructions(
     the underlying audit results but are omitted from instructions because they
     require no physical action.
     """
-    if treatment_result.initial_state != blend_result.state:
-        raise ValueError(
-            "Treatment result initial state must match the supplied blend state."
-        )
-
-    treatment_liters = float(treatment_result.water_volume.to("liter").magnitude)
-    blend_liters = float(blend_result.total_volume.to("liter").magnitude)
-    if not isclose(treatment_liters, blend_liters, rel_tol=1e-12, abs_tol=1e-12):
-        raise ValueError(
-            "Treatment result water volume must match the supplied blend volume."
-        )
+    require_treatment_matches_blend(blend_result, treatment_result)
 
     source_instructions = tuple(
         SourceVolumeInstruction(

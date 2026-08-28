@@ -18,6 +18,9 @@ from math import fsum
 from fermunits import Q_
 from pint import Quantity
 
+from water_treatment_engine._workflow_validation import (
+    require_treatment_matches_blend,
+)
 from water_treatment_engine.blending import (
     BlendIonContribution,
     ResolvedBlendIon,
@@ -270,16 +273,7 @@ def build_contribution_matrix(
     treatment stage must therefore start from the supplied blend state and use
     the supplied blend volume.
     """
-    if treatment_result.initial_state != blend_result.state:
-        raise ValueError(
-            "Treatment result initial state must match the supplied blend state."
-        )
-    if treatment_result.water_volume.to("liter") != blend_result.total_volume.to(
-        "liter"
-    ):
-        raise ValueError(
-            "Treatment result water volume must match the supplied blend volume."
-        )
+    require_treatment_matches_blend(blend_result, treatment_result)
 
     rows: list[IonContributionMatrixRow] = []
     for ion in Ion:

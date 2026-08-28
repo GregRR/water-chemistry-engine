@@ -7,7 +7,9 @@ engineering those nested records.
 
 Notices do not change calculation outcomes.  Machine-readable codes and fields
 allow a web or native client to localize presentation while the deterministic
-English ``message`` remains useful to scripts and simple interfaces.
+English ``message`` remains useful to scripts and simple interfaces.  Target
+notices are intentionally scoped to the final treated-water comparison; source
+and blend target comparisons remain available on their own structured results.
 """
 
 from dataclasses import dataclass
@@ -75,6 +77,15 @@ def _source_notices(
     for source_index, (resolution_result, blended_source) in enumerate(
         zip(source_resolutions, blend_result.sources, strict=True)
     ):
+        if (
+            resolution_result.source_profile.name != blended_source.name
+            or resolution_result.state != blended_source.state
+        ):
+            raise ValueError(
+                "Source-resolution entries must correspond to blend sources "
+                "in the same order."
+            )
+
         if blended_source.fraction == 0.0:
             continue
 
@@ -247,7 +258,8 @@ def build_forward_notices(
     blending approximation notice.  Positive mineral additions surface the
     current complete-dissolution mass-balance assumption.  Final-target notices
     surface unknown actual values, unsupported criteria, and deferred working-
-    water pH explicitly.
+    water pH explicitly.  Source- and blend-stage target comparisons deliberately
+    keep their outcomes on those stage results rather than duplicating notices.
     """
     notices = list(_source_notices(source_resolutions, blend_result))
 

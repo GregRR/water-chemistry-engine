@@ -1,5 +1,7 @@
 import pytest
 from fermunits import Q_
+from hypothesis import given
+from hypothesis import strategies as st
 from water_treatment_engine.blending import BlendSource, blend_waters
 from water_treatment_engine.chemical_state import (
     AqueousChemicalState,
@@ -217,3 +219,47 @@ def test_matrix_requires_treatment_to_start_from_supplied_blend() -> None:
 
     with pytest.raises(ValueError, match="initial state must match"):
         build_contribution_matrix(blend, unrelated_treatment)
+
+
+_CONCENTRATIONS = st.floats(
+    min_value=0.0,
+    max_value=1000.0,
+    allow_nan=False,
+    allow_infinity=False,
+)
+_POSITIVE_VOLUMES = st.floats(
+    min_value=0.001,
+    max_value=1000.0,
+    allow_nan=False,
+    allow_infinity=False,
+)
+_SOURCE_VALUE_SETS = st.lists(
+    st.tuples(_CONCENTRATIONS, _POSITIVE_VOLUMES),
+    min_size=1,
+    max_size=6,
+)
+
+
+@given(source_values=_SOURCE_VALUE_SETS)
+def test_known_source_contribution_sum_matches_resolved_blend(
+    source_values: list[tuple[float, float]],
+) -> None:
+    blend = blend_waters(
+        tuple(
+            BlendSource(
+                f"Source {index}",
+                _state(calcium=concentration),
+                Q_(volume, "liter"),
+            )
+            for index, (concentration, volume) in enumerate(source_values)
+        )
+    )
+    treatment = apply_treatment_additions(blend.state, blend.total_volume, ())
+
+    calcium = build_contribution_matrix(blend, treatment).row_for(Ion.CALCIUM)
+
+    assert calcium.blend_concentration is not None
+    assert _mg_per_liter(calcium.known_source_contribution_sum) == pytest.approx(
+        _mg_per_liter(calcium.blend_concentration),
+        abs=1e-9,
+    )

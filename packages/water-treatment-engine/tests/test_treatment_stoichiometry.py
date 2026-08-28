@@ -178,3 +178,13 @@ def test_ion_contribution_rejects_non_concentration_quantity() -> None:
             ion=Ion.CALCIUM,
             concentration=Q_(1, "gram"),
         )
+
+
+def test_ion_contribution_normalizes_convertible_units_to_mg_per_liter() -> None:
+    contribution = IonContribution(
+        ion=Ion.CALCIUM,
+        concentration=Q_(0.001, "gram / liter"),
+    )
+
+    assert contribution.concentration.units == Q_(1, "milligram / liter").units
+    assert contribution.concentration.magnitude == pytest.approx(1.0)

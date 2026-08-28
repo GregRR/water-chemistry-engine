@@ -1,6 +1,9 @@
 import pytest
 from fermunits import Q_
+from hypothesis import given
+from hypothesis import strategies as st
 from pint import Quantity
+from water_treatment_engine.blending import BlendSource, blend_waters
 from water_treatment_engine.chemical_state import (
     AqueousChemicalState,
     DerivedIonConcentration,
@@ -279,3 +282,123 @@ def test_comparison_order_follows_target_profile_order() -> None:
         Ion.CALCIUM,
     ]
     assert result.comparison_for(Ion.MAGNESIUM) is None
+
+
+def test_equal_chemistry_thirds_blend_satisfies_exact_target() -> None:
+    source = _state(calcium=50.0)
+    blend = blend_waters(
+        (
+            BlendSource("First", source, Q_(1.0, "liter")),
+            BlendSource("Second", source, Q_(1.0, "liter")),
+            BlendSource("Third", source, Q_(1.0, "liter")),
+        )
+    )
+    target = TargetWaterProfile(
+        name="Exact calcium",
+        concentrations=(IonConcentration.mg_per_liter(Ion.CALCIUM, 50.0),),
+    )
+
+    result = compare_state_to_target(blend.state, target)
+    comparison = result.comparison_for(Ion.CALCIUM)
+
+    assert comparison is not None
+    assert comparison.status is TargetIonComparisonStatus.WITHIN_TARGET
+    assert comparison.deviation is not None
+    assert _mg_per_liter(comparison.deviation) == 0.0
+    assert result.status is TargetProfileComparisonStatus.SATISFIED
+
+
+_TARGET_VALUES = st.floats(
+    min_value=0.0,
+    max_value=1000.0,
+    allow_nan=False,
+    allow_infinity=False,
+)
+_POSITIVE_VOLUMES = st.lists(
+    st.floats(
+        min_value=0.001,
+        max_value=1000.0,
+        allow_nan=False,
+        allow_infinity=False,
+    ),
+    min_size=1,
+    max_size=6,
+)
+
+
+@given(concentration=_TARGET_VALUES, volumes=_POSITIVE_VOLUMES)
+def test_blending_identical_chemistry_preserves_exact_target_status(
+    concentration: float,
+    volumes: list[float],
+) -> None:
+    source_state = _state(calcium=concentration)
+    blend = blend_waters(
+        tuple(
+            BlendSource(
+                f"Source {index}",
+                source_state,
+                Q_(volume, "liter"),
+            )
+            for index, volume in enumerate(volumes)
+        )
+    )
+    target = TargetWaterProfile(
+        name="Exact calcium",
+        concentrations=(IonConcentration.mg_per_liter(Ion.CALCIUM, concentration),),
+    )
+
+    comparison = compare_state_to_target(blend.state, target).comparison_for(
+        Ion.CALCIUM
+    )
+
+    assert comparison is not None
+    assert comparison.status is TargetIonComparisonStatus.WITHIN_TARGET
+    assert comparison.deviation is not None
+    assert _mg_per_liter(comparison.deviation) == 0.0
+
+
+@given(actual=_TARGET_VALUES, target_value=_TARGET_VALUES)
+def test_exact_target_deviation_sign_matches_status(
+    actual: float,
+    target_value: float,
+) -> None:
+    target = TargetWaterProfile(
+        name="Exact target",
+        concentrations=(IonConcentration.mg_per_liter(Ion.CALCIUM, target_value),),
+    )
+
+    comparison = compare_state_to_target(
+        _state(calcium=actual),
+        target,
+    ).comparison_for(Ion.CALCIUM)
+
+    assert comparison is not None
+    assert comparison.deviation is not None
+    deviation = _mg_per_liter(comparison.deviation)
+    if comparison.status is TargetIonComparisonStatus.BELOW_TARGET:
+        assert deviation < 0.0
+    elif comparison.status is TargetIonComparisonStatus.ABOVE_TARGET:
+        assert deviation > 0.0
+    else:
+        assert comparison.status is TargetIonComparisonStatus.WITHIN_TARGET
+        assert deviation == 0.0
+
+
+def test_definite_failure_takes_precedence_over_indeterminate_criterion() -> None:
+    target = TargetWaterProfile(
+        name="Mixed outcome",
+        concentrations=(
+            IonConcentration.mg_per_liter(Ion.CALCIUM, 50.0),
+            IonConcentration.mg_per_liter(Ion.SULFATE, 100.0),
+        ),
+    )
+
+    result = compare_state_to_target(_state(calcium=40.0), target)
+
+    calcium = result.comparison_for(Ion.CALCIUM)
+    sulfate = result.comparison_for(Ion.SULFATE)
+    assert calcium is not None
+    assert calcium.status is TargetIonComparisonStatus.BELOW_TARGET
+    assert sulfate is not None
+    assert sulfate.status is TargetIonComparisonStatus.ACTUAL_UNKNOWN
+    assert result.status is TargetProfileComparisonStatus.NOT_SATISFIED

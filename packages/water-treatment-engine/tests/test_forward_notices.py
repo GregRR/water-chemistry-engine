@@ -1,3 +1,4 @@
+import pytest
 from fermunits import Q_
 from water_treatment_engine.blending import BlendSource, blend_waters
 from water_treatment_engine.concentrations import (
@@ -216,3 +217,19 @@ def test_unsupported_target_and_ph_are_separate_structured_notices() -> None:
     assert notices[0].reason == "qualified_range"
     assert notices[1].level is ForwardNoticeLevel.INFORMATION
     assert notices[1].reason == "not_calculated"
+
+
+def test_source_resolution_order_must_match_blend_sources() -> None:
+    first = resolve_source_profile(
+        _profile("First", calcium=40.0),
+        policy=REPORTED_ONLY,
+    )
+    second = resolve_source_profile(
+        _profile("Second", calcium=60.0),
+        policy=REPORTED_ONLY,
+    )
+    blend = _blend_for((first, second), (5.0, 5.0))
+    treatment = apply_treatment_additions(blend.state, blend.total_volume, ())
+
+    with pytest.raises(ValueError, match="same order"):
+        build_forward_notices((second, first), blend, treatment, None)

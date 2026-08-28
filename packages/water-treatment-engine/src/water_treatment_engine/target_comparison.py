@@ -13,6 +13,7 @@ outcome instead.
 
 from dataclasses import dataclass
 from enum import StrEnum
+from math import isclose
 
 from fermunits import Q_
 from pint import Quantity
@@ -29,6 +30,8 @@ from water_treatment_engine.concentrations import (
 )
 from water_treatment_engine.ions import Ion
 from water_treatment_engine.target_profiles import TargetWaterProfile
+
+_NUMERICAL_BOUNDARY_ABS_TOL_MG_PER_LITER = 1e-9
 
 
 class TargetIonComparisonStatus(StrEnum):
@@ -69,7 +72,9 @@ class TargetIonComparison:
 
     ``deviation`` is signed in mg/L.  It is negative below the accepted target,
     positive above it, and zero when an exact value or accepted range/bound is
-    satisfied.  For an exact target this is simply ``actual - target``.
+    satisfied.  For an exact target outside the numerical-noise tolerance this
+    is ``actual - target``.  Differences within that tolerance are reported as
+    zero and do not change criterion status.
     """
 
     ion: Ion
@@ -208,7 +213,12 @@ def _compare_ion(
     actual_mg_per_liter = float(actual.to("milligram / liter").magnitude)
     if target_minimum is not None:
         minimum = float(target_minimum.magnitude)
-        if actual_mg_per_liter < minimum:
+        if actual_mg_per_liter < minimum and not isclose(
+            actual_mg_per_liter,
+            minimum,
+            rel_tol=0.0,
+            abs_tol=_NUMERICAL_BOUNDARY_ABS_TOL_MG_PER_LITER,
+        ):
             return TargetIonComparison(
                 ion=target.ion,
                 target=target,
@@ -224,7 +234,12 @@ def _compare_ion(
 
     if target_maximum is not None:
         maximum = float(target_maximum.magnitude)
-        if actual_mg_per_liter > maximum:
+        if actual_mg_per_liter > maximum and not isclose(
+            actual_mg_per_liter,
+            maximum,
+            rel_tol=0.0,
+            abs_tol=_NUMERICAL_BOUNDARY_ABS_TOL_MG_PER_LITER,
+        ):
             return TargetIonComparison(
                 ion=target.ion,
                 target=target,
@@ -263,7 +278,10 @@ def _profile_status(
     ):
         return TargetProfileComparisonStatus.NOT_SATISFIED
 
-    if ph_comparison is not None or any(
+    if (
+        ph_comparison is not None
+        and ph_comparison.status is TargetPHComparisonStatus.NOT_CALCULATED
+    ) or any(
         comparison.status
         in (
             TargetIonComparisonStatus.ACTUAL_UNKNOWN,
@@ -286,7 +304,9 @@ def compare_state_to_target(
     """Compare one derived aqueous state with a target/reference profile.
 
     Exact ion targets, exact-ended ranges, and standalone numeric upper/lower
-    bounds are comparable.  Missing state ions remain explicitly unknown.
+    bounds are comparable.  Boundary checks use a tiny absolute mg/L tolerance
+    solely to suppress floating-point arithmetic noise; it is not a chemical or
+    user-facing closeness policy.  Missing state ions remain explicitly unknown.
     Qualified ranges and not-detected target criteria are represented as
     unsupported rather than being silently converted into numeric targets.
 

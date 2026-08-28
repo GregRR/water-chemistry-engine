@@ -37,8 +37,15 @@ class IonContribution:
                 "Ion contribution must be convertible to mass per volume."
             ) from exc
 
-        if normalized.magnitude < 0:
+        magnitude = float(normalized.magnitude)
+        if magnitude < 0:
             raise ValueError("Ion contribution cannot be negative.")
+
+        object.__setattr__(
+            self,
+            "concentration",
+            Q_(magnitude, "milligram / liter"),
+        )
 
 
 def calculate_ion_contributions(
