@@ -92,6 +92,25 @@ type ConcentrationRangeEndpoint = (
 )
 
 
+def _endpoint_threshold_mg_per_liter(
+    endpoint: ConcentrationRangeEndpoint,
+) -> float | None:
+    """Return an explicitly reported numeric endpoint threshold, if present."""
+    if isinstance(endpoint, ExactConcentrationEndpoint):
+        quantity = endpoint.value
+    elif isinstance(
+        endpoint,
+        (UpperBoundConcentrationEndpoint, LowerBoundConcentrationEndpoint),
+    ):
+        quantity = endpoint.limit
+    elif endpoint.detection_limit is not None:
+        quantity = endpoint.detection_limit
+    else:
+        return None
+
+    return float(quantity.to("milligram / liter").magnitude)
+
+
 @dataclass(frozen=True, slots=True)
 class IonConcentration:
     """Exact reported concentration of a single ion."""
@@ -127,32 +146,33 @@ class IonConcentrationRange:
     result_context: ReportedResultContext | None = None
 
     def __post_init__(self) -> None:
-        if isinstance(self.minimum, ExactConcentrationEndpoint) and isinstance(
-            self.maximum,
-            ExactConcentrationEndpoint,
+        minimum_threshold = _endpoint_threshold_mg_per_liter(self.minimum)
+        maximum_threshold = _endpoint_threshold_mg_per_liter(self.maximum)
+
+        if (
+            minimum_threshold is not None
+            and maximum_threshold is not None
+            and minimum_threshold > maximum_threshold
+        ):
+            raise ValueError("Ion concentration range minimum cannot exceed maximum.")
+
+        if self.reported_average is not None:
+            _validate_mass_concentration(self.reported_average)
+
+        if (
+            self.reported_average is not None
+            and isinstance(self.minimum, ExactConcentrationEndpoint)
+            and isinstance(self.maximum, ExactConcentrationEndpoint)
         ):
             minimum = self.minimum.value.to("milligram / liter").magnitude
             maximum = self.maximum.value.to("milligram / liter").magnitude
+            reported_average = self.reported_average.to("milligram / liter").magnitude
 
-            if minimum > maximum:
+            if not minimum <= reported_average <= maximum:
                 raise ValueError(
-                    "Ion concentration range minimum cannot exceed maximum."
+                    "Ion concentration reported average must fall within "
+                    "the reported range."
                 )
-
-            if self.reported_average is not None:
-                _validate_mass_concentration(self.reported_average)
-                reported_average = self.reported_average.to(
-                    "milligram / liter"
-                ).magnitude
-
-                if not minimum <= reported_average <= maximum:
-                    raise ValueError(
-                        "Ion concentration reported average must fall within "
-                        "the reported range."
-                    )
-
-        elif self.reported_average is not None:
-            _validate_mass_concentration(self.reported_average)
 
     @property
     def calculation_value(self) -> ScalarQuantity:

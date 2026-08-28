@@ -10,6 +10,7 @@ from water_treatment_engine.concentrations import (
     IonConcentrationNotDetected,
     IonConcentrationRange,
     IonConcentrationUpperBound,
+    LowerBoundConcentrationEndpoint,
     NotDetectedConcentrationEndpoint,
     UpperBoundConcentrationEndpoint,
 )
@@ -235,6 +236,54 @@ def test_qualified_range_supports_not_detected_endpoint() -> None:
         concentration.minimum,
         NotDetectedConcentrationEndpoint,
     )
+
+
+def test_qualified_range_rejects_reversed_numeric_thresholds() -> None:
+    with pytest.raises(
+        ValueError,
+        match="range minimum cannot exceed maximum",
+    ):
+        IonConcentrationRange(
+            ion=Ion.SODIUM,
+            minimum=UpperBoundConcentrationEndpoint.mg_per_liter(20.0),
+            maximum=ExactConcentrationEndpoint.mg_per_liter(14.0),
+        )
+
+
+def test_lower_and_upper_bound_range_rejects_reversed_thresholds() -> None:
+    with pytest.raises(
+        ValueError,
+        match="range minimum cannot exceed maximum",
+    ):
+        IonConcentrationRange(
+            ion=Ion.SODIUM,
+            minimum=LowerBoundConcentrationEndpoint.mg_per_liter(20.0),
+            maximum=UpperBoundConcentrationEndpoint.mg_per_liter(14.0),
+        )
+
+
+def test_not_detected_limit_participates_in_range_coherence() -> None:
+    with pytest.raises(
+        ValueError,
+        match="range minimum cannot exceed maximum",
+    ):
+        IonConcentrationRange(
+            ion=Ion.SULFATE,
+            minimum=NotDetectedConcentrationEndpoint.with_detection_limit_mg_per_liter(
+                20.0
+            ),
+            maximum=ExactConcentrationEndpoint.mg_per_liter(14.0),
+        )
+
+
+def test_not_detected_without_limit_skips_numeric_coherence_check() -> None:
+    concentration = IonConcentrationRange(
+        ion=Ion.SULFATE,
+        minimum=NotDetectedConcentrationEndpoint(),
+        maximum=ExactConcentrationEndpoint.mg_per_liter(0.0),
+    )
+
+    assert isinstance(concentration.minimum, NotDetectedConcentrationEndpoint)
 
 
 def test_qualified_range_has_no_automatic_midpoint() -> None:
