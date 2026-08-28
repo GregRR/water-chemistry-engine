@@ -1464,7 +1464,7 @@ The real-report pressure-test phase has served its immediate purpose. Additional
 
 First-class source-report preservation of chlorine/chloramine and related disinfectant reporting is now implemented. The Santa Cruz 2025 fixture pressure-tests an unqualified distribution-system `Chlorine` result as its own reported disinfectant rather than inferring free chlorine or mapping the result to chloride. Treatment/removal modeling remains deliberately out of scope for this representation layer.
 
-The implementation focus is **deterministic forward treatment calculations**. Validated simple treatment-ingredient identities, generic stoichiometric ion contributions, exact derived aqueous chemical states, forward application of one or more additions to a known water volume, explicit source-profile-to-derived-state resolution, fixed source-water blending by volume or fraction, and structured target/reference comparison are implemented. Blend and treatment results both preserve structured per-ion resolution outcomes and contribution detail while keeping unknown totals unknown. Target comparison preserves exact/range/bound satisfaction and signed deviation, keeps missing state ions indeterminate, refuses to reinterpret qualified ranges or `ND` as numeric targets, and retains target pH as explicitly not calculated until a validated working-water pH model exists. End-to-end blended/final workflow results, combined source/treatment contribution presentation, and later the reusable aqueous pH capability follow from that boundary.
+The implementation focus is **deterministic forward treatment calculations**. Validated simple treatment-ingredient identities, generic stoichiometric ion contributions, exact derived aqueous chemical states, forward application of one or more additions to a known water volume, explicit source-profile-to-derived-state resolution, fixed source-water blending by volume or fraction, structured target/reference comparison, and end-to-end orchestration across those boundaries are implemented. The forward-calculator result retains every source-resolution result, the normalized fixed-blend result, treatment-application result, explicit blend/final states, and optional source/blend/final target comparisons rather than flattening the workflow into final numbers. Blend and treatment results both preserve structured per-ion resolution outcomes and contribution detail while keeping unknown totals unknown. Target comparison preserves exact/range/bound satisfaction and signed deviation, keeps missing state ions indeterminate, refuses to reinterpret qualified ranges or `ND` as numeric targets, and retains target pH as explicitly not calculated until a validated working-water pH model exists. Combined source/treatment contribution presentation, human-readable treatment instructions, and later the reusable aqueous pH capability follow from that boundary.
 
 ## 27. Development milestones
 
@@ -1504,11 +1504,11 @@ Completed:
 - forward application of zero or more simple mineral additions to a known water volume with per-treatment contribution detail;
 - explicit source-profile-to-derived-state resolution under a caller-supplied representative-value policy, including auditable unresolved reasons;
 - fixed one-, two-, and multi-source blending by volume or fraction with auditable per-source ion contributions and conservative unknown propagation;
-- target/reference profile comparison for exact values, exact-ended ranges, and one-sided numeric bounds, including signed deviation and explicit indeterminate/unsupported outcomes.
+- target/reference profile comparison for exact values, exact-ended ranges, and one-sided numeric bounds, including signed deviation and explicit indeterminate/unsupported outcomes;
+- end-to-end forward orchestration from reported source profiles through source resolution, fixed blending, mineral additions, explicit blend/final states, and optional source/blend/final target comparison.
 
 Next:
 
-- explicit blended-water and final treated-water workflow states;
 - source/treatment contribution matrices;
 - structured treatment/result output and human-readable treatment instructions.
 
