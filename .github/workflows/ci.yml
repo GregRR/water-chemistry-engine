@@ -32,7 +32,7 @@ jobs:
         run: uv run ruff check .
 
       - name: Run type checks
-        run: uv run mypy packages/water-treatment-engine/src apps/water-treatment-web/src
+        run: uv run mypy --strict packages/water-treatment-engine/src apps/water-treatment-web/src
 
       - name: Run tests
         run: uv run pytest

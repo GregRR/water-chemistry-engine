@@ -647,6 +647,8 @@ C_blend = sum(V_i * C_i) / sum(V_i)
 
 This formula does not apply blindly to pH or to censored/not-detected values that lack an explicit numeric calculation policy. Source-report resolution therefore occurs before blending. For each supported ion, a fixed blend concentration is produced only when every positive-volume source has a known derived concentration for that ion. If any contributing source is unknown, the final blend concentration remains unknown; known partial source contributions are retained for audit but are not presented as the total. An explicitly known zero remains a known value rather than being confused with missing data.
 
+The current fixed-blend implementation also applies this linear relation to bicarbonate and carbonate as a **first-order approximation**. Mixing waters can shift carbonate speciation through pH-dependent equilibrium, CO2 exchange, and precipitation, so those species are not assumed to be rigorously conservative. Before reusable calculated-pH work or optimization begins relying materially on carbonate species, the engine must either surface this approximation as a structured assumption/warning or replace it with an equilibrium-aware treatment appropriate to that capability.
+
 ### 9.16 Future TreatmentIngredient
 
 Treatment ingredients must separate chemical identity from application inventory.
@@ -1452,7 +1454,7 @@ Implemented and tested domain work includes:
 - five data-driven real-report fixtures: Santa Cruz, Niagara, Primo/Sparkletts, Cal Water/Chico, and Bend;
 - focused reported-disinfectant preservation, including unqualified chlorine, free/total/combined chlorine, chloramine/named chloramine species, chlorine dioxide, source labels/bases, and result context/statistics.
 
-The latest clean gate after the reported-disinfectant implementation reported **204 passing tests**, with Ruff, Ruff format check, and strict mypy also passing.
+The full workspace gate is maintained with Ruff formatting/lint checks, strict mypy, and pytest. Hypothesis property tests now exercise core blend invariants in addition to the example-based suite.
 
 The real-report pressure-test phase has served its immediate purpose. Additional reports should be added only when they expose a genuinely new semantic or scientific requirement rather than simply increasing fixture count.
 

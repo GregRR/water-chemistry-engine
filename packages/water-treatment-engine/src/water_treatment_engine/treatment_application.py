@@ -9,6 +9,7 @@ model precipitation, or redistribute carbonate species.
 
 from dataclasses import dataclass
 from enum import StrEnum
+from math import fsum
 
 from fermunits import Q_
 from pint import Quantity
@@ -108,7 +109,7 @@ class TreatmentApplicationResult:
     ion_resolutions: tuple[TreatmentIonResolution, ...]
 
     def resolution_for(self, ion: Ion) -> TreatmentIonResolution:
-        """Return the treatment-resolution outcome for one supported ion."""
+        """Return one ion outcome; normal treatment results contain every canonical ion."""
         for resolution in self.ion_resolutions:
             if resolution.ion is ion:
                 return resolution
@@ -156,8 +157,8 @@ def apply_treatment_additions(
         concentration.ion: concentration
         for concentration in initial_state.concentrations
     }
-    concentrations_mg_per_liter = {
-        ion: float(concentration.concentration.magnitude)
+    concentration_terms_mg_per_liter = {
+        ion: [float(concentration.concentration.magnitude)]
         for ion, concentration in initial_concentrations.items()
     }
     contributions_by_ion: dict[Ion, list[TreatmentIonContribution]] = {
@@ -186,9 +187,9 @@ def apply_treatment_additions(
                     contribution=contribution,
                 )
             )
-            if contribution.ion in concentrations_mg_per_liter:
-                concentrations_mg_per_liter[contribution.ion] += float(
-                    contribution.concentration.magnitude
+            if contribution.ion in concentration_terms_mg_per_liter:
+                concentration_terms_mg_per_liter[contribution.ion].append(
+                    float(contribution.concentration.magnitude)
                 )
 
     resolutions: list[TreatmentIonResolution] = []
@@ -209,7 +210,7 @@ def apply_treatment_additions(
             ResolvedTreatmentIon(
                 concentration=DerivedIonConcentration.mg_per_liter(
                     ion,
-                    concentrations_mg_per_liter[ion],
+                    fsum(concentration_terms_mg_per_liter[ion]),
                 ),
                 initial_concentration=initial_concentration,
                 treatment_contributions=treatment_contributions,

@@ -86,7 +86,7 @@ class SourceProfileResolutionResult:
     ion_resolutions: tuple[SourceIonResolution, ...]
 
     def resolution_for(self, ion: Ion) -> SourceIonResolution | None:
-        """Return the resolution outcome for one reported source ion, if present."""
+        """Return one reported-ion outcome, or ``None`` if the source omitted it."""
         for resolution in self.ion_resolutions:
             if resolution.ion is ion:
                 return resolution

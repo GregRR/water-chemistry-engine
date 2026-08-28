@@ -22,3 +22,12 @@ dev = [
     "pytest-cov",
     "ruff",
 ]
+
+[tool.mypy]
+strict = true
+
+[tool.ruff]
+# Preserve Ruff 0.16.1's broad default lint policy without copying hundreds of
+# rule codes into this file; a rule-set change therefore requires a deliberate
+# Ruff version/configuration update.
+required-version = "==0.16.1"

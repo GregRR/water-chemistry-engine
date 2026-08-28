@@ -3,6 +3,8 @@ from fractions import Fraction
 
 import pytest
 from fermunits import Q_
+from hypothesis import given
+from hypothesis import strategies as st
 from water_treatment_engine.blending import (
     BlendSource,
     FractionalBlendSource,
@@ -37,6 +39,112 @@ def _mg_per_liter(state: AqueousChemicalState, ion: Ion) -> float | None:
     if concentration is None:
         return None
     return float(concentration.to("milligram / liter").magnitude)
+
+
+_CONSERVATIVE_BLEND_IONS = (
+    Ion.CALCIUM,
+    Ion.MAGNESIUM,
+    Ion.SODIUM,
+    Ion.POTASSIUM,
+    Ion.CHLORIDE,
+    Ion.SULFATE,
+)
+_CONCENTRATIONS = st.floats(
+    min_value=0.0,
+    max_value=1000.0,
+    allow_nan=False,
+    allow_infinity=False,
+)
+_POSITIVE_VOLUMES = st.floats(
+    min_value=0.001,
+    max_value=1000.0,
+    allow_nan=False,
+    allow_infinity=False,
+)
+_SOURCE_VALUE_SETS = st.lists(
+    st.tuples(_CONCENTRATIONS, _POSITIVE_VOLUMES),
+    min_size=2,
+    max_size=6,
+)
+
+
+def _single_ion_state(ion: Ion, value: float) -> AqueousChemicalState:
+    return AqueousChemicalState(
+        concentrations=(DerivedIonConcentration.mg_per_liter(ion, value),)
+    )
+
+
+@given(
+    ion=st.sampled_from(_CONSERVATIVE_BLEND_IONS),
+    source_values=_SOURCE_VALUE_SETS,
+)
+def test_conservative_blend_stays_within_source_extrema(
+    ion: Ion,
+    source_values: list[tuple[float, float]],
+) -> None:
+    sources = tuple(
+        BlendSource(
+            f"Source {index}",
+            _single_ion_state(ion, concentration),
+            Q_(volume, "liter"),
+        )
+        for index, (concentration, volume) in enumerate(source_values)
+    )
+
+    result = blend_waters(sources)
+    blended = _mg_per_liter(result.state, ion)
+    assert blended is not None
+
+    concentrations = [concentration for concentration, _ in source_values]
+    assert min(concentrations) - 1e-9 <= blended <= max(concentrations) + 1e-9
+
+
+@given(source_values=_SOURCE_VALUE_SETS)
+def test_normalized_blend_fractions_sum_to_one(
+    source_values: list[tuple[float, float]],
+) -> None:
+    sources = tuple(
+        BlendSource(
+            f"Source {index}",
+            _single_ion_state(Ion.CALCIUM, concentration),
+            Q_(volume, "liter"),
+        )
+        for index, (concentration, volume) in enumerate(source_values)
+    )
+
+    result = blend_waters(sources)
+
+    assert sum(source.fraction for source in result.sources) == pytest.approx(1.0)
+
+
+@given(
+    ion=st.sampled_from(_CONSERVATIVE_BLEND_IONS),
+    source_values=st.lists(
+        st.tuples(_CONCENTRATIONS, _POSITIVE_VOLUMES),
+        min_size=3,
+        max_size=6,
+    ),
+)
+def test_reordering_three_or_more_sources_preserves_blend_chemistry(
+    ion: Ion,
+    source_values: list[tuple[float, float]],
+) -> None:
+    sources = tuple(
+        BlendSource(
+            f"Source {index}",
+            _single_ion_state(ion, concentration),
+            Q_(volume, "liter"),
+        )
+        for index, (concentration, volume) in enumerate(source_values)
+    )
+
+    forward = blend_waters(sources)
+    reverse = blend_waters(tuple(reversed(sources)))
+
+    assert _mg_per_liter(forward.state, ion) == pytest.approx(
+        _mg_per_liter(reverse.state, ion)
+    )
+    assert forward.total_volume == reverse.total_volume
 
 
 def test_two_source_volume_blend_uses_volume_weighted_concentrations() -> None:

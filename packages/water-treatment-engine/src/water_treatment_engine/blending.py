@@ -3,6 +3,9 @@
 Blending operates only on exact derived ``AqueousChemicalState`` inputs.  Source
 report interpretation belongs at the earlier source-resolution boundary.
 Conservative ion concentrations are combined by volume-weighted mass balance.
+Bicarbonate and carbonate currently use the same linear relation as a first-order
+approximation; this layer does not model carbonate equilibrium, gas exchange, or
+precipitation during mixing.
 
 Unknown source concentrations remain unknown.  If any positive-volume source
 omits an ion, the final blend does not claim a total concentration for that ion,
@@ -124,7 +127,7 @@ class WaterBlendResult:
     ion_resolutions: tuple[BlendIonResolution, ...]
 
     def resolution_for(self, ion: Ion) -> BlendIonResolution:
-        """Return the resolution outcome for one supported ion."""
+        """Return one ion outcome; normal blend results contain every canonical ion."""
         for resolution in self.ion_resolutions:
             if resolution.ion is ion:
                 return resolution
@@ -304,12 +307,16 @@ def blend_waters_by_fractions(
             name=source.name,
             state=source.state,
             volume=Q_(
-                float(normalized_total_volume.magnitude) * fraction,
+                float(normalized_total_volume.magnitude) * normalized_fraction,
                 "liter",
             ),
-            fraction=fraction,
+            fraction=normalized_fraction,
         )
-        for source, fraction in zip(sources, normalized_fractions, strict=True)
+        for source, normalized_fraction in zip(
+            sources,
+            normalized_fractions,
+            strict=True,
+        )
     )
 
     return _calculate_blend(normalized_sources, normalized_total_volume)
