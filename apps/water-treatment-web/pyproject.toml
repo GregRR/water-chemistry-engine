@@ -12,6 +12,11 @@ dependencies = [
     "water-treatment-engine",
 ]
 
+[project.urls]
+Homepage = "https://github.com/GregRR/water-treatment-calculator"
+Repository = "https://github.com/GregRR/water-treatment-calculator"
+Issues = "https://github.com/GregRR/water-treatment-calculator/issues"
+
 [tool.uv.sources]
 water-treatment-engine = { workspace = true }
 

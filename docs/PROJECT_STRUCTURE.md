@@ -18,7 +18,7 @@
     │       │       ├── static/
     │       │       └── templates/
     │       └── tests/
-    │           └── test_package.py
+    │           └── test_web_package.py
     ├── packages/
     │   └── water-treatment-engine/
     │       ├── pyproject.toml
@@ -45,6 +45,7 @@
     │   └── water/
     ├── .gitignore
     ├── .python-version
+    ├── CHANGELOG.md
     ├── LICENSE
     ├── pyproject.toml
     └── README.md
@@ -71,20 +72,22 @@ Import package:
 
     water_treatment_engine
 
-This package owns all reusable scientific and engineering behavior, including:
+In 0.2 this package owns the implemented reusable scientific and engineering
+behavior, including:
 
 - water-profile domain models
-- water blending
-- mineral stoichiometry
-- profile comparison
-- treatment constraints
-- optimization
-- treatment-plan ranking
-- validation
-- structured warnings
-- structured explanations
-- calculation provenance
-- serialization adapters at defined boundaries
+- source-water resolution
+- fixed water blending
+- mineral stoichiometry and forward treatment application
+- target/reference comparison
+- contribution reporting
+- preparation instructions
+- structured notices and validation
+- calculation audit/provenance data
+
+As later milestones add optimization, treatment-plan ranking, richer
+constraints, and serialization/interchange adapters, those responsibilities
+also belong in the engine rather than in application code.
 
 The engine must remain independent of:
 
@@ -110,9 +113,10 @@ Import package:
 
     water_treatment_web
 
-This package provides the standalone graphical web application.
+In 0.2 this package is a scaffold. Beginning with milestone 0.3 it will provide
+the standalone graphical web application.
 
-It owns:
+The web layer owns or will own:
 
 - web routes
 - forms

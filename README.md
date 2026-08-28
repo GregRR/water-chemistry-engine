@@ -79,6 +79,20 @@ their own interfaces.
 - mypy
 - GitHub Actions
 
+## Development
+
+Version 0.2 does not yet provide a user-facing web calculator. To work with or
+validate the source checkout, install Python 3.14 and uv, then run from the
+repository root:
+
+```bash
+uv sync --all-packages --dev
+uv run pytest
+```
+
+The full CI gate also checks the lockfile, formatting, linting, strict typing,
+and builds both Python distributions.
+
 ## Documentation
 
 Primary project documents are stored under `docs/`:
