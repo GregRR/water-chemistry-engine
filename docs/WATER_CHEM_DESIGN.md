@@ -130,7 +130,7 @@ The engine must never import the web application, Mechani-Brew, a database ORM, 
 
 ### 6.2 Current and planned core libraries
 
-- **FermUnits 0.1.x:** required by `water-treatment-engine`; currently sourced from the released GitHub `v0.1.1` tag until the dependency strategy is intentionally changed.
+- **FermUnits 0.1.x:** required by `water-treatment-engine`; resolved from PyPI with the supported `>=0.1.1,<0.2.0` dependency range.
 - **Pint:** transitive quantity implementation through FermUnits.
 - **NumPy:** planned for vector/matrix work when the calculation implementation actually requires it.
 - **SciPy:** planned for continuous and mixed-integer optimization when optimization work begins.

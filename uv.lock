@@ -157,10 +157,14 @@ wheels = [
 
 [[package]]
 name = "ferm-units"
-version = "0.1.1"
-source = { git = "https://github.com/GregRR/ferm-units?tag=v0.1.1#de5ae83bb54ccf83786b2cae7056b575883506b5" }
+version = "0.1.2"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pint" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8a/25/3c26791b745f957f790e4012aae65e965c63388569e9cab14ad4b690d44a/ferm_units-0.1.2.tar.gz", hash = "sha256:d800d908e6c3c85320e5c3ba896702a8c6768be91013200b8e8eb559046810d7", size = 47999, upload-time = "2026-08-28T20:34:59.179Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/cb/a1/d1258ee2074815927f64f93d9f16538550494cc46f3a644fd757441d399e/ferm_units-0.1.2-py3-none-any.whl", hash = "sha256:6e746ff4c24fbfffa83f86a98114596427138e6c04de0d1ffb4e11ccb2822985", size = 14935, upload-time = "2026-08-28T20:34:58.098Z" },
 ]
 
 [[package]]
@@ -504,7 +508,7 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "ferm-units", git = "https://github.com/GregRR/ferm-units?tag=v0.1.1" }]
+requires-dist = [{ name = "ferm-units", specifier = ">=0.1.1,<0.2.0" }]
 
 [[package]]
 name = "water-treatment-web"
