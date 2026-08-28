@@ -262,6 +262,10 @@ def test_target_is_optional_without_skipping_forward_calculation() -> None:
     assert result.source_results[0].target_comparison is None
     assert result.blend_target_comparison is None
     assert result.final_target_comparison is None
+    assert result.preparation_instructions.lines == (
+        "Use 10 L of Source as the starting water.",
+        "Add 1 g of Gypsum (CaSO4·2H2O).",
+    )
     assert _mg_per_liter(result.final_state, Ion.CALCIUM) == pytest.approx(
         73.279,
         abs=0.001,
