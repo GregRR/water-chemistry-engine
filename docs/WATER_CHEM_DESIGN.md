@@ -795,6 +795,8 @@ Consequences:
 - historical city profiles belong under target/reference data unless there is a specific historical source-water analysis being represented;
 - an achieved treated liquor from a prior successful batch may later be saved as a target for reproduction without pretending it was the original source water.
 
+The deterministic comparison boundary operates on an exact derived `AqueousChemicalState`. Exact target values are closed point criteria; ordinary exact-ended target ranges are inclusive; and standalone numeric upper/lower bounds are one-sided criteria. Signed deviation is negative below a criterion, positive above it, and zero when the criterion is satisfied. A missing state ion remains indeterminate rather than becoming zero. Qualified source-style ranges and `ND` target records remain representable for provenance but are explicitly unsupported for numeric matching until a concrete target semantics exists. A target pH is likewise retained as not calculated until the reusable working-water pH model is implemented; reported source pH is never substituted for derived working-water pH.
+
 ## 12. Reference data and real-world fixtures
 
 Reference data is version-controlled and is never accepted merely because it appeared in an old calculator or an uncited table.
@@ -1462,7 +1464,7 @@ The real-report pressure-test phase has served its immediate purpose. Additional
 
 First-class source-report preservation of chlorine/chloramine and related disinfectant reporting is now implemented. The Santa Cruz 2025 fixture pressure-tests an unqualified distribution-system `Chlorine` result as its own reported disinfectant rather than inferring free chlorine or mapping the result to chloride. Treatment/removal modeling remains deliberately out of scope for this representation layer.
 
-The implementation focus is **deterministic forward treatment calculations**. Validated simple treatment-ingredient identities, generic stoichiometric ion contributions, exact derived aqueous chemical states, forward application of one or more additions to a known water volume, explicit source-profile-to-derived-state resolution, and fixed source-water blending by volume or fraction are implemented. Blend and treatment results both preserve structured per-ion resolution outcomes and contribution detail while keeping unknown totals unknown. End-to-end blended/final workflow results, combined source/treatment contribution presentation, target/reference comparison, and later the reusable aqueous pH capability follow from that boundary.
+The implementation focus is **deterministic forward treatment calculations**. Validated simple treatment-ingredient identities, generic stoichiometric ion contributions, exact derived aqueous chemical states, forward application of one or more additions to a known water volume, explicit source-profile-to-derived-state resolution, fixed source-water blending by volume or fraction, and structured target/reference comparison are implemented. Blend and treatment results both preserve structured per-ion resolution outcomes and contribution detail while keeping unknown totals unknown. Target comparison preserves exact/range/bound satisfaction and signed deviation, keeps missing state ions indeterminate, refuses to reinterpret qualified ranges or `ND` as numeric targets, and retains target pH as explicitly not calculated until a validated working-water pH model exists. End-to-end blended/final workflow results, combined source/treatment contribution presentation, and later the reusable aqueous pH capability follow from that boundary.
 
 ## 27. Development milestones
 
@@ -1501,13 +1503,13 @@ Completed:
 - exact derived aqueous ion-state representation;
 - forward application of zero or more simple mineral additions to a known water volume with per-treatment contribution detail;
 - explicit source-profile-to-derived-state resolution under a caller-supplied representative-value policy, including auditable unresolved reasons;
-- fixed one-, two-, and multi-source blending by volume or fraction with auditable per-source ion contributions and conservative unknown propagation.
+- fixed one-, two-, and multi-source blending by volume or fraction with auditable per-source ion contributions and conservative unknown propagation;
+- target/reference profile comparison for exact values, exact-ended ranges, and one-sided numeric bounds, including signed deviation and explicit indeterminate/unsupported outcomes.
 
 Next:
 
 - explicit blended-water and final treated-water workflow states;
 - source/treatment contribution matrices;
-- target/reference profile comparison;
 - structured treatment/result output and human-readable treatment instructions.
 
 ### Milestone 3 / release 0.3 — first usable web application

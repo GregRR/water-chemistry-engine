@@ -27,9 +27,10 @@ Implemented foundations include:
 - exact derived aqueous ion states;
 - forward application of one or more supported mineral additions while preserving unknown values as unknown and retaining per-ion resolution/contribution audit detail;
 - explicit source-profile resolution into calculation-ready ion states, with exact-range midpoints allowed only by a caller-supplied policy and unresolved values preserved as unknown;
-- fixed volume- or fraction-based blending of one or more derived source states, with actual volumes/fractions and per-source ion contributions preserved and unknown source concentrations propagated as unknown.
+- fixed volume- or fraction-based blending of one or more derived source states, with actual volumes/fractions and per-source ion contributions preserved and unknown source concentrations propagated as unknown;
+- deterministic comparison of derived states with exact, ranged, and one-sided numeric target/reference criteria, with unknown and unsupported criteria surfaced explicitly and target pH retained as not calculated.
 
-The current implementation focus is target/reference comparison and the remaining deterministic forward path.
+The current implementation focus is the remaining deterministic forward workflow and structured result presentation.
 
 ## 0.2 — Deterministic Forward Calculator
 
