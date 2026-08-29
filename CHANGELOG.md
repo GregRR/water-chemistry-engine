@@ -25,6 +25,11 @@ individual distributable packages independently where appropriate.
 
 ### Hardened
 
+- Expanded the supported runtime floor to Python 3.11, with CI coverage on
+  Python 3.11, 3.12, 3.13, and 3.14 and Python 3.11 as the compatibility
+  baseline.
+- Updated the engine dependency floor to FermUnits 0.1.2, the first published
+  release in the 0.1 line with Python 3.11 support.
 - Preserved unknown source chemistry as unknown instead of silently treating it
   as zero.
 - Added numerical-noise tolerance at target boundaries so floating-point

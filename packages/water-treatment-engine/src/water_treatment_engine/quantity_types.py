@@ -14,9 +14,10 @@ requires it later.
 
 from decimal import Decimal
 from fractions import Fraction
+from typing import TypeAlias
 
 from pint import Quantity
 
-type ScalarQuantity = (
+ScalarQuantity: TypeAlias = (
     Quantity[int] | Quantity[float] | Quantity[Decimal] | Quantity[Fraction]
 )

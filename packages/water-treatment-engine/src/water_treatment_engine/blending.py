@@ -18,6 +18,7 @@ from decimal import Decimal
 from enum import StrEnum
 from fractions import Fraction
 from math import fsum, isclose, isfinite
+from typing import TypeAlias
 
 from fermunits import Q_
 from pint import Quantity
@@ -29,7 +30,7 @@ from water_treatment_engine.chemical_state import (
 from water_treatment_engine.ions import Ion
 from water_treatment_engine.quantity_types import ScalarQuantity
 
-type ScalarBlendFraction = int | float | Decimal | Fraction
+ScalarBlendFraction: TypeAlias = int | float | Decimal | Fraction
 
 
 @dataclass(frozen=True, slots=True)
@@ -114,7 +115,7 @@ class UnresolvedBlendIon:
     known_source_contributions: tuple[BlendIonContribution, ...]
 
 
-type BlendIonResolution = ResolvedBlendIon | UnresolvedBlendIon
+BlendIonResolution: TypeAlias = ResolvedBlendIon | UnresolvedBlendIon
 
 
 @dataclass(frozen=True, slots=True)

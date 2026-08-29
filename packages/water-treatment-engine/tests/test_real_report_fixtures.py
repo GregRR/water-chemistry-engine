@@ -2,7 +2,7 @@ import json
 from collections.abc import Mapping
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeAlias
 
 import pytest
 from fermunits import Q_
@@ -53,7 +53,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 REPORT_FIXTURE_ROOT = REPO_ROOT / "test-vectors" / "water" / "reports"
 FIXTURE_PATHS = tuple(sorted(REPORT_FIXTURE_ROOT.rglob("*.json")))
 
-type JsonObject = dict[str, Any]
+JsonObject: TypeAlias = dict[str, Any]
 
 
 def _parse_date(value: str | None) -> date | None:

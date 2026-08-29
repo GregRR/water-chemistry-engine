@@ -3,13 +3,21 @@ name = "water-treatment-engine"
 version = "0.2.0"
 description = "Reusable water-treatment engineering engine for brewing, mead, and distilling."
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.11"
 license = "MPL-2.0"
 authors = [
     { name = "Greg Roe" },
 ]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
 dependencies = [
-    "ferm-units>=0.1.1,<0.2.0",
+    "ferm-units>=0.1.2,<0.2.0",
 ]
 
 [project.urls]

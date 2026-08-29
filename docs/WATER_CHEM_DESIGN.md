@@ -121,7 +121,7 @@ The engine must never import the web application, Mechani-Brew, a database ORM, 
 
 ### 6.1 Python and package management
 
-- Python 3.14.
+- Python 3.11 is the minimum supported runtime; CI tests Python 3.11 through 3.14.
 - `uv` for Python installation, dependency resolution, environments, locking, and workspace management.
 - `uv_build` for the current pure-Python workspace packages.
 - Standard `src/` package layouts.
@@ -130,7 +130,7 @@ The engine must never import the web application, Mechani-Brew, a database ORM, 
 
 ### 6.2 Current and planned core libraries
 
-- **FermUnits 0.1.x:** required by `water-treatment-engine`; resolved from PyPI with the supported `>=0.1.1,<0.2.0` dependency range.
+- **FermUnits 0.1.x:** required by `water-treatment-engine`; resolved from PyPI with the supported `>=0.1.2,<0.2.0` dependency range. FermUnits 0.1.2 is the minimum release that shares the Python 3.11 compatibility floor.
 - **Pint:** transitive quantity implementation through FermUnits.
 - **NumPy:** planned for vector/matrix work when the calculation implementation actually requires it.
 - **SciPy:** planned for continuous and mixed-integer optimization when optimization work begins.
@@ -145,7 +145,7 @@ NumPy, SciPy, and other substantial dependencies should not be added merely beca
 - HTMX for dynamic form fragments, recalculation, profile selection, ranked results, and progressive disclosure.
 - Minimal vanilla JavaScript only where browser-only behavior genuinely requires it.
 - No mandatory React or Node build pipeline for Version 1.
-- Django is the selected server application framework for `water-treatment-web`; it will be introduced when 0.3 implementation begins.
+- Django is the selected server application framework for `water-treatment-web`; it will be introduced when 0.3 implementation begins. The initial implementation should use the Django 5.2 LTS line so the web package can preserve Python 3.11 support.
 - Django ORM persistence remains an application-layer concern and does not enter the reusable engine.
 
 The standalone web application is an adapter around the engine. Mechani-Brew will import the same engine directly and render its own seamless interface. See ADR 0002 for the web-stack decision.
@@ -1424,7 +1424,7 @@ Portable versioned request/result pairs should allow Swift, Kotlin, Dart, JavaSc
 
 ## 26. Current implementation status
 
-As of this revision, the repository foundation is operational with Python 3.14, uv, Ruff, mypy, pytest, Hypothesis, GitHub Actions, independently installable engine/web packages, and FermUnits 0.1.1 integration. The reproducible workspace gate first runs `uv sync --all-packages --dev`, then runs the Ruff, mypy, pytest, and build checks through the synchronized workspace so engine, web, FermUnits, and transitive dependencies are present regardless of prior environment state.
+As of this revision, the repository foundation supports Python 3.11 through 3.14, with Python 3.11 as the compatibility baseline, plus uv, Ruff, mypy, pytest, Hypothesis, GitHub Actions, independently installable engine/web packages, and FermUnits 0.1.2 from PyPI. CI executes the runtime test suite across Python 3.11, 3.12, 3.13, and 3.14, while Ruff and mypy are configured against Python 3.11 language semantics. The reproducible workspace gate synchronizes all packages and development dependencies before running formatting, linting, strict typing, tests, and distribution builds.
 
 Implemented and tested domain work includes:
 

@@ -41,6 +41,12 @@ The package is intended for:
 - future mobile/desktop applications;
 - scripts, APIs, tests, and third-party Python software.
 
+## Python compatibility
+
+The engine requires Python 3.11 or newer. CI currently tests Python 3.11,
+3.12, 3.13, and 3.14, with Python 3.11 treated as the compatibility baseline.
+The engine requires FermUnits 0.1.2 or newer within the 0.1 release line.
+
 ## Architecture
 
 This package contains only scientific and engineering logic. It must not depend

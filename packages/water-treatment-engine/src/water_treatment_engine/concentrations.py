@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
+from typing import TypeAlias
 
 from fermunits import Q_
 
@@ -84,7 +87,7 @@ class NotDetectedConcentrationEndpoint:
         )
 
 
-type ConcentrationRangeEndpoint = (
+ConcentrationRangeEndpoint: TypeAlias = (
     ExactConcentrationEndpoint
     | UpperBoundConcentrationEndpoint
     | LowerBoundConcentrationEndpoint
@@ -326,7 +329,7 @@ class IonConcentrationNotDetected:
         )
 
 
-type IonConcentrationValue = (
+IonConcentrationValue: TypeAlias = (
     IonConcentration
     | IonConcentrationRange
     | IonConcentrationUpperBound

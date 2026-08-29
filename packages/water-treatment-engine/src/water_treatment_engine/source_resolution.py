@@ -11,6 +11,7 @@ how each ion was handled so downstream calculations never have to guess.
 
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import TypeAlias
 
 from water_treatment_engine.chemical_state import (
     AqueousChemicalState,
@@ -73,7 +74,7 @@ class UnresolvedSourceIon:
         return self.source_result.ion
 
 
-type SourceIonResolution = ResolvedSourceIon | UnresolvedSourceIon
+SourceIonResolution: TypeAlias = ResolvedSourceIon | UnresolvedSourceIon
 
 
 @dataclass(frozen=True, slots=True)

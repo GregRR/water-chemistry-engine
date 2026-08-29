@@ -10,6 +10,7 @@ model precipitation, or redistribute carbonate species.
 from dataclasses import dataclass
 from enum import StrEnum
 from math import fsum
+from typing import TypeAlias
 
 from fermunits import Q_
 from pint import Quantity
@@ -95,7 +96,7 @@ class UnresolvedTreatmentIon:
     known_treatment_contributions: tuple[TreatmentIonContribution, ...]
 
 
-type TreatmentIonResolution = ResolvedTreatmentIon | UnresolvedTreatmentIon
+TreatmentIonResolution: TypeAlias = ResolvedTreatmentIon | UnresolvedTreatmentIon
 
 
 @dataclass(frozen=True, slots=True)

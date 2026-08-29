@@ -17,6 +17,13 @@ The selected interface stack is:
 Django is intentionally not a 0.2 dependency; it will be added when 0.3 web
 implementation begins.
 
+## Python compatibility
+
+The web package requires Python 3.11 or newer. CI currently tests Python 3.11,
+3.12, 3.13, and 3.14, with Python 3.11 treated as the compatibility baseline.
+The 0.3 implementation will use the Django 5.2 LTS line so the application can
+preserve that minimum runtime.
+
 ## 0.3 interface scope
 
 The first usable application will support:

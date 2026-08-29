@@ -71,7 +71,7 @@ their own interfaces.
 
 ## Development stack
 
-- Python 3.14+
+- Python 3.11+ (CI currently tests 3.11–3.14; 3.11 is the compatibility baseline)
 - uv
 - FermUnits
 - pytest and Hypothesis
@@ -82,16 +82,17 @@ their own interfaces.
 ## Development
 
 Version 0.2 does not yet provide a user-facing web calculator. To work with or
-validate the source checkout, install Python 3.14 and uv, then run from the
-repository root:
+validate the source checkout, install uv, then run from the repository root.
+The checked-in `.python-version` selects the Python 3.11 compatibility baseline:
 
 ```bash
 uv sync --all-packages --dev
 uv run pytest
 ```
 
-The full CI gate also checks the lockfile, formatting, linting, strict typing,
-and builds both Python distributions.
+The full CI gate tests Python 3.11, 3.12, 3.13, and 3.14. It also checks the
+lockfile, formatting, linting, strict typing against Python 3.11 semantics, and
+builds both Python distributions.
 
 ## Documentation
 

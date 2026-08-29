@@ -8,39 +8,72 @@ permissions:
   contents: read
 
 jobs:
-  checks:
-    name: Test and quality checks
+  runtime-tests:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.12.3"
+          enable-cache: true
+
+      - name: Install Python
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Install workspace dependencies
+        run: uv sync --all-packages --dev --python ${{ matrix.python-version }} --locked
+
+      - name: Compile Python sources
+        run: uv run --python ${{ matrix.python-version }} python -m compileall -q packages apps
+
+      - name: Run tests
+        run: uv run --python ${{ matrix.python-version }} pytest
+
+  quality:
+    name: Quality checks and distributions
     runs-on: ubuntu-latest
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
 
-      - name: Install uv and Python
-        uses: astral-sh/setup-uv@v9
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
-          python-version: "3.14"
+          version: "0.12.3"
           enable-cache: true
+
+      - name: Install Python
+        run: uv python install 3.14
 
       - name: Check lockfile
         run: uv lock --check
 
       - name: Install workspace dependencies
-        run: uv sync --all-packages --dev
+        run: uv sync --all-packages --dev --python 3.14 --locked
 
       - name: Check formatting
-        run: uv run ruff format --check .
+        run: uv run --python 3.14 ruff format --check .
 
       - name: Run lint checks
-        run: uv run ruff check .
+        run: uv run --python 3.14 ruff check .
 
       - name: Run type checks
-        run: uv run mypy --strict packages/water-treatment-engine/src apps/water-treatment-web/src
-
-      - name: Run tests
-        run: uv run pytest
+        run: >-
+          uv run --python 3.14 mypy --strict
+          packages/water-treatment-engine/src
+          apps/water-treatment-web/src
 
       - name: Build distributions
         run: |
-          uv build --package water-treatment-engine
-          uv build --package water-treatment-web
+          uv build --python 3.14 --package water-treatment-engine
+          uv build --python 3.14 --package water-treatment-web

@@ -13,6 +13,8 @@ or treatment-derived ions here does not imply that acid/base speciation,
 activity, precipitation, or solubility has been solved.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 from fermunits import Q_

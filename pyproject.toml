@@ -2,7 +2,7 @@
 name = "water-treatment-calculator-workspace"
 version = "0.2.0"
 description = "Workspace for the water-treatment engine and standalone web application."
-requires-python = ">=3.14"
+requires-python = ">=3.11"
 dependencies = []
 
 [tool.uv]
@@ -25,9 +25,11 @@ dev = [
 
 [tool.mypy]
 strict = true
+python_version = "3.11"
 
 [tool.ruff]
 # Preserve Ruff 0.16.1's broad default lint policy without copying hundreds of
 # rule codes into this file; a rule-set change therefore requires a deliberate
 # Ruff version/configuration update.
 required-version = "==0.16.1"
+target-version = "py311"
