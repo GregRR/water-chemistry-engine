@@ -1,5 +1,5 @@
 {
-  "fixture_format": "water-treatment-real-report-v1",
+  "fixture_format": "water-chemistry-real-report-v1",
   "report_id": "santa-cruz-2025",
   "source_document": {
     "publisher": "City of Santa Cruz Water Department",

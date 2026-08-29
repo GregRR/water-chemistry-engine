@@ -1,7 +1,7 @@
-# Water Treatment Engineering References
+# Water Chemistry Engineering References
 
 **Status:** Initial curated bibliography and research register  
-**Project:** Water Treatment Calculator  
+**Project:** Water Chemistry Engine
 **Purpose:** Track scientific, technical, historical, and implementation sources used to design, validate, or contextualize the engine.
 
 ## 1. Source policy
@@ -33,7 +33,7 @@ Where an authoritative ASBC method, table, or formula is known to exist but cann
 - **Publisher:** Sausalito Brewing Company / ProMash
 - **URL:** https://web.archive.org/web/20040806024646/http://www.promash.com/Software/Tour/StandAlone/Tour_Calculators5.html
 - **Type:** Historical/software reference
-- **Relevance:** Principal user-interface inspiration. Demonstrates stored water profiles, mineral-addition entry, and per-mineral ion-contribution tables.
+- **Relevance:** Principal historical calculator inspiration. Demonstrates explicit stored water profiles, mineral-addition inputs, and per-mineral ion-contribution tables.
 - **Use in this project:** Preserve the transparent contribution table while replacing manual trial-and-error with automatic blend-and-treatment optimization.
 - **Caution:** ProMash behavior and formulas must not be treated as authoritative without independent verification.
 

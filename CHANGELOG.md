@@ -1,9 +1,9 @@
 # Changelog
 
-This project follows semantic versioning for repository milestones and versions
-individual distributable packages independently where appropriate.
+This project follows semantic versioning for the Water Chemistry Engine
+distribution and its repository milestones.
 
-## 0.2.0 - 2026-08-28
+## 0.2.0 - 2026-08-29
 
 ### Added
 
@@ -22,6 +22,22 @@ individual distributable packages independently where appropriate.
   target limitations, and deferred working-water pH.
 - Property-based coverage for blend/contribution and target-comparison
   invariants.
+
+### Changed
+
+- Renamed the reusable project, distribution, repository, and import package
+  to Water Chemistry Engine / `water-chemistry-engine` /
+  `water_chemistry_engine` before the 0.2.0 release to reflect the broader
+  chemistry characterization, comparison, and treatment scope.
+- Made the repository explicitly engine-only and removed the unused standalone
+  web-application scaffold so product implementations can evolve in separate
+  projects against the reusable engine.
+- Flattened the former monorepo package wrapper into a conventional
+  single-project `src/` layout now that the engine is the repository's only
+  distribution.
+- Reframed the post-0.2 roadmap around a supported consumer API, curated
+  reference data, optimization, pH, interchange, and conformance rather than a
+  bundled user interface.
 
 ### Hardened
 
@@ -48,4 +64,5 @@ individual distributable packages independently where appropriate.
   approximation rather than an equilibrium/speciation calculation.
 - Mineral treatment currently assumes complete dissolution and does not model
   solubility limits or precipitation.
-- The standalone web application remains a scaffold until milestone 0.3.
+- The 0.2 package exposes useful module-level APIs, but the supported top-level
+  consumer facade is intentionally deferred to milestone 0.3.

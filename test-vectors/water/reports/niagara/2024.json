@@ -1,5 +1,5 @@
 {
-  "fixture_format": "water-treatment-real-report-v1",
+  "fixture_format": "water-chemistry-real-report-v1",
   "report_id": "niagara-2024-report-2023-analysis",
   "source_document": {
     "publisher": "Niagara Bottling, LLC",

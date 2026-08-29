@@ -3,8 +3,8 @@
 This directory contains data-only fixtures derived from real water-quality reports.
 
 These files are **test vectors**, not a public interchange format and not a
-FermentationJSON schema. Their purpose is to pressure-test the water-treatment
-engine against the reporting patterns found in real source documents while
+FermentationJSON schema. Their purpose is to pressure-test the Water Chemistry
+Engine against the reporting patterns found in real source documents while
 FermentationJSON continues to define the long-term interchange representation.
 
 ## Layout
@@ -29,7 +29,7 @@ semantic the engine or fixture loader cannot yet represent.
 The current internal fixture format is identified by:
 
 ```json
-"fixture_format": "water-treatment-real-report-v1"
+"fixture_format": "water-chemistry-real-report-v1"
 ```
 
 The format deliberately mirrors concepts already present in the engine:

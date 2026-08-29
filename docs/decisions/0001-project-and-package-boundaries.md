@@ -1,8 +1,8 @@
-# ADR 0001: Project and Package Boundaries
+# ADR 0001: Project and Package Boundaries (Superseded)
 
 ## Status
 
-Accepted
+Superseded by ADR 0004
 
 ## Decision
 

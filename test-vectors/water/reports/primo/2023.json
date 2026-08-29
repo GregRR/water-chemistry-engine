@@ -1,5 +1,5 @@
 {
-  "fixture_format": "water-treatment-real-report-v1",
+  "fixture_format": "water-chemistry-real-report-v1",
   "report_id": "primo-ds-services-spring-2023",
   "source_document": {
     "publisher": "DS Services of America, Inc. (dba Primo Water North America)",

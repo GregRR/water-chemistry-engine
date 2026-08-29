@@ -1,9 +1,12 @@
-# Water Treatment Calculator Future Capabilities
+# Water Chemistry Engine Future Capabilities
 
-This document preserves useful ideas that are intentionally outside the active
+This document preserves useful engine ideas intentionally outside the active
 near-term release path in `docs/ROADMAP.md`. Inclusion here is not a promise for
-a particular release; it means the idea should not be lost while the project
-prioritizes a usable application and a stable Version 1.0.
+a particular release.
+
+Product-owned ideas such as accounts, browser workflows, AI document review,
+mobile UI, persistence, purchasing, and application history belong in consumer
+application roadmaps rather than this engine backlog.
 
 ## Advanced optimization and planning
 
@@ -11,11 +14,11 @@ prioritizes a usable application and a stable Version 1.0.
 - Sensitivity analysis and worst-case planning.
 - Pareto-front exploration.
 - More sophisticated target weighting and policy customization.
-- Treatment-cost optimization.
-- Inventory-aware treatment planning.
-- Package-size and purchasing considerations.
-- Multi-batch production planning.
-- Production-scale water allocation and availability constraints.
+- Caller-supplied treatment-cost constraints.
+- Caller-supplied treatment availability and quantity constraints.
+- Multi-batch treatment planning where a reusable scientific contract emerges.
+- Production-scale water allocation constraints where they belong to the
+  calculation model rather than an inventory system.
 
 ## Additional treatment methods
 
@@ -44,27 +47,29 @@ multiple implemented workflows demonstrate the common contract.
 - Precipitation/solubility modeling where useful.
 - Purpose-aware brewery process-water workflows beyond the first validated uses.
 - Spirit-proofing-specific guidance where scientifically supported.
-- Brewery-scale service/dilution/process-water workflows where appropriate.
+- Brewery-scale service/dilution/process-water calculations where appropriate.
 
-## Report ingestion and source-water history
+## Structured import and validation boundaries
 
-Beyond the initial AI-assisted report workflow:
+Document parsing, OCR/AI extraction, human review queues, and persistence are
+application responsibilities. The engine may later add reusable boundary
+helpers when concrete import workflows demonstrate a need, for example:
 
-- broader document formats;
-- improved table extraction and document-layout handling;
-- longitudinal comparison of dated reports;
-- multiple-source and multiple-treatment-stage reports;
-- laboratory-result imports;
-- review queues and extraction-confidence workflows;
-- change detection across source-water reports;
-- additional regulatory/reference-value preservation where useful.
+- validation of normalized candidate measurement structures;
+- deterministic mapping helpers for well-defined external laboratory formats;
+- explicit ambiguity/error models that are useful across multiple consumers;
+- versioned data contracts for accepted source-profile inputs.
+
+These helpers must not make the engine depend on a document parser, AI service,
+web framework, or user-review system.
 
 ## Interchange and external integrations
 
 - Expanded BeerJSON compatibility as standards evolve.
 - Richer FermentationJSON archival/interchange support.
 - Stable public API/SDK surfaces for third-party applications.
-- Future native mobile and desktop applications.
+- Platform-neutral request/result schemas.
+- Portable conformance vectors for alternative-language implementations.
 - Additional import/export formats only when concrete demand exists.
 
 ## Reference and historical datasets

@@ -30,11 +30,11 @@ jobs:
       - name: Install Python
         run: uv python install ${{ matrix.python-version }}
 
-      - name: Install workspace dependencies
-        run: uv sync --all-packages --dev --python ${{ matrix.python-version }} --locked
+      - name: Install dependencies
+        run: uv sync --dev --python ${{ matrix.python-version }} --locked
 
       - name: Compile Python sources
-        run: uv run --python ${{ matrix.python-version }} python -m compileall -q packages apps
+        run: uv run --python ${{ matrix.python-version }} python -m compileall -q src
 
       - name: Run tests
         run: uv run --python ${{ matrix.python-version }} pytest
@@ -60,8 +60,8 @@ jobs:
       - name: Check lockfile
         run: uv lock --check
 
-      - name: Install workspace dependencies
-        run: uv sync --all-packages --dev --python 3.14 --locked
+      - name: Install dependencies
+        run: uv sync --dev --python 3.14 --locked
 
       - name: Check formatting
         run: uv run --python 3.14 ruff format --check .
@@ -72,10 +72,7 @@ jobs:
       - name: Run type checks
         run: >-
           uv run --python 3.14 mypy --strict
-          packages/water-treatment-engine/src
-          apps/water-treatment-web/src
+          src
 
-      - name: Build distributions
-        run: |
-          uv build --python 3.14 --package water-treatment-engine
-          uv build --python 3.14 --package water-treatment-web
+      - name: Build distribution
+        run: uv build --python 3.14

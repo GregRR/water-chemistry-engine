@@ -1,18 +1,33 @@
 [project]
-name = "water-treatment-calculator-workspace"
+name = "water-chemistry-engine"
 version = "0.2.0"
-description = "Workspace for the water-treatment engine and standalone web application."
+description = "Reusable water-chemistry engine for brewing, fermentation, and other validated uses."
+readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
-
-[tool.uv]
-package = false
-
-[tool.uv.workspace]
-members = [
-    "packages/water-treatment-engine",
-    "apps/water-treatment-web",
+license = "MPL-2.0"
+authors = [
+    { name = "Greg Roe" },
 ]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+    "ferm-units>=0.1.2,<0.2.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/GregRR/water-chemistry-engine"
+Repository = "https://github.com/GregRR/water-chemistry-engine"
+Issues = "https://github.com/GregRR/water-chemistry-engine/issues"
+
+[build-system]
+requires = ["uv_build>=0.11.32,<0.13"]
+build-backend = "uv_build"
 
 [dependency-groups]
 dev = [

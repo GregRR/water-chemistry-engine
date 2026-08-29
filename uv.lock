@@ -6,13 +6,6 @@ resolution-markers = [
     "python_full_version < '3.15'",
 ]
 
-[manifest]
-members = [
-    "water-treatment-calculator-workspace",
-    "water-treatment-engine",
-    "water-treatment-web",
-]
-
 [[package]]
 name = "ast-serialize"
 version = "0.7.0"
@@ -666,9 +659,12 @@ wheels = [
 ]
 
 [[package]]
-name = "water-treatment-calculator-workspace"
+name = "water-chemistry-engine"
 version = "0.2.0"
-source = { virtual = "." }
+source = { editable = "." }
+dependencies = [
+    { name = "ferm-units" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -680,6 +676,7 @@ dev = [
 ]
 
 [package.metadata]
+requires-dist = [{ name = "ferm-units", specifier = ">=0.1.2,<0.2.0" }]
 
 [package.metadata.requires-dev]
 dev = [
@@ -689,25 +686,3 @@ dev = [
     { name = "pytest-cov" },
     { name = "ruff" },
 ]
-
-[[package]]
-name = "water-treatment-engine"
-version = "0.2.0"
-source = { editable = "packages/water-treatment-engine" }
-dependencies = [
-    { name = "ferm-units" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "ferm-units", specifier = ">=0.1.2,<0.2.0" }]
-
-[[package]]
-name = "water-treatment-web"
-version = "0.1.0"
-source = { editable = "apps/water-treatment-web" }
-dependencies = [
-    { name = "water-treatment-engine" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "water-treatment-engine", editable = "packages/water-treatment-engine" }]

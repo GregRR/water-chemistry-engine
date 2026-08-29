@@ -1,5 +1,5 @@
 {
-  "fixture_format": "water-treatment-real-report-v1",
+  "fixture_format": "water-chemistry-real-report-v1",
   "report_id": "cal-water-chico-2025",
   "source_document": {
     "publisher": "California Water Service (Cal Water)",

@@ -21,9 +21,8 @@ make the stated compatibility floor real rather than metadata-only.
 
 ## Decision
 
-The workspace, `water-treatment-engine`, and `water-treatment-web` support
-Python 3.11 and newer. The 0.2 release gate explicitly tests Python 3.11, 3.12,
-3.13, and 3.14.
+`water-chemistry-engine` supports Python 3.11 and newer. The 0.2 release gate
+explicitly tests Python 3.11, 3.12, 3.13, and 3.14.
 
 Python 3.11 is the compatibility baseline:
 
@@ -33,7 +32,7 @@ Python 3.11 is the compatibility baseline:
 - mypy checks Python 3.11 language semantics;
 - unguarded source code must not require syntax or standard-library APIs newer
   than Python 3.11;
-- CI compiles and tests the workspace on every supported Python minor version.
+- CI compiles and tests the engine on every supported Python minor version.
 
 The engine requires `ferm-units>=0.1.2,<0.2.0` so its dependency floor shares
 this compatibility contract.
@@ -46,5 +45,5 @@ this compatibility contract.
 - Type aliases use Python-3.11-compatible `typing.TypeAlias` declarations.
 - Modules with self-referential annotations explicitly postpone annotation
   evaluation so behavior is consistent across Python 3.11 through 3.14.
-- The initial Django web implementation should remain on a release line that
-  supports Python 3.11; ADR 0002 selects Django 5.2 LTS for that purpose.
+- Consumer applications may choose their own runtime floor, but must select a
+  compatible engine release.

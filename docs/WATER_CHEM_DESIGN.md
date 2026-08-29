@@ -1,38 +1,36 @@
-# Water Treatment Engineering Engine Design
+# Water Chemistry Engine Design
 
 **Document:** `docs/WATER_CHEM_DESIGN.md`  
 **Status:** Working design — active implementation  
-**Revision:** 2026-08-25
-**Project:** Water Treatment Calculator / Calculators  
-**Repository:** `water-treatment-calculator`  
-**Engine distribution:** `water-treatment-engine`  
-**Engine import package:** `water_treatment_engine`  
-**Standalone web distribution:** `water-treatment-web`  
+**Revision:** 2026-08-28
+**Project:** Water Chemistry Engine
+**Engine distribution:** `water-chemistry-engine`
+**Engine import package:** `water_chemistry_engine`
 **License:** Mozilla Public License 2.0  
-**Initial audience:** Homebrewers, meadmakers, craft distillers, and small breweries/distilleries
+**Initial audience:** Brewers, meadmakers, distillers, application developers, and other validated water-treatment consumers
 
 ## 1. Purpose
 
-The Water Treatment Engineering Engine is a reusable, scientifically grounded system for analyzing source water and designing practical water blends and treatment plans.
+The Water Chemistry Engine is a reusable, scientifically grounded system for analyzing source water and designing practical water blends and treatment plans.
 
-It is not intended merely to reproduce traditional brewing-water calculators that require users to manually trial salt additions until the displayed ions look close to a target. The engine should accept source-water chemistry, a target profile, available water sources, permitted treatments, and practical constraints, then calculate and rank useful treatment plans automatically.
+It is not intended merely to reproduce traditional brewing-water calculators that require callers to manually trial salt additions until displayed ions look close to a target. The engine should accept source-water chemistry, a target/reference profile, available water sources, permitted treatments, and practical constraints, then calculate and rank useful treatment plans automatically as those capabilities are implemented.
 
-The engine must remain independent of web frameworks, databases, graphical interfaces, operating systems, and hardware. It should be usable by:
+The engine remains independent of web frameworks, databases, graphical interfaces, operating systems, and hardware. It should be usable by:
 
-- the standalone calculator web application;
+- separately maintained web/API applications;
 - Mechani-Brew;
-- future native mobile and desktop applications;
 - Python scripts and notebooks;
-- APIs and third-party software;
-- automated recipe and batch-planning workflows.
+- third-party software and automation;
+- recipe and batch-planning workflows;
+- future alternative-language implementations that conform to versioned contracts and test vectors.
 
 ## 2. Product goals
 
-The project should make sophisticated water treatment approachable without hiding the underlying chemistry or source attribution.
+The project should make sophisticated water treatment reusable and explainable without hiding the underlying chemistry or source attribution.
 
-The system should:
+The engine should:
 
-1. Model source water, target water, blends, treatment additions, and resulting brewing liquor as distinct concepts.
+1. Model source water, target/reference water, blends, treatment additions, and resulting water as distinct concepts.
 2. Preserve the difference between reported, measured, inferred, estimated, and calculated data.
 3. Preserve exact values, ranges, qualified bounds, `ND`/not-detected states, reporting bases, named reported statistics, original units, and source-document metadata.
 4. Blend two or more waters by volume.
@@ -40,16 +38,16 @@ The system should:
 6. Optimize water proportions and treatment additions jointly when appropriate.
 7. Produce several meaningfully different ranked solutions instead of claiming one universal optimum.
 8. Explain why each solution was selected, where it compromises, and why some targets are infeasible.
-9. Show each source water and treatment ingredient's contribution to every modeled ion.
-10. Support dated source-water profiles so an earlier successful brewing liquor can be reproduced from changed current water.
+9. Preserve each source water and treatment ingredient's contribution to every modeled ion.
+10. Support dated source-water profiles so an earlier successful treatment can be reproduced from changed current water.
 11. Use FermUnits for dimensional quantities while retaining water-chemistry semantics in this engine.
 12. Support BeerJSON 1.0 as the current brewing interchange boundary and richer FermentationJSON interchange when its water schemas are ready.
-13. Provide a polished browser interface while keeping all scientific logic outside the interface layer.
+13. Provide a small structured consumer API while keeping all scientific logic out of consuming product layers.
 14. Remain suitable for future conforming implementations in Swift, Kotlin, Dart, JavaScript, or other languages.
 15. Preserve water identity, sampling stage/context, and result-specific timing when reports distinguish them.
 16. Keep regulatory or advisory limits separate from measured or reported water chemistry.
 17. Preserve source-reported disinfectants and other relevant analytes even when the current optimizer does not use them, beginning with chlorine and chloramine reporting.
-18. Treat intended water use as calculation/application context rather than an intrinsic property of a source-water profile.
+18. Treat intended water use as calculation/request context rather than an intrinsic property of a source-water profile.
 
 ## 3. Non-goals
 
@@ -63,13 +61,13 @@ The initial project is not intended to be:
 - a laboratory information-management system;
 - a replacement for qualified laboratory analysis;
 - a claim that matching an ion profile guarantees flavor or product quality;
-- dependent on Mechani-Brew, Django, a database, or any particular application framework.
+- dependent on Mechani-Brew, a database, or any particular application framework.
 
 The architecture may permit later use outside brewing, but Version 1 should optimize for beer, mead, distilling, and closely related fermentation uses.
 
 ## 4. Engineering principles
 
-1. **Keep chemistry separate from presentation.** No equations, conversion rules, or optimization policies belong in templates, browser handlers, or mobile views.
+1. **Keep chemistry separate from consumer presentation.** No equations, conversion rules, or optimization policies belong only in application views, handlers, database models, or other product layers.
 2. **Use explicit quantities.** Dimensional inputs and outputs use FermUnits/Pint quantities or are converted into them at a boundary.
 3. **Preserve meaning as well as magnitude.** `mg/L as CaCO3`, bicarbonate concentration, alkalinity, hardness, conductivity, TDS, and pH are not interchangeable merely because numerical conversions can be written.
 4. **Preserve source attribution and document metadata.** Water identity, publisher, analysis provider when explicitly known, report title/date, observation timing, retrieval date, source URL, page/table reference, and notes must remain attachable without conflating the water itself with the document that reported it.
@@ -93,44 +91,45 @@ The architecture may permit later use outside brewing, but Version 1 should opti
 FermUnits
     │
     ▼
-water-treatment-engine
+water-chemistry-engine
     │
-    ├── water-treatment-web
+    ├── external web/API applications
     ├── Mechani-Brew
-    ├── future native applications
-    ├── Python/API consumers
+    ├── Python/automation consumers
+    ├── alternative conforming implementations
     └── test and research tooling
 
 BeerJSON 1.0 ───────┐
-                    ├── boundary adapters ── water-treatment-engine domain models
+                    ├── boundary adapters ── water-chemistry-engine domain models
 FermentationJSON ───┘
 ```
 
 Responsibilities are intentionally separated:
 
 - **FermUnits** supplies quantity representation, dimensional validation, unit conversion, equivalent chemistry conversions, and explicit unit definitions.
-- **Water Treatment Engine** supplies water-chemistry semantics, reported-value semantics, blending, stoichiometry, comparison, optimization, warnings, and structured results.
+- **Water Chemistry Engine** supplies water-chemistry semantics, reported-value semantics, blending, stoichiometry, comparison, optimization, warnings, and structured results.
 - **BeerJSON/FermentationJSON adapters** translate external interchange documents to and from engine boundary/domain models.
-- **Applications** supply persistence, users, forms, visual presentation, import workflows, and product-specific behavior.
+- **Consumer applications** supply persistence, users, forms, visual presentation, document ingestion/review workflows, and product-specific interaction.
 
-The shared water representation and deterministic water-chemistry capabilities must not acquire coffee-, bread-, or other domain-specific sensory assumptions merely because those applications may later use the same code base. Future domain capabilities should depend on the shared water core rather than forcing the core to depend on a particular product domain. The standalone web application may expose several calculators over time, while downstream applications should consume only the domain capabilities they need; for example, Mechani-Brew should integrate the beer, mead, distilling, and related fermentation-water capabilities without depending on future coffee or bread modules.
+The shared water representation and deterministic water-chemistry capabilities must not acquire coffee-, bread-, or other domain-specific sensory assumptions merely because products may later use the same engine. Future domain capabilities should depend on the shared water core rather than forcing the core to depend on a particular product domain.
 
-The engine must never import the web application, Mechani-Brew, a database ORM, or a platform-specific UI framework.
+When real application use exposes a missing chemistry, water-domain interpretation, validation, optimization, or calculation-semantic capability, that capability belongs in the engine. Presentation, persistence, authentication, workflow, and interaction state remain application responsibilities.
+
+The engine never imports a consumer application, database ORM, or product-specific presentation framework.
 
 ## 6. Tooling decisions
 
 ### 6.1 Python and package management
 
 - Python 3.11 is the minimum supported runtime; CI tests Python 3.11 through 3.14.
-- `uv` for Python installation, dependency resolution, environments, locking, and workspace management.
-- `uv_build` for the current pure-Python workspace packages.
-- Standard `src/` package layouts.
-- A non-installable root workspace project.
+- `uv` for Python installation, dependency resolution, environments, and locking.
+- `uv_build` for the pure-Python engine distribution.
+- A standard single-project `src/` package layout.
 - Tooling should remain as consistent as practical with FermUnits, Mechani-Brew, and the other Calculators projects.
 
 ### 6.2 Current and planned core libraries
 
-- **FermUnits 0.1.x:** required by `water-treatment-engine`; resolved from PyPI with the supported `>=0.1.2,<0.2.0` dependency range. FermUnits 0.1.2 is the minimum release that shares the Python 3.11 compatibility floor.
+- **FermUnits 0.1.x:** required by `water-chemistry-engine`; resolved from PyPI with the supported `>=0.1.2,<0.2.0` dependency range. FermUnits 0.1.2 is the minimum release that shares the Python 3.11 compatibility floor.
 - **Pint:** transitive quantity implementation through FermUnits.
 - **NumPy:** planned for vector/matrix work when the calculation implementation actually requires it.
 - **SciPy:** planned for continuous and mixed-integer optimization when optimization work begins.
@@ -139,16 +138,13 @@ The engine must never import the web application, Mechani-Brew, a database ORM, 
 
 NumPy, SciPy, and other substantial dependencies should not be added merely because they are expected eventually; add them when an implemented feature needs them.
 
-### 6.3 Web application
+### 6.3 Consumer applications and boundaries
 
-- Server-rendered HTML.
-- HTMX for dynamic form fragments, recalculation, profile selection, ranked results, and progressive disclosure.
-- Minimal vanilla JavaScript only where browser-only behavior genuinely requires it.
-- No mandatory React or Node build pipeline for Version 1.
-- Django is the selected server application framework for `water-treatment-web`; it will be introduced when 0.3 implementation begins. The initial implementation should use the Django 5.2 LTS line so the web package can preserve Python 3.11 support.
-- Django ORM persistence remains an application-layer concern and does not enter the reusable engine.
+Consumer products are maintained outside this repository. They may use web frameworks, native frameworks, command-line interfaces, APIs, or other presentation stacks without changing the engine architecture.
 
-The standalone web application is an adapter around the engine. Mechani-Brew will import the same engine directly and render its own seamless interface. See ADR 0002 for the web-stack decision.
+The engine should expose framework-neutral structured inputs, outputs, errors, notices, and eventually versioned request/result contracts. Application persistence and presentation-technology decisions are deliberately outside the engine design.
+
+The first known consumer is a separate web-application project, but its stack is not an engine dependency and is documented outside this repository.
 
 ### 6.4 Quality tooling
 
@@ -161,17 +157,16 @@ The standalone web application is an adapter around the engine. Mechani-Brew wil
 
 ## 7. Repository and packaging strategy
 
-The water-treatment project is a public repository. The commercially sensitive draft-system project is a separate private repository. They share conventions, not a repository.
+The repository is public and engine-only. End-user web, native, and other product implementations are separate projects.
 
 ```text
-water-treatment-calculator/
+water-chemistry-engine/
 ├── .github/
 │   └── workflows/
 │       └── ci.yml
-├── apps/
-│   └── water-treatment-web/
-├── packages/
-│   └── water-treatment-engine/
+├── src/
+│   └── water_chemistry_engine/
+├── tests/
 ├── docs/
 │   ├── WATER_CHEM_DESIGN.md
 │   ├── WATER_CHEM_REFERENCES.md
@@ -195,9 +190,13 @@ water-treatment-calculator/
 └── README.md
 ```
 
-The engine and web application are independently installable workspace members. The web package depends on the engine; the engine does not depend on the web package.
+`water-chemistry-engine` is the only installable distribution in this
+repository. The repository root is the Python project root, and the importable
+package lives under `src/water_chemistry_engine/`. The former monorepo-style
+`packages/` wrapper is unnecessary now that consumer applications are separate
+projects.
 
-No `calculators-common` package should be introduced until at least two calculator projects demonstrate a stable concrete need that is genuinely shared.
+No shared calculator-core package should be introduced until at least two concrete projects demonstrate a stable requirement that is genuinely shared and does not belong in this engine.
 
 ## 8. Current engine package structure
 
@@ -429,21 +428,17 @@ source-water state
         └──────────────── each state may be passed to calculate_ph(...)
 ```
 
-The main product use case is calculating pH for the **working water** after the user has selected source water(s), blending proportions, and treatment additions. The web UI should expose a single **Calc pH** action for that workflow. One click may evaluate every meaningful current checkpoint and update both the blend pH and final treated-water pH when both states exist. These are two results from the same engine capability, not two different pH algorithms or necessarily two different buttons. If there is no chemically distinct intermediate state, the UI should avoid presenting duplicate values.
-
-A source report that omits pH may optionally offer a separately labeled **Estimate pH** action when sufficient chemistry is present. It must call the same `calculate_ph(...)` capability. Missing source pH is allowed to remain unknown; the engine must never manufacture a value merely to fill a report field.
-
 Calculated pH must obey these rules:
 
 1. It never overwrites or populates `ReportedPH`.
-2. It is stored/returned as derived result data associated with the chemical state being evaluated.
+2. It is returned as derived result data associated with the chemical state being evaluated.
 3. It identifies the chemistry model/version, assumptions, relevant temperature/reference conditions, source fields used, and warnings/approximation status where applicable.
 4. If the supplied state is scientifically insufficient for the selected model, return an explicit insufficient-data result rather than guessing.
-5. Changing source composition, blend fractions, treatment additions, temperature, or other model-relevant inputs invalidates the previously calculated pH for that state.
-6. The calculation should not display precision unsupported by the model or inputs.
-7. The reusable pH capability belongs in `water-treatment-engine`; HTMX handlers and other clients only construct/select the state and request the calculation.
+5. Changing composition, temperature, or other model-relevant inputs invalidates the previously calculated pH for that state.
+6. The calculation must not imply precision unsupported by the model or inputs.
+7. The reusable pH capability belongs in `water-chemistry-engine`; consumer applications only construct/select the state and request the calculation.
 
-This working-water calculation is distinct from **recipe-aware mash-pH prediction**. Mash pH additionally depends on grain buffering and mash-specific chemistry and remains a later advanced feature even though it may ultimately reuse lower-level acid/base or equilibrium components.
+Working-water pH is distinct from **recipe-aware mash-pH prediction**. Mash pH additionally depends on grain buffering and mash-specific chemistry and remains a later advanced feature even though it may ultimately reuse lower-level acid/base or equilibrium components.
 
 ### 9.8 Reported statistic semantics
 
@@ -918,65 +913,13 @@ The engine models and FermentationJSON schemas should be semantically compatible
 
 FermentationJSON should maintain lossless import of all BeerJSON 1.0-defined information and report losses when richer FermentationJSON data is exported back to BeerJSON.
 
-## 14. AI-assisted PDF water-report import
+## 14. External report-ingestion boundary
 
-AI-assisted report import is a planned web-application feature, not an engine dependency.
+Document parsing, OCR/AI extraction, confidence scoring, user review, and persistence are consumer-application responsibilities and are not engine dependencies.
 
-### 14.1 User workflow
+The engine receives structured candidate data only after the consumer has established the intended source/report identity and measurement interpretation. Engine-domain validation must then preserve the same scientific contracts used for manually constructed profiles, including ranges, qualified/censored values, `ND`, reported statistics, pH semantics, alkalinity/hardness basis, chlorine/chloramine identity, timing/context, and source-document metadata.
 
-1. User uploads a municipal, bottled-water, or laboratory water-quality PDF.
-2. The application extracts document text/tables and identifies candidate water chemistry and metadata.
-3. AI-assisted extraction produces structured candidate fields, not final trusted engine data.
-4. Deterministic validation checks units, ranges, reporting bases, and value consistency.
-5. FermUnits normalizes accepted dimensional quantities.
-6. The UI shows the extracted values for user review and correction before saving.
-7. Accepted data becomes a `SourceWaterProfile` with explicit water identity and source-document metadata.
-
-### 14.2 Required extraction behavior
-
-The importer should attempt to preserve:
-
-- calcium, magnesium, sodium, potassium;
-- chloride, sulfate, bicarbonate only when actually reported;
-- free chlorine, total chlorine, combined chlorine, chloramine/named chloramine species, and chlorine dioxide when actually reported;
-- supported reported analytes that are relevant to later quality or treatment decisions even when the current optimizer does not consume them;
-- pH;
-- alkalinity with explicit reporting basis;
-- hardness with explicit reporting basis;
-- TDS;
-- conductivity and reference temperature;
-- exact values;
-- ranges, including qualified/censored endpoints;
-- ordinary reported averages and other named reported statistics;
-- upper and lower bounds;
-- `ND` / not-detected states;
-- detection/reporting limits when actually supplied;
-- units and reporting bases;
-- provider/report title/date;
-- profile/report sample or analysis period;
-- result-specific sample date/period when present;
-- provider, brand, product/water type, and physical source when distinguishable;
-- sampling context/water stage;
-- page/table/section location;
-- extraction confidence where useful.
-
-### 14.3 Prohibited behavior
-
-The AI/import layer must not:
-
-- silently convert alkalinity to bicarbonate;
-- replace reported values with inferred values;
-- invent dates that are not present;
-- treat a range midpoint as a reported average;
-- arithmetic-average pH values;
-- save extracted values without a user-review opportunity in the normal interactive workflow;
-- coerce `ND` to zero;
-- treat a regulatory/advisory limit as the measured result;
-- collapse RAA, LRAA, percentile, highest/lowest, or another named statistic into an ordinary `reported_average`;
-- confuse chloride with chlorine/chloramine or map one into the other;
-- derive combined chlorine or chloramine from total and free chlorine without an explicit, documented analytical rule and derived-data label.
-
-Document parsing and AI extraction remain outside `water-treatment-engine`; the engine receives validated structured data.
+An ingestion workflow must never rely on the engine to invent missing report facts or silently reinterpret ambiguous values. Reusable deterministic import helpers may be added later only when multiple concrete consumers demonstrate a stable engine-level boundary.
 
 ## 15. Calculation pipeline
 
@@ -1023,98 +966,38 @@ Blending and treatment remain distinct operations internally even when optimized
 
 Reported/derived semantics are resolved before a calculation uses a representative value. The calculation layer must never guess silently.
 
-The pH capability is reusable and state-based. The web application's **Calc pH** action may request pH for both the blended-water and final treated-water states in one interaction, while a source-profile **Estimate pH** action may pass a source state to the same engine capability.
+The pH capability is reusable and state-based. Any consumer may request pH for a source, blended-water, or final treated-water state when the model's input contract is satisfied; the engine exposes one calculation rather than product-specific variants.
 
 ## 16. Version 1.0 scope and release sequence
 
-Version 1.0 remains the stable general-purpose water-treatment application, but development reaches a usable web application earlier. The release sequence is deliberately incremental:
+Version 1.0 is the stable reusable engine, not an end-user application release. Consumer products may begin earlier against pinned pre-1.0 engine versions and should feed integration findings back into the engine deliberately.
 
-- **0.2:** deterministic source -> blend -> additions -> result -> target/reference comparison;
-- **0.3:** first genuinely usable web application around that forward path;
-- **0.4:** curated target/reference data, including defensible early coffee/tea/dough references where the generic model is sufficient;
-- **0.5:** first automatic blend/mineral optimizer;
-- **0.6:** ranked practical treatment strategies and dose rounding;
-- **0.7:** reusable working-water pH and richer diagnostics when scientifically validated;
-- **0.8:** BeerJSON/FermentationJSON interchange, persistence, conformance work, and 1.0 hardening;
-- **1.0:** stable release of the complete supported workflow.
+The release sequence is incremental:
 
-The web application therefore does **not** wait for the optimization core, interchange adapters, or AI-assisted report ingestion.
+- **0.2:** deterministic source -> fixed blend -> mineral additions -> result -> target/reference path;
+- **0.3:** supported consumer-facing Python API around the proven forward path;
+- **0.4:** curated and classified target/reference data;
+- **0.5:** first automatic treatment optimizer;
+- **0.6:** ranked practical treatment strategies;
+- **0.7:** reusable working-water pH and richer diagnostics if scientifically ready;
+- **0.8:** BeerJSON/FermentationJSON interchange, versioned contracts, conformance work, and 1.0 hardening;
+- **1.0:** stable documented engine and conformance boundary.
 
 ### 16.1 Version 1 engine capabilities
 
-1. **Water-profile modeling**
-   - Source and target/reference profiles.
-   - Dated and period-based source-document/report context, with result-specific timing where reports require it.
-   - Exact, ranged, bounded, not-detected, qualified-endpoint, and reported-statistic semantics.
-   - Explicit alkalinity/hardness bases.
-   - Correct nonlinear pH semantics.
-   - Water identity and sampling-stage/context preservation.
-   - Regulatory/reference thresholds kept separate from chemistry.
-   - Preservation of source-reported disinfectants and other supported non-optimization analytes, beginning with chlorine/chloramine reporting.
+1. **Reported source-water representation** preserving exact/ranged/bounded/`ND` values, statistics, pH, reporting bases, identity, timing/context, provenance, and supported disinfectants.
+2. **Target/reference semantics** that distinguish desired targets from sourced references and preserve evidentiary classification/provenance.
+3. **Deterministic forward treatment** through explicit source resolution, fixed multi-source blending, supported mineral additions, derived blend/final states, contribution accounting, preparation instructions, notices, and target comparison.
+4. **Automatic optimization** for supported blends/additions with explicit feasibility/compromise diagnostics, practical rounding, and ranked named policies.
+5. **Reusable working-water pH** only if a defensible state-based model, minimum-input contract, reference cases, and limitations are validated. Missing support remains explicit rather than guessed.
+6. **Interchange and conformance** through BeerJSON/FermentationJSON adapters where appropriate, versioned result/request contracts, reference data, and portable test vectors.
+7. **Supported consumer API** that remains framework-neutral and does not return HTML, ORM objects, or product-specific state.
 
-2. **Deterministic forward calculation**
-   - Resolve source profiles into calculation states only under explicit representative-value rules.
-   - Blend two or more sources by user-entered volume/fraction.
-   - Apply validated mineral additions.
-   - Produce explicit blended and final treated-water states.
-   - Preserve per-source and per-treatment contributions.
-   - Never turn an unknown starting concentration into zero.
+### 16.2 Consumer-facing API milestone (0.3)
 
-3. **Profile comparison**
-   - Raw differences.
-   - Range satisfaction.
-   - Hard-limit violations where applicable.
-   - Weighted/scored comparison only where the policy is documented.
-   - Charge-balance diagnostic when enough data exist.
+The current 0.2 module APIs are sufficient for pinned early consumers, but `water_chemistry_engine.__init__` exports only `__version__`. Release 0.3 should establish a small documented facade around the proven forward-calculation boundary, provide integration examples, define pre-1.0 compatibility expectations, and add tests for the supported surface.
 
-4. **Automatic treatment optimization**
-   - Joint blend-and-mineral optimization.
-   - Source availability/volume constraints.
-   - User-permitted ingredients.
-   - Closest practical match first, then additional named policies.
-   - Mixed-integer methods only where a concrete policy needs them.
-
-5. **Practical dosing and explainability**
-   - Configurable weighing precision and practical rounding.
-   - Full recalculation after rounding.
-   - Validated addition limits where established.
-   - Machine-readable warnings/explanation codes.
-   - Unreachable-target and multi-ion-coupling explanations.
-   - Explicit assumptions and representative-value choices.
-
-6. **Reusable working-water pH calculation**
-   - One engine capability accepts a normalized aqueous chemical state rather than UI-specific source/blend/final-water requests.
-   - The same capability may evaluate source, blended, and final states when the selected model has sufficient inputs.
-   - Calculated pH is derived data and never overwrites `ReportedPH`.
-   - Insufficient chemistry returns an explicit insufficient-data result rather than a guessed value.
-   - Results retain model/version, assumptions, relevant temperature/reference conditions, and warnings.
-   - If a defensible model is not ready, derived pH may remain unsupported/unknown without blocking the rest of Version 1.
-   - This is working-water pH, not recipe-aware mash-pH prediction.
-
-7. **Interchange and versioned results**
-   - BeerJSON 1.0 adapters after the first usable UI, with explicit loss reporting for richer engine data.
-   - FermentationJSON adapters after the first usable UI and when the relevant schema stabilizes.
-   - Versioned calculation/test-vector representation.
-
-### 16.2 First usable standalone web application (0.3)
-
-The first useful UI intentionally precedes automatic optimization. It requires:
-
-- responsive desktop, tablet, and phone layouts;
-- manual source-water entry;
-- built-in RO/distilled profiles and a small validated profile set;
-- target/reference selection and user-entered targets;
-- fixed user-entered blending;
-- supported mineral-addition entry;
-- batch volume and explicit unit selection;
-- source/target difference display;
-- blended/final chemistry display;
-- contribution detail;
-- treatment/blending instructions;
-- explicit unknown/not-calculated states;
-- no account for basic calculations.
-
-BeerJSON, FermentationJSON, AI report ingestion, ranked optimization, and derived pH are not prerequisites for this first usable interface.
+Convenience helpers should be driven by real consumer friction. They must not erase reported-value semantics, silently choose representative values, or move scientific/domain policy into an application.
 
 ### 16.3 Version 1 reference data
 
@@ -1130,19 +1013,16 @@ Coffee is the strongest early candidate because formal published water standards
 
 ### 16.4 Deliberately deferred from the Version 1 critical path
 
-- AI-assisted PDF/report ingestion (planned as an early post-1.0 workflow);
 - recipe-dependent mash-pH prediction;
 - grain buffering models;
 - acid and alkali optimization;
 - recipe-aware separate mash/sparge optimization;
 - general-purpose geochemical equilibrium, precipitation, and solubility modeling beyond focused validated needs;
 - robust uncertainty propagation through optimization;
-- detailed inventory/purchasing/package management;
-- sophisticated cost optimization;
-- multi-batch production planning;
+- sophisticated cost or multi-batch planning beyond reusable caller-supplied constraints;
 - a generalized non-additive `TreatmentOperation` framework for activated carbon, ion exchange, modeled reverse osmosis, deaeration, softening, and similar processes.
 
-Deferred ideas are preserved in `docs/FUTURE_CAPABILITIES.md` rather than removed.
+Product-owned document extraction/review, persistence, accounts, and user-interface milestones are outside the engine roadmap.
 
 ## 17. Version 2.0 — advanced brewing-water chemistry
 
@@ -1182,7 +1062,7 @@ Version 3 is reserved for genuine domain-specific scientific models, not merely 
 - lacto-fermented vegetables;
 - other fermented foods and beverages.
 
-These modules may share source-water composition, blending, source-attribution metadata, treatment, target/reference, and optimization infrastructure while retaining their own constituents, targets, treatment rules, sensory/process priorities, warnings, references, and validation suites. The standalone web application may host several such calculators over the shared engine, while downstream applications consume only the domains they need.
+These modules may share source-water composition, blending, source-attribution metadata, treatment, target/reference, and optimization infrastructure while retaining their own constituents, targets, treatment rules, sensory/process priorities, warnings, references, and validation suites. Consumer applications may expose whichever validated domains they need without forcing domain-specific assumptions into the shared water core.
 
 The project must not imply that one generic ion-matching score predicts sensory quality across all foods or beverages.
 
@@ -1269,9 +1149,9 @@ Results must distinguish:
 - density: kilogram per liter or gram per milliliter;
 - conductivity: microsiemens per centimeter where used canonically.
 
-### 21.2 Input and display units
+### 21.2 Consumer input and display units
 
-The interface may accept and display:
+Consumer boundaries may accept or display quantities such as:
 
 - liters, milliliters, hectoliters;
 - US liquid gallons, quarts, pints, fluid ounces;
@@ -1285,7 +1165,7 @@ The interface may accept and display:
 - hardness/alkalinity reporting units;
 - brewing addition rates such as g/L, g/US gal, g/hL, and lb/US beer barrel.
 
-Locale selects defaults only. It must never change the meaning of stored data.
+The engine should normalize dimensional quantities without conflating unit conversion with chemical reporting semantics. Locale and product presentation are consumer concerns and must never change stored/scientific meaning.
 
 ### 21.3 FermUnits boundary
 
@@ -1308,35 +1188,34 @@ implemented feature requires them.
 
 ## 22. Public API direction
 
-The eventual public API should accept platform-neutral structured requests and return structured results and stable warning/explanation codes.
+Release 0.3 should establish a deliberately small supported Python facade. The public API accepts framework-neutral structured requests/domain objects and returns structured results plus stable warning/explanation codes.
 
-Illustrative direction only:
+The 0.2 implementation already exposes the forward workflow through module-level APIs such as `ForwardWaterSource`, `SourceResolutionPolicy`, `TreatmentAddition`, and `calculate_forward_water(...)`. Those paths are usable by pinned pre-1.0 consumers but are not yet the final top-level facade.
+
+Illustrative future direction only:
 
 ```python
-from water_treatment_engine import blend_waters, calculate_ph, optimize_treatment
+from water_chemistry_engine import calculate_forward_water
 
-blend_result = blend_waters(...)
-ph_result = calculate_ph(chemical_state)
-optimization_result = optimize_treatment(...)
+result = calculate_forward_water(...)
 ```
 
-The public API must not return HTML or depend on application database objects.
+Future capabilities such as `calculate_ph(...)` and `optimize_treatment(...)` should join the public facade only when their scientific contracts are implemented and validated.
 
-Request/result schemas should be versioned independently enough that future native clients can conform without embedding Python.
+The public API must not return HTML or depend on application database objects. Convenience APIs must not silently hide source-resolution policy, unknowns, or scientific assumptions.
 
-## 23. Mobile and cross-platform strategy
+## 23. Cross-platform conformance strategy
 
-The Python engine is the reference implementation, not necessarily the runtime used by every future client.
+The Python engine is the reference implementation, not necessarily the runtime used by every future consumer.
 
-For mobile/offline use:
+The engine should:
 
-1. stabilize engine behavior and domain contracts;
-2. publish versioned request/result schemas and conformance vectors;
-3. build the web product;
-4. implement native or cross-platform clients as product needs justify;
-5. require alternative implementations to pass shared conformance vectors.
+1. stabilize behavior and domain contracts;
+2. publish versioned request/result schemas where a platform-neutral contract is justified;
+3. publish portable conformance vectors;
+4. require alternative implementations to pass the shared vectors before claiming equivalent behavior.
 
-This avoids coupling future iOS/Android products to an embedded Python runtime while preserving calculation consistency.
+This preserves calculation consistency without making the engine repository own any particular native/mobile product.
 
 ## 24. Testing and validation strategy
 
@@ -1418,13 +1297,13 @@ Portable versioned request/result pairs should allow Swift, Kotlin, Dart, JavaSc
 - Never confuse chloride with chlorine, total chlorine, or chloramine; preserve the source's disinfectant terminology and reporting basis.
 - Keep source citations, report periods, and data dates visible.
 - Prevent malformed units and impossible values from reaching optimizers.
-- Put critical calculation limits in the engine, not only in UI validation.
+- Put critical calculation limits in the engine, not only in consumer-side validation.
 - Do not present target matching as a guarantee of flavor, fermentation performance, or safety.
-- AI-extracted report values require deterministic validation and user review before normal persistence.
+- Externally extracted report values require deterministic engine validation before they are treated as normal source-profile data; interactive review policy belongs to the consuming product.
 
 ## 26. Current implementation status
 
-As of this revision, the repository foundation supports Python 3.11 through 3.14, with Python 3.11 as the compatibility baseline, plus uv, Ruff, mypy, pytest, Hypothesis, GitHub Actions, independently installable engine/web packages, and FermUnits 0.1.2 from PyPI. CI executes the runtime test suite across Python 3.11, 3.12, 3.13, and 3.14, while Ruff and mypy are configured against Python 3.11 language semantics. The reproducible workspace gate synchronizes all packages and development dependencies before running formatting, linting, strict typing, tests, and distribution builds.
+As of this revision, the engine repository supports Python 3.11 through 3.14, with Python 3.11 as the compatibility baseline, plus uv, Ruff, mypy, pytest, Hypothesis, GitHub Actions, the installable `water-chemistry-engine` distribution, and FermUnits 0.1.2 from PyPI. CI executes the runtime test suite across Python 3.11, 3.12, 3.13, and 3.14, while Ruff and mypy are configured against Python 3.11 language semantics. The reproducible project gate synchronizes the engine and development dependencies before running formatting, linting, strict typing, tests, and the engine distribution build.
 
 Implemented and tested domain work includes:
 
@@ -1451,21 +1330,21 @@ Implemented and tested domain work includes:
 - five data-driven real-report fixtures: Santa Cruz, Niagara, Primo/Sparkletts, Cal Water/Chico, and Bend;
 - focused reported-disinfectant preservation, including unqualified chlorine, free/total/combined chlorine, chloramine/named chloramine species, chlorine dioxide, source labels/bases, and result context/statistics.
 
-The full workspace gate is maintained with Ruff formatting/lint checks, strict mypy, and pytest. Hypothesis property tests exercise core blend, contribution-accounting, and target-comparison invariants in addition to the example-based suite.
+The full project gate is maintained with Ruff formatting/lint checks, strict mypy, and pytest. Hypothesis property tests exercise core blend, contribution-accounting, and target-comparison invariants in addition to the example-based suite.
 
 The real-report pressure-test phase has served its immediate purpose. Additional reports should be added only when they expose a genuinely new semantic or scientific requirement rather than simply increasing fixture count.
 
 First-class source-report preservation of chlorine/chloramine and related disinfectant reporting is now implemented. The Santa Cruz 2025 fixture pressure-tests an unqualified distribution-system `Chlorine` result as its own reported disinfectant rather than inferring free chlorine or mapping the result to chloride. Treatment/removal modeling remains deliberately out of scope for this representation layer.
 
-Release 0.2 completes the **deterministic forward treatment calculation** boundary. Validated simple treatment-ingredient identities, generic stoichiometric ion contributions, exact derived aqueous chemical states, forward application of one or more additions to a known water volume, explicit source-profile-to-derived-state resolution, fixed source-water blending by volume or fraction, structured target/reference comparison, and end-to-end orchestration across those boundaries are implemented. The forward-calculator result retains every source-resolution result, the normalized fixed-blend result, treatment-application result, explicit blend/final states, and optional source/blend/final target comparisons rather than flattening the workflow into final numbers. Blend and treatment results both preserve structured per-ion resolution outcomes and contribution detail while keeping unknown totals unknown. Target comparison preserves exact/range/bound satisfaction and signed deviation, keeps missing state ions indeterminate, refuses to reinterpret qualified ranges or `ND` as numeric targets, and retains target pH as explicitly not calculated until a validated working-water pH model exists. Boundary classification uses a 1e-9 mg/L absolute tolerance solely to suppress floating-point representation noise from otherwise exact deterministic arithmetic; this tolerance is not a chemical, sensory, or user-facing "close enough" policy. A combined row-per-ion contribution matrix now reshapes the existing blend and treatment audit records for presentation without recalculating chemistry. It preserves each source and treatment as a stable column, distinguishes positive-volume unknown source chemistry from zero-volume sources, distinguishes noncontributing treatment ingredients from unknown data, and retains known partial source/treatment contribution subtotals without presenting them as complete totals when the blend or final concentration is unresolved. Structured preparation instructions now transform those already-calculated blend/treatment results into deterministic human-readable actions while retaining canonical quantities for UI reformatting. Zero-volume sources and zero-mass treatment rows remain in the calculation/audit results but are omitted from actionable instruction text because they require no physical action. Forward-result notices now surface the calculation assumptions and result limitations that a UI should not have to reconstruct from nested audit records: midpoint use, unresolved contributing source results, first-order carbonate-species blending, the complete-dissolution treatment model, unknown final-target actuals, unsupported final-target criteria, and deferred final-target-pH comparison. Source- and blend-stage target comparisons remain available on their own structured results rather than duplicating target notices at every stage. These notices do not change chemistry and preserve structured codes/context alongside deterministic English messages. That completes the deterministic 0.2 forward-result boundary; the next implementation focus is the first usable web application.
+Release 0.2 completes the **deterministic forward treatment calculation** boundary. Validated simple treatment-ingredient identities, generic stoichiometric ion contributions, exact derived aqueous chemical states, forward application of one or more additions to a known water volume, explicit source-profile-to-derived-state resolution, fixed source-water blending by volume or fraction, structured target/reference comparison, and end-to-end orchestration across those boundaries are implemented. The forward-calculator result retains every source-resolution result, the normalized fixed-blend result, treatment-application result, explicit blend/final states, and optional source/blend/final target comparisons rather than flattening the workflow into final numbers. Blend and treatment results both preserve structured per-ion resolution outcomes and contribution detail while keeping unknown totals unknown. Target comparison preserves exact/range/bound satisfaction and signed deviation, keeps missing state ions indeterminate, refuses to reinterpret qualified ranges or `ND` as numeric targets, and retains target pH as explicitly not calculated until a validated working-water pH model exists. Boundary classification uses a 1e-9 mg/L absolute tolerance solely to suppress floating-point representation noise from otherwise exact deterministic arithmetic; this tolerance is not a chemical, sensory, or user-facing "close enough" policy. A combined row-per-ion contribution matrix now reshapes the existing blend and treatment audit records for presentation without recalculating chemistry. It preserves each source and treatment as a stable column, distinguishes positive-volume unknown source chemistry from zero-volume sources, distinguishes noncontributing treatment ingredients from unknown data, and retains known partial source/treatment contribution subtotals without presenting them as complete totals when the blend or final concentration is unresolved. Structured preparation instructions now transform those already-calculated blend/treatment results into deterministic human-readable actions while retaining canonical quantities for consumer reformatting. Zero-volume sources and zero-mass treatment rows remain in the calculation/audit results but are omitted from actionable instruction text because they require no physical action. Forward-result notices now surface calculation assumptions and result limitations that consumers should not have to reconstruct from nested audit records: midpoint use, unresolved contributing source results, first-order carbonate-species blending, the complete-dissolution treatment model, unknown final-target actuals, unsupported final-target criteria, and deferred final-target-pH comparison. Source- and blend-stage target comparisons remain available on their own structured results rather than duplicating target notices at every stage. These notices do not change chemistry and preserve structured codes/context alongside deterministic English messages. That completes the deterministic 0.2 forward-result boundary; the next engine focus is a deliberate supported consumer-facing API around these proven capabilities.
 
 ## 27. Development milestones
 
 ### Milestone 0 — repository foundation — substantially complete
 
 - public repository and MPL-2.0 license;
-- uv workspace;
-- engine and web package skeletons;
+- single-project uv/`src` packaging;
+- engine package skeleton;
 - Ruff, mypy, pytest, Hypothesis, CI;
 - core design and roadmap documents.
 
@@ -1485,8 +1364,6 @@ Completed:
 - five data-driven real-report fixtures exercising the implemented semantics;
 - reported disinfectant preservation beginning with chlorine/chloramine.
 
-Interchange adapters are no longer part of this milestone's exit criteria; they are intentionally deferred until after the first usable web interface.
-
 ### Milestone 2 / release 0.2 — deterministic forward calculator — complete
 
 Completed:
@@ -1501,20 +1378,16 @@ Completed:
 - end-to-end forward orchestration from reported source profiles through source resolution, fixed blending, mineral additions, explicit blend/final states, and optional source/blend/final target comparison;
 - combined source/treatment contribution matrices built from existing audit records without a second chemistry calculation;
 - structured human-readable preparation instructions built from the fixed blend and treatment results without a second chemistry calculation;
-- structured forward-result notices for material calculation assumptions, unresolved contributing source values, treatment-model assumptions, target limitations, and deferred target-pH comparison.
+- structured forward-result notices for material calculation assumptions, unresolved contributing source values, treatment-model assumptions, target limitations, and deferred target-pH comparison;
+- Python 3.11–3.14 runtime support with Python 3.11 as the compatibility baseline.
 
-### Milestone 3 / release 0.3 — first usable web application
+### Milestone 3 / release 0.3 — supported consumer API
 
-- manual source entry and profile selection;
-- target/reference selection and entry;
-- fixed blending;
-- manual supported mineral additions;
-- source/blend/final comparison displays;
-- contribution detail and treatment instructions;
-- responsive, localization-ready quantity controls;
-- clear unknown/not-calculated states.
-
-This milestone deliberately does not require optimization, BeerJSON, FermentationJSON, AI report ingestion, or derived working-water pH.
+- documented top-level/public forward-calculation facade;
+- integration examples around the 0.2 workflow;
+- API-level compatibility tests;
+- explicit pre-1.0 request/result evolution policy;
+- application-driven convenience improvements only where they preserve scientific semantics.
 
 ### Milestone 4 / release 0.4 — curated target/reference data
 
@@ -1547,44 +1420,38 @@ A weak pH approximation is not a release requirement; unsupported derived pH may
 - BeerJSON import/export with explicit loss reporting;
 - FermentationJSON adapters when its water schema is ready;
 - stable calculation/result contracts;
-- persistence/profile workflow refinements;
 - expanded authoritative reference tests and conformance vectors;
-- accessibility/responsive review;
 - chemistry model, package, optimizer, and reference-data versioning.
 
 ### Milestone 8 — Version 1.0 release
 
-- stable end-to-end manual and optimized treatment workflow;
-- stable web application;
+- stable end-to-end manual and optimized engine workflow;
+- stable supported consumer API;
 - documented assumptions, operating limits, and unsupported calculations;
 - complete release/conformance gate.
 
 ### Early post-1.0
 
-- AI-assisted PDF/report extraction and review workflow;
-- purpose-aware brewery-water guidance using request/application context;
+- purpose-aware brewery-water guidance using request context;
 - additional treatment chains as concrete validated requirements justify them.
 
 ## 28. Open design questions
 
 1. Exact boundary between frozen dataclasses and Pydantic boundary models.
-2. Exact Django model/form boundaries and persistence workflow for `water-treatment-web` as 0.3 implementation begins.
+2. Exact supported top-level API surface for release 0.3 and which current module paths remain public.
 3. Whether SciPy's MILP support is sufficient for all Version 1 discrete policies.
 4. First authoritative composition sources for each included treatment ingredient.
 5. Redistribution/licensing policy for historical city, brewery, and style targets.
-6. Exact BeerJSON water adapter behavior and structured loss-report schema for the post-UI interchange milestone.
+6. Exact BeerJSON water adapter behavior and structured loss-report schema.
 7. Exact FermentationJSON water-profile and treatment-plan adapter contract once its schema is stable enough to implement.
 8. Whether additional alkalinity normalization belongs partly in FermUnits or entirely in engine semantics.
 9. How target-match scores should be normalized and explained.
-10. Which ions/properties belong in the default UI panel vs. advanced display.
-11. Whether charge-balance diagnostics should only warn or may optionally suggest likely missing information without altering source data.
-12. How regulatory/reference thresholds should be represented when preserved for report fidelity without contaminating chemistry models.
-13. Exact aqueous equilibrium/activity model, validated reference data, and minimum chemical-state inputs for the reusable `calculate_ph(...)` capability.
-14. Whether optional source-profile **Estimate pH** belongs in the Version 1 UI or should wait until the working-water pH workflow is validated.
-15. Long-term source for FermUnits dependency after GitHub-tag development use.
-16. Exact reusable representation for reported disinfectants and other non-optimization analytes once chlorine/chloramine support expands beyond the first concrete cases.
-17. First validated set of intended-water-use values for early post-1.0 purpose-aware guidance versus deeper Version 2 models.
-18. Exact generic metadata vocabulary for target versus reference profile classification without overfitting to coffee, tea, or dough.
+10. Whether charge-balance diagnostics should only warn or may optionally suggest likely missing information without altering source data.
+11. How regulatory/reference thresholds should be represented when preserved for report fidelity without contaminating chemistry models.
+12. Exact aqueous equilibrium/activity model, validated reference data, and minimum chemical-state inputs for the reusable `calculate_ph(...)` capability.
+13. Exact reusable representation for reported disinfectants and other non-optimization analytes once chlorine/chloramine support expands beyond the first concrete cases.
+14. First validated set of intended-water-use values for early post-1.0 purpose-aware guidance versus deeper Version 2 models.
+15. Exact generic metadata vocabulary for target versus reference profile classification without overfitting to coffee, tea, or dough.
 
 ## 29. Versioning policy
 
@@ -1599,16 +1466,18 @@ Version independently where appropriate:
 - FermentationJSON adapter/schema compatibility;
 - cross-platform conformance-vector versions.
 
-A UI-only patch should not imply that saved chemistry results were produced by a new model. Conversely, a change to stoichiometric data, representative-value policy, pH aggregation, or scoring semantics must be traceable even if the public Python API remains source-compatible.
+A consumer-application-only change should not imply that chemistry results were produced by a new engine model. Conversely, a change to stoichiometric data, representative-value policy, pH aggregation, or scoring semantics must be traceable even if the public Python API remains source-compatible.
 
 ## 30. Summary decision
 
-The project now prioritizes a complete usable vertical slice before advanced optimization and integration work. Release 0.2 completes deterministic source -> blend -> treatment -> result -> target/reference calculations; 0.3 places that workflow behind a functional responsive web interface. Automatic optimization follows rather than blocking the UI.
+The repository is now explicitly the open-source Water Chemistry Engine rather than a combined engine-and-application project. Release 0.2 completes deterministic source -> blend -> treatment -> result -> target/reference calculations and establishes Python 3.11 as the compatibility baseline. Release 0.3 will make those capabilities easier and safer for external products to consume through a deliberate supported API.
 
-Version 1 will provide a reusable, explainable water-treatment engineering system for supported beer, mead, and distilling workflows while keeping the underlying water engine generic. It preserves real-world source-report semantics—including exact values, ranges, bounds, `ND`, qualified endpoints, named statistics, reporting bases, timing, water identity, sampling context, source-document metadata, and source-reported disinfectants such as chlorine/chloramine—while supporting multiple sources, exact and ranged targets/references, practical mineral additions, final-state comparison, automatic and ranked treatment plans, contribution tables, source/reference attribution, localization, and a responsive web interface. Intended water use remains calculation/application context rather than part of source-water identity.
+Consumer applications may begin now against pinned 0.2 APIs. Their development is expected to pressure-test the engine and reveal useful improvements, but the ownership boundary is strict: chemistry, water-domain interpretation, validation, optimization, calculation semantics, and scientific notices belong in the engine; presentation, persistence, authentication, workflow, and interaction state belong in the application.
+
+Version 1 will provide a reusable, explainable water-chemistry engine for supported beer, mead, and distilling workflows while keeping the underlying water core generic. It preserves real-world source-report semantics—including exact values, ranges, bounds, `ND`, qualified endpoints, named statistics, reporting bases, timing, water identity, sampling context, source-document metadata, and source-reported disinfectants such as chlorine/chloramine—while supporting multiple sources, exact and ranged targets/references, practical mineral additions, final-state comparison, automatic and ranked treatment plans, contribution data, source/reference attribution, and stable consumer contracts. Intended water use remains calculation/request context rather than part of source-water identity.
 
 The engine deliberately distinguishes reported from derived chemistry. Linear ranges may use an on-demand midpoint only when no reported average exists, both endpoints are exact, and the caller explicitly enables midpoint resolution through `SourceResolutionPolicy`. Qualified ranges do not receive an automatic representative value. pH is explicitly excluded from generic linear averaging because it is logarithmic: range endpoints are preserved, reported averages are trusted only when actually reported, and any derived pH calculation uses an explicit scientifically documented aqueous model. A missing derived-pH model must not block otherwise valid forward treatment calculations.
 
 Well-sourced coffee, tea, bread, sourdough, or pizza target/reference data may be added early when the generic water machinery can represent it. This does not imply that a complete domain-specific predictive engine exists. Regional, historical, practitioner, experimental, standard, and optimized profiles must retain distinct evidentiary classifications.
 
-BeerJSON and FermentationJSON adapters are intentionally scheduled after the first usable web application. FermentationJSON remains the intended richer long-term interchange representation without constraining the internal engine model or diminishing BeerJSON compatibility. AI-assisted report ingestion is intentionally outside the Version 1 critical path and is planned as an early post-1.0 workflow.
+BeerJSON and FermentationJSON adapters are intentionally later engine milestones so they do not block the supported forward-calculation API. FermentationJSON remains the intended richer long-term interchange representation without constraining the internal engine model or diminishing BeerJSON compatibility. Product-owned AI/document extraction and review workflows remain outside the engine repository.
