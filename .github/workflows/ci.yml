@@ -25,6 +25,7 @@ jobs:
         with:
           version: "0.12.3"
           enable-cache: true
+          cache-suffix: "python-${{ matrix.python-version }}"
 
       - name: Install Python
         run: uv python install ${{ matrix.python-version }}
@@ -51,6 +52,7 @@ jobs:
         with:
           version: "0.12.3"
           enable-cache: true
+          cache-suffix: "quality-python-3.14"
 
       - name: Install Python
         run: uv python install 3.14
