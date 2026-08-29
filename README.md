@@ -104,14 +104,10 @@ from water_chemistry_engine.chemical_state import (
 from water_chemistry_engine.ions import Ion
 
 source_a = AqueousChemicalState(
-    concentrations=(
-        DerivedIonConcentration.mg_per_liter(Ion.CALCIUM, 40.0),
-    )
+    concentrations=(DerivedIonConcentration.mg_per_liter(Ion.CALCIUM, 40.0),)
 )
 source_b = AqueousChemicalState(
-    concentrations=(
-        DerivedIonConcentration.mg_per_liter(Ion.CALCIUM, 80.0),
-    )
+    concentrations=(DerivedIonConcentration.mg_per_liter(Ion.CALCIUM, 80.0),)
 )
 
 blend = blend_waters(
