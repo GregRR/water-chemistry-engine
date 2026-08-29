@@ -14,3 +14,11 @@ def test_package_version() -> None:
 def test_python_compatibility_metadata() -> None:
     """The distribution advertises the supported Python compatibility floor."""
     assert metadata("water-chemistry-engine")["Requires-Python"] == ">=3.11"
+
+
+def test_license_metadata() -> None:
+    """The distribution records and packages its declared license file."""
+    package_metadata = metadata("water-chemistry-engine")
+
+    assert package_metadata["License-Expression"] == "MPL-2.0"
+    assert package_metadata.get_all("License-File") == ["LICENSE"]

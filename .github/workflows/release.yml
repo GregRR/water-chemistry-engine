@@ -1,0 +1,69 @@
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.12.3"
+          enable-cache: true
+          cache-suffix: "release-python-3.14"
+
+      - name: Install Python
+        run: uv python install 3.14
+
+      - name: Check lockfile
+        run: uv lock --check
+
+      - name: Verify tag matches package version
+        run: >-
+          uv run --no-project --python 3.14 python -c
+          'import os, pathlib, tomllib;
+          expected = os.environ["GITHUB_REF_NAME"].removeprefix("v");
+          actual = tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"];
+          assert actual == expected, f"tag version {expected!r} does not match package version {actual!r}"'
+
+      - name: Build distributions
+        run: uv build --python 3.14 --no-sources --clear
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: python-package-distributions
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    name: Publish distributions
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/water-chemistry-engine
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1

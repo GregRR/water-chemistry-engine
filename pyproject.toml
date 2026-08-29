@@ -5,6 +5,7 @@ description = "Reusable water-chemistry engine for brewing, fermentation, and ot
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MPL-2.0"
+license-files = ["LICENSE"]
 authors = [
     { name = "Greg Roe" },
 ]
