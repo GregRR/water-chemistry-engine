@@ -2,7 +2,7 @@
 
 **Document:** `docs/WATER_CHEM_DESIGN.md`  
 **Status:** Working design — active implementation  
-**Revision:** 2026-08-28
+**Revision:** 2026-08-29
 **Project:** Water Chemistry Engine
 **Engine distribution:** `water-chemistry-engine`
 **Engine import package:** `water_chemistry_engine`
@@ -133,7 +133,7 @@ The engine never imports a consumer application, database ORM, or product-specif
 - **Pint:** transitive quantity implementation through FermUnits.
 - **NumPy:** planned for vector/matrix work when the calculation implementation actually requires it.
 - **SciPy:** planned for continuous and mixed-integer optimization when optimization work begins.
-- **Pydantic:** planned for validation/serialization at application, API, and interchange boundaries.
+- **Pydantic:** planned for validation/serialization at engine API and interchange boundaries where justified.
 - **Frozen dataclasses / simple immutable domain objects:** preferred for internal scientific models where serialization behavior is unnecessary.
 
 NumPy, SciPy, and other substantial dependencies should not be added merely because they are expected eventually; add them when an implemented feature needs them.

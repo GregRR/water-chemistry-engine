@@ -69,6 +69,73 @@ External applications such as web, automation, Mechani-Brew, and future native
 clients can consume the engine while providing their own interfaces and
 persistence.
 
+## Installation
+
+Water Chemistry Engine requires Python 3.11 or newer. Install the published
+package with uv or pip:
+
+```bash
+uv add water-chemistry-engine
+```
+
+or:
+
+```bash
+python -m pip install water-chemistry-engine
+```
+
+Version 0.2 exposes useful module-level APIs for calculations and domain models.
+These APIs remain pre-1.0 and may evolve as the supported consumer-facing API is
+formalized in milestone 0.3.
+
+## Quickstart
+
+This example blends equal volumes of two already-resolved water states. Calcium
+therefore blends from 40 mg/L and 80 mg/L to 60 mg/L:
+
+```python
+from fermunits import Q_
+
+from water_chemistry_engine.blending import BlendSource, blend_waters
+from water_chemistry_engine.chemical_state import (
+    AqueousChemicalState,
+    DerivedIonConcentration,
+)
+from water_chemistry_engine.ions import Ion
+
+source_a = AqueousChemicalState(
+    concentrations=(
+        DerivedIonConcentration.mg_per_liter(Ion.CALCIUM, 40.0),
+    )
+)
+source_b = AqueousChemicalState(
+    concentrations=(
+        DerivedIonConcentration.mg_per_liter(Ion.CALCIUM, 80.0),
+    )
+)
+
+blend = blend_waters(
+    (
+        BlendSource("Source A", source_a, Q_(1.0, "liter")),
+        BlendSource("Source B", source_b, Q_(1.0, "liter")),
+    )
+)
+
+calcium = blend.state.concentration_for(Ion.CALCIUM)
+assert calcium is not None
+print(calcium)
+```
+
+Expected output:
+
+```text
+60.0 milligram / liter
+```
+
+Reported source-water values should normally be passed through the engine's
+explicit source-resolution workflow before blending. The example starts from
+resolved states to keep the first installed-package example focused.
+
 ## Development stack
 
 - Python 3.11+ (CI tests 3.11–3.14; 3.11 is the compatibility baseline)
