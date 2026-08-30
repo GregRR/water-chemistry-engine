@@ -13,7 +13,7 @@ outcome instead.
 
 from dataclasses import dataclass
 from enum import StrEnum
-from math import isclose
+from math import isclose, isfinite
 
 from fermunits import Q_
 from pint import Quantity
@@ -198,6 +198,17 @@ def _compare_ion(
         )
 
     target_minimum, target_maximum = bounds
+    minimum_mg_per_liter = (
+        None if target_minimum is None else float(target_minimum.magnitude)
+    )
+    maximum_mg_per_liter = (
+        None if target_maximum is None else float(target_maximum.magnitude)
+    )
+    if minimum_mg_per_liter is not None and not isfinite(minimum_mg_per_liter):
+        raise ValueError("Target ion concentration must be finite for comparison.")
+    if maximum_mg_per_liter is not None and not isfinite(maximum_mg_per_liter):
+        raise ValueError("Target ion concentration must be finite for comparison.")
+
     actual = state.concentration_for(target.ion)
     if actual is None:
         return TargetIonComparison(
@@ -211,47 +222,53 @@ def _compare_ion(
         )
 
     actual_mg_per_liter = float(actual.to("milligram / liter").magnitude)
-    if target_minimum is not None:
-        minimum = float(target_minimum.magnitude)
-        if actual_mg_per_liter < minimum and not isclose(
+    if not isfinite(actual_mg_per_liter):
+        raise ValueError("Actual ion concentration must be finite for comparison.")
+    if (
+        minimum_mg_per_liter is not None
+        and actual_mg_per_liter < minimum_mg_per_liter
+        and not isclose(
             actual_mg_per_liter,
-            minimum,
+            minimum_mg_per_liter,
             rel_tol=0.0,
             abs_tol=_NUMERICAL_BOUNDARY_ABS_TOL_MG_PER_LITER,
-        ):
-            return TargetIonComparison(
-                ion=target.ion,
-                target=target,
-                actual_concentration=actual,
-                target_minimum=target_minimum,
-                target_maximum=target_maximum,
-                status=TargetIonComparisonStatus.BELOW_TARGET,
-                deviation=Q_(
-                    actual_mg_per_liter - minimum,
-                    "milligram / liter",
-                ),
-            )
+        )
+    ):
+        return TargetIonComparison(
+            ion=target.ion,
+            target=target,
+            actual_concentration=actual,
+            target_minimum=target_minimum,
+            target_maximum=target_maximum,
+            status=TargetIonComparisonStatus.BELOW_TARGET,
+            deviation=Q_(
+                actual_mg_per_liter - minimum_mg_per_liter,
+                "milligram / liter",
+            ),
+        )
 
-    if target_maximum is not None:
-        maximum = float(target_maximum.magnitude)
-        if actual_mg_per_liter > maximum and not isclose(
+    if (
+        maximum_mg_per_liter is not None
+        and actual_mg_per_liter > maximum_mg_per_liter
+        and not isclose(
             actual_mg_per_liter,
-            maximum,
+            maximum_mg_per_liter,
             rel_tol=0.0,
             abs_tol=_NUMERICAL_BOUNDARY_ABS_TOL_MG_PER_LITER,
-        ):
-            return TargetIonComparison(
-                ion=target.ion,
-                target=target,
-                actual_concentration=actual,
-                target_minimum=target_minimum,
-                target_maximum=target_maximum,
-                status=TargetIonComparisonStatus.ABOVE_TARGET,
-                deviation=Q_(
-                    actual_mg_per_liter - maximum,
-                    "milligram / liter",
-                ),
-            )
+        )
+    ):
+        return TargetIonComparison(
+            ion=target.ion,
+            target=target,
+            actual_concentration=actual,
+            target_minimum=target_minimum,
+            target_maximum=target_maximum,
+            status=TargetIonComparisonStatus.ABOVE_TARGET,
+            deviation=Q_(
+                actual_mg_per_liter - maximum_mg_per_liter,
+                "milligram / liter",
+            ),
+        )
 
     return TargetIonComparison(
         ion=target.ion,

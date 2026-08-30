@@ -9,7 +9,7 @@ model precipitation, or redistribute carbonate species.
 
 from dataclasses import dataclass
 from enum import StrEnum
-from math import fsum
+from math import fsum, isfinite
 from typing import TypeAlias
 
 from fermunits import Q_
@@ -43,7 +43,10 @@ class TreatmentAddition:
                 "Treatment addition mass must be convertible to mass."
             ) from exc
 
-        if normalized.magnitude < 0:
+        magnitude = float(normalized.magnitude)
+        if not isfinite(magnitude):
+            raise ValueError("Treatment addition mass must be finite.")
+        if magnitude < 0:
             raise ValueError("Treatment addition mass cannot be negative.")
 
 
@@ -127,6 +130,8 @@ def _normalize_water_volume(water_volume: ScalarQuantity) -> Quantity[float]:
         ) from exc
 
     magnitude = float(normalized.magnitude)
+    if not isfinite(magnitude):
+        raise ValueError("Treatment water volume must be finite.")
     if magnitude <= 0:
         raise ValueError("Treatment water volume must be greater than zero.")
 

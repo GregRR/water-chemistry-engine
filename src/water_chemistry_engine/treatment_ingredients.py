@@ -15,6 +15,7 @@ can be modeled later without changing the underlying stoichiometry.
 """
 
 from dataclasses import dataclass
+from math import isfinite
 
 from fermunits import Q_
 
@@ -53,6 +54,8 @@ class IonStoichiometry:
     molar_mass: ScalarQuantity
 
     def __post_init__(self) -> None:
+        if isinstance(self.coefficient, bool) or not isinstance(self.coefficient, int):
+            raise TypeError("Ion stoichiometric coefficient must be an integer.")
         if self.coefficient <= 0:
             raise ValueError("Ion stoichiometric coefficient must be positive.")
 
@@ -63,7 +66,10 @@ class IonStoichiometry:
                 "Ion molar mass must be convertible to mass per amount."
             ) from exc
 
-        if normalized.magnitude <= 0:
+        magnitude = float(normalized.magnitude)
+        if not isfinite(magnitude):
+            raise ValueError("Ion molar mass must be finite.")
+        if magnitude <= 0:
             raise ValueError("Ion molar mass must be positive.")
 
 
@@ -94,7 +100,10 @@ class TreatmentIngredient:
                 "Treatment ingredient molar mass must be convertible to mass per amount."
             ) from exc
 
-        if normalized.magnitude <= 0:
+        magnitude = float(normalized.magnitude)
+        if not isfinite(magnitude):
+            raise ValueError("Treatment ingredient molar mass must be finite.")
+        if magnitude <= 0:
             raise ValueError("Treatment ingredient molar mass must be positive.")
 
         ions = [entry.ion for entry in self.ion_stoichiometry]

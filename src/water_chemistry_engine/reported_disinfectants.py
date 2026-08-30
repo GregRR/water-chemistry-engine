@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
+from math import isfinite
 
 from fermunits import Q_
 
@@ -34,7 +35,10 @@ def _validate_mass_concentration(value: ScalarQuantity, *, label: str) -> None:
     except Exception as exc:
         raise ValueError(f"{label} must be convertible to mass per volume.") from exc
 
-    if concentration.magnitude < 0:
+    magnitude = float(concentration.magnitude)
+    if not isfinite(magnitude):
+        raise ValueError(f"{label} must be finite.")
+    if magnitude < 0:
         raise ValueError(f"{label} cannot be negative.")
 
 

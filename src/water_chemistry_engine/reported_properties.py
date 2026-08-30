@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
+from math import isfinite
 
 from fermunits import Q_
 
@@ -28,6 +29,12 @@ def _validate_quantity(
         value.to(canonical_unit)
     except Exception as exc:
         raise ValueError(f"{label} must be convertible to {dimension_label}.") from exc
+
+    magnitude = float(value.to(canonical_unit).magnitude)
+    if not isfinite(magnitude):
+        raise ValueError(f"{label} must be finite.")
+    if magnitude < 0:
+        raise ValueError(f"{label} cannot be negative.")
 
 
 def _validate_reported_values(
@@ -346,6 +353,10 @@ class Conductivity:
             label="Conductivity",
             dimension_label="electrical conductivity",
         )
+        if self.reference_temperature_celsius is not None and not isfinite(
+            self.reference_temperature_celsius
+        ):
+            raise ValueError("Conductivity reference temperature must be finite.")
 
     @property
     def calculation_value(self) -> ScalarQuantity:

@@ -16,6 +16,7 @@ activity, precipitation, or solubility has been solved.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 
 from fermunits import Q_
 from pint import Quantity
@@ -40,6 +41,8 @@ class DerivedIonConcentration:
             ) from exc
 
         magnitude = float(normalized.magnitude)
+        if not isfinite(magnitude):
+            raise ValueError("Derived ion concentration must be finite.")
         if magnitude < 0:
             raise ValueError("Derived ion concentration cannot be negative.")
 

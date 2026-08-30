@@ -284,3 +284,14 @@ def test_forward_calculation_requires_at_least_one_source() -> None:
             (),
             source_resolution_policy=REPORTED_ONLY,
         )
+
+
+def test_forward_workflow_rejects_non_finite_treatment_before_calculation() -> None:
+    source = _profile("Source", sodium=10.0, chloride=10.0)
+
+    with pytest.raises(ValueError, match="mass must be finite"):
+        calculate_forward_water(
+            (ForwardWaterSource(source, Q_(10, "liter")),),
+            source_resolution_policy=REPORTED_ONLY,
+            treatment_additions=(TreatmentAddition(GYPSUM, Q_(float("nan"), "gram")),),
+        )

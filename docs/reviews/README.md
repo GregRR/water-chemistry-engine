@@ -12,3 +12,7 @@ For the 0.2 engine checkpoint, read these together:
 
 1. `0.2-external-review.md`
 2. `0.2-remediation-follow-up.md`
+3. `0.2.0-release-candidate-review.md`
+
+The release-candidate review requires a focused remediation follow-up before
+the 0.2.0 release proceeds.

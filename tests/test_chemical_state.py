@@ -45,6 +45,12 @@ def test_derived_concentration_rejects_negative_value() -> None:
         DerivedIonConcentration.mg_per_liter(Ion.CHLORIDE, -1.0)
 
 
+@pytest.mark.parametrize("invalid", [float("nan"), float("inf"), float("-inf")])
+def test_derived_concentration_rejects_non_finite_value(invalid: float) -> None:
+    with pytest.raises(ValueError, match="must be finite"):
+        DerivedIonConcentration.mg_per_liter(Ion.CHLORIDE, invalid)
+
+
 def test_aqueous_state_rejects_duplicate_ions() -> None:
     with pytest.raises(ValueError, match="duplicate ion concentrations"):
         AqueousChemicalState(

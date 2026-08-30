@@ -74,7 +74,7 @@ def test_duplicate_target_ions_are_rejected() -> None:
         )
 
 
-@pytest.mark.parametrize("ph", [-0.1, 14.1])
+@pytest.mark.parametrize("ph", [-0.1, 14.1, float("nan"), float("inf"), float("-inf")])
 def test_invalid_target_ph_is_rejected(ph: float) -> None:
     with pytest.raises(
         ValueError,
@@ -84,6 +84,15 @@ def test_invalid_target_ph_is_rejected(ph: float) -> None:
             name="Example Target",
             concentrations=(),
             ph=ph,
+        )
+
+
+@pytest.mark.parametrize("invalid", [-1.0, float("nan"), float("inf"), float("-inf")])
+def test_invalid_target_concentration_is_rejected(invalid: float) -> None:
+    with pytest.raises(ValueError, match="finite|negative"):
+        TargetWaterProfile(
+            name="Invalid Target",
+            concentrations=(IonConcentration.mg_per_liter(Ion.SODIUM, invalid),),
         )
 
 

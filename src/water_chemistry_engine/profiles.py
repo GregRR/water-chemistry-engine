@@ -21,7 +21,13 @@ from water_chemistry_engine.water_identity import WaterIdentity
 
 @dataclass(frozen=True, slots=True)
 class SourceWaterProfile:
-    """Measured or reported chemistry for a source of water."""
+    """Measured or reported chemistry for a source of water.
+
+    Ion ``concentrations`` are the only fields automatically resolved into the
+    current derived ion state. Alkalinity, hardness, TDS, conductivity, pH, and
+    disinfectants are preserved as distinct reported properties; storing them
+    does not imply a conversion or validated calculation model.
+    """
 
     name: str
     concentrations: tuple[IonConcentrationValue, ...]

@@ -50,6 +50,14 @@ def test_negative_bicarbonate_alkalinity_is_rejected() -> None:
         bicarbonate_from_bicarbonate_alkalinity_as_caco3(Q_(-1.0, "milligram / liter"))
 
 
+@pytest.mark.parametrize("invalid", [float("nan"), float("inf"), float("-inf")])
+def test_non_finite_bicarbonate_alkalinity_is_rejected(invalid: float) -> None:
+    with pytest.raises(ValueError, match="must be finite"):
+        bicarbonate_from_bicarbonate_alkalinity_as_caco3(
+            Q_(invalid, "milligram / liter")
+        )
+
+
 def test_non_concentration_quantity_is_rejected() -> None:
     with pytest.raises(
         ValueError,

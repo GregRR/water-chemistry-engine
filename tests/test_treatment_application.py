@@ -265,6 +265,14 @@ def test_negative_treatment_addition_is_rejected_at_domain_boundary() -> None:
         TreatmentAddition(GYPSUM, Q_(-1, "gram"))
 
 
+@pytest.mark.parametrize("invalid", [float("nan"), float("inf"), float("-inf")])
+def test_non_finite_treatment_addition_is_rejected_at_domain_boundary(
+    invalid: float,
+) -> None:
+    with pytest.raises(ValueError, match="mass must be finite"):
+        TreatmentAddition(GYPSUM, Q_(invalid, "gram"))
+
+
 def test_non_mass_treatment_addition_is_rejected_at_domain_boundary() -> None:
     with pytest.raises(ValueError, match="convertible to mass"):
         TreatmentAddition(GYPSUM, Q_(1, "liter"))
@@ -279,3 +287,9 @@ def test_non_positive_water_volume_is_rejected_even_without_additions(volume) ->
 def test_non_volume_water_size_is_rejected() -> None:
     with pytest.raises(ValueError, match="volume must be convertible to volume"):
         apply_treatment_additions(_state(), Q_(20, "gram"), ())
+
+
+@pytest.mark.parametrize("invalid", [float("nan"), float("inf"), float("-inf")])
+def test_non_finite_treatment_volume_is_rejected(invalid: float) -> None:
+    with pytest.raises(ValueError, match="volume must be finite"):
+        apply_treatment_additions(_state(), Q_(invalid, "liter"), ())

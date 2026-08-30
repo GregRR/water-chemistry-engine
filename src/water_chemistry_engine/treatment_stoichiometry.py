@@ -13,6 +13,7 @@ calculation from masquerading as a complete water-chemistry model.
 """
 
 from dataclasses import dataclass
+from math import isfinite
 
 from fermunits import Q_
 from pint import Quantity
@@ -38,6 +39,8 @@ class IonContribution:
             ) from exc
 
         magnitude = float(normalized.magnitude)
+        if not isfinite(magnitude):
+            raise ValueError("Ion contribution must be finite.")
         if magnitude < 0:
             raise ValueError("Ion contribution cannot be negative.")
 
@@ -85,8 +88,12 @@ def calculate_ion_contributions(
     mass_grams = float(mass.magnitude)
     volume_liters = float(volume.magnitude)
 
+    if not isfinite(mass_grams):
+        raise ValueError("Treatment addition mass must be finite.")
     if mass_grams < 0:
         raise ValueError("Treatment addition mass cannot be negative.")
+    if not isfinite(volume_liters):
+        raise ValueError("Treatment water volume must be finite.")
     if volume_liters <= 0:
         raise ValueError("Treatment water volume must be greater than zero.")
 

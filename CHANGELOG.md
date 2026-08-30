@@ -52,6 +52,10 @@ distribution and its repository milestones.
   representation artifacts cannot flip target status.
 - Normalized treatment contribution units and centralized workflow-linkage
   validation.
+- Rejected negative and non-finite chemistry, target, treatment, and supporting
+  numeric inputs before they can enter deterministic calculations.
+- Pinned the release build backend for materially reproducible wheel rebuilds
+  from the source distribution.
 - Added external-review regression coverage for the completed 0.2 engine
   boundary.
 

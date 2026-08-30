@@ -221,6 +221,43 @@ def test_invalid_conductivity_quantity_is_rejected() -> None:
         Conductivity(value=Q_(5, "milligram / liter"))
 
 
+@pytest.mark.parametrize("invalid", [-1.0, float("nan"), float("inf"), float("-inf")])
+def test_reported_linear_properties_reject_invalid_values(invalid: float) -> None:
+    constructors = (
+        lambda: Alkalinity.mg_per_liter_as_caco3(invalid),
+        lambda: TotalHardness.mg_per_liter_as_caco3(invalid),
+        lambda: TotalDissolvedSolids.mg_per_liter(invalid),
+        lambda: Conductivity.microsiemens_per_cm(invalid),
+    )
+
+    for constructor in constructors:
+        with pytest.raises(ValueError, match="finite|negative"):
+            constructor()
+
+
+@pytest.mark.parametrize("invalid", [float("nan"), float("inf"), float("-inf")])
+def test_reported_linear_property_ranges_reject_non_finite_values(
+    invalid: float,
+) -> None:
+    with pytest.raises(ValueError, match="must be finite"):
+        Alkalinity.mg_per_liter_as_caco3_range(
+            minimum=10.0,
+            maximum=20.0,
+            reported_average=invalid,
+        )
+
+
+@pytest.mark.parametrize("invalid", [float("nan"), float("inf"), float("-inf")])
+def test_conductivity_rejects_non_finite_reference_temperature(
+    invalid: float,
+) -> None:
+    with pytest.raises(ValueError, match="reference temperature must be finite"):
+        Conductivity.microsiemens_per_cm(
+            200.0,
+            reference_temperature_celsius=invalid,
+        )
+
+
 def test_reported_ph_exact_value_is_usable_for_calculations() -> None:
     measurement = ReportedPH.exact(7.2)
 

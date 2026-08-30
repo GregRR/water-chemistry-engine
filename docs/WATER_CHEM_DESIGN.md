@@ -564,6 +564,8 @@ Individual reported results may additionally carry `ReportedStatistic` and `Repo
 
 The source-report representation must also be extensible to reported disinfectants and other supported analytes outside the canonical optimization-ion panel. Preserving such a reported value does not make it an optimizer variable or imply a validated treatment model for it.
 
+Only the profile's explicit modeled-ion `concentrations` are automatically resolved into the current derived ion state. Alkalinity, total hardness, TDS, conductivity, pH, and disinfectants remain preserved reported properties unless a caller deliberately invokes a separately documented conversion or future validated model. In particular, total alkalinity is not silently converted to bicarbonate.
+
 A source-water profile describes the water and its provenance. It must not encode the downstream purpose for which a particular calculation happens to use that water.
 
 Source-water profile types may include:

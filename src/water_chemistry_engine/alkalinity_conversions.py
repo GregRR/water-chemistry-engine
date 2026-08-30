@@ -11,6 +11,8 @@ alkalinity result must remain total alkalinity unless a separate, documented
 chemical model is deliberately used to derive species concentrations.
 """
 
+from math import isfinite
+
 from fermunits import Q_
 from pint import Quantity
 
@@ -58,7 +60,10 @@ def bicarbonate_from_bicarbonate_alkalinity_as_caco3(
             "Bicarbonate alkalinity must be convertible to mass per volume."
         ) from exc
 
-    if concentration.magnitude < 0:
+    concentration_mg_per_liter = float(concentration.magnitude)
+    if not isfinite(concentration_mg_per_liter):
+        raise ValueError("Bicarbonate alkalinity must be finite.")
+    if concentration_mg_per_liter < 0:
         raise ValueError("Bicarbonate alkalinity cannot be negative.")
 
     conversion_factor = (
@@ -67,7 +72,6 @@ def bicarbonate_from_bicarbonate_alkalinity_as_caco3(
     # This is a derived reporting-basis conversion.  Preserve the source
     # quantity itself, but normalize the calculated result to the engine's
     # floating-point numerical representation.
-    concentration_mg_per_liter = float(concentration.magnitude)
     return Q_(
         concentration_mg_per_liter * conversion_factor,
         "milligram / liter",

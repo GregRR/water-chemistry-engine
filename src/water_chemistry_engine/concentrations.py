@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 from typing import TypeAlias
 
 from fermunits import Q_
@@ -16,13 +17,19 @@ from water_chemistry_engine.reporting_context import ReportedResultContext
 
 
 def _validate_mass_concentration(value: ScalarQuantity) -> None:
-    """Require a quantity convertible to mass per volume."""
+    """Require a finite, non-negative quantity convertible to mass per volume."""
     try:
-        value.to("milligram / liter")
+        normalized = value.to("milligram / liter")
     except Exception as exc:
         raise ValueError(
             "Ion concentration must be convertible to mass per volume."
         ) from exc
+
+    magnitude = float(normalized.magnitude)
+    if not isfinite(magnitude):
+        raise ValueError("Ion concentration must be finite.")
+    if magnitude < 0:
+        raise ValueError("Ion concentration cannot be negative.")
 
 
 @dataclass(frozen=True, slots=True)
@@ -262,9 +269,6 @@ class IonConcentrationUpperBound:
     def __post_init__(self) -> None:
         _validate_mass_concentration(self.maximum)
 
-        if self.maximum.to("milligram / liter").magnitude < 0:
-            raise ValueError("Ion concentration upper bound cannot be negative.")
-
     @classmethod
     def mg_per_liter(
         cls,
@@ -288,9 +292,6 @@ class IonConcentrationLowerBound:
 
     def __post_init__(self) -> None:
         _validate_mass_concentration(self.minimum)
-
-        if self.minimum.to("milligram / liter").magnitude < 0:
-            raise ValueError("Ion concentration lower bound cannot be negative.")
 
     @classmethod
     def mg_per_liter(

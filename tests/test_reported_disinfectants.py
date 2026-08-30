@@ -140,6 +140,15 @@ def test_disinfectant_rejects_negative_concentration() -> None:
         )
 
 
+@pytest.mark.parametrize("invalid", [float("nan"), float("inf"), float("-inf")])
+def test_disinfectant_rejects_non_finite_concentration(invalid: float) -> None:
+    with pytest.raises(ValueError, match="must be finite"):
+        ReportedDisinfectant.mg_per_liter(
+            DisinfectantKind.CHLORINE,
+            invalid,
+        )
+
+
 def test_disinfectant_rejects_reversed_range() -> None:
     with pytest.raises(ValueError, match="minimum cannot exceed maximum"):
         ReportedDisinfectant.mg_per_liter_range(

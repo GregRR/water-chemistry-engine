@@ -96,3 +96,41 @@ def test_stoichiometric_coefficient_must_be_positive() -> None:
             coefficient=0,
             molar_mass=Q_(35.45, "gram / mole"),
         )
+
+
+@pytest.mark.parametrize("invalid", [True, 1.5, float("nan"), float("inf")])
+def test_stoichiometric_coefficient_must_be_an_integer(invalid: object) -> None:
+    with pytest.raises(TypeError, match="coefficient must be an integer"):
+        IonStoichiometry(
+            ion=Ion.CHLORIDE,
+            coefficient=invalid,  # type: ignore[arg-type]
+            molar_mass=Q_(35.45, "gram / mole"),
+        )
+
+
+@pytest.mark.parametrize("invalid", [float("nan"), float("inf"), float("-inf")])
+def test_ion_molar_mass_must_be_finite(invalid: float) -> None:
+    with pytest.raises(ValueError, match="Ion molar mass must be finite"):
+        IonStoichiometry(
+            ion=Ion.CHLORIDE,
+            coefficient=1,
+            molar_mass=Q_(invalid, "gram / mole"),
+        )
+
+
+@pytest.mark.parametrize("invalid", [float("nan"), float("inf"), float("-inf")])
+def test_ingredient_molar_mass_must_be_finite(invalid: float) -> None:
+    chloride = IonStoichiometry(
+        ion=Ion.CHLORIDE,
+        coefficient=1,
+        molar_mass=Q_(35.45, "gram / mole"),
+    )
+
+    with pytest.raises(ValueError, match="ingredient molar mass must be finite"):
+        TreatmentIngredient(
+            key="invalid",
+            name="Invalid ingredient",
+            formula="invalid",
+            molar_mass=Q_(invalid, "gram / mole"),
+            ion_stoichiometry=(chloride,),
+        )

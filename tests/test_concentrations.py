@@ -89,6 +89,42 @@ def test_non_concentration_quantity_is_rejected() -> None:
         )
 
 
+@pytest.mark.parametrize("invalid", [-1.0, float("nan"), float("inf"), float("-inf")])
+def test_all_numeric_concentration_forms_reject_invalid_values(invalid: float) -> None:
+    constructors = (
+        lambda: IonConcentration.mg_per_liter(Ion.SODIUM, invalid),
+        lambda: ExactConcentrationEndpoint.mg_per_liter(invalid),
+        lambda: UpperBoundConcentrationEndpoint.mg_per_liter(invalid),
+        lambda: LowerBoundConcentrationEndpoint.mg_per_liter(invalid),
+        lambda: NotDetectedConcentrationEndpoint.with_detection_limit_mg_per_liter(
+            invalid
+        ),
+        lambda: IonConcentrationUpperBound.mg_per_liter(Ion.SODIUM, invalid),
+        lambda: IonConcentrationLowerBound.mg_per_liter(Ion.SODIUM, invalid),
+        lambda: IonConcentrationNotDetected.with_detection_limit_mg_per_liter(
+            Ion.SODIUM,
+            invalid,
+        ),
+    )
+
+    for constructor in constructors:
+        with pytest.raises(ValueError, match="finite|negative"):
+            constructor()
+
+
+@pytest.mark.parametrize("invalid", [float("nan"), float("inf"), float("-inf")])
+def test_concentration_range_rejects_non_finite_reported_average(
+    invalid: float,
+) -> None:
+    with pytest.raises(ValueError, match="must be finite"):
+        IonConcentrationRange.mg_per_liter(
+            Ion.CALCIUM,
+            minimum=10.0,
+            maximum=20.0,
+            reported_average=invalid,
+        )
+
+
 def test_exact_concentration_range_constructor() -> None:
     concentration = IonConcentrationRange.mg_per_liter(
         Ion.SULFATE,

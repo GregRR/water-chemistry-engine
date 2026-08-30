@@ -309,6 +309,40 @@ def test_equal_chemistry_thirds_blend_satisfies_exact_target() -> None:
     assert result.status is TargetProfileComparisonStatus.SATISFIED
 
 
+@pytest.mark.parametrize("invalid", [float("nan"), float("inf"), float("-inf")])
+def test_comparison_defensively_rejects_non_finite_actual(invalid: float) -> None:
+    concentration = DerivedIonConcentration.mg_per_liter(Ion.CALCIUM, 50.0)
+    # Bypass the frozen domain object's constructor to prove comparison cannot
+    # silently report success if an upstream invariant is ever regressed.
+    object.__setattr__(
+        concentration,
+        "concentration",
+        Q_(invalid, "milligram / liter"),
+    )
+    state = AqueousChemicalState(concentrations=(concentration,))
+    target = TargetWaterProfile(
+        name="Exact calcium",
+        concentrations=(IonConcentration.mg_per_liter(Ion.CALCIUM, 50.0),),
+    )
+
+    with pytest.raises(ValueError, match="Actual ion concentration must be finite"):
+        compare_state_to_target(state, target)
+
+
+@pytest.mark.parametrize("invalid", [float("nan"), float("inf"), float("-inf")])
+def test_comparison_defensively_rejects_non_finite_target(invalid: float) -> None:
+    concentration = IonConcentration.mg_per_liter(Ion.CALCIUM, 50.0)
+    # This is the target-side equivalent of the invariant-bypass check above.
+    object.__setattr__(concentration, "value", Q_(invalid, "milligram / liter"))
+    target = TargetWaterProfile(
+        name="Invalid exact calcium",
+        concentrations=(concentration,),
+    )
+
+    with pytest.raises(ValueError, match="Target ion concentration must be finite"):
+        compare_state_to_target(_state(), target)
+
+
 _TARGET_VALUES = st.floats(
     min_value=0.0,
     max_value=1000.0,

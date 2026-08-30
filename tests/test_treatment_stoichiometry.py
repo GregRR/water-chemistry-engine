@@ -145,6 +145,26 @@ def test_negative_addition_mass_is_rejected() -> None:
         )
 
 
+@pytest.mark.parametrize("invalid", [float("nan"), float("inf"), float("-inf")])
+def test_non_finite_addition_mass_is_rejected(invalid: float) -> None:
+    with pytest.raises(ValueError, match="addition mass must be finite"):
+        calculate_ion_contributions(
+            GYPSUM,
+            Q_(invalid, "gram"),
+            Q_(20, "liter"),
+        )
+
+
+@pytest.mark.parametrize("invalid", [float("nan"), float("inf"), float("-inf")])
+def test_non_finite_water_volume_is_rejected(invalid: float) -> None:
+    with pytest.raises(ValueError, match="water volume must be finite"):
+        calculate_ion_contributions(
+            GYPSUM,
+            Q_(1, "gram"),
+            Q_(invalid, "liter"),
+        )
+
+
 @pytest.mark.parametrize("volume", [Q_(0, "liter"), Q_(-1, "liter")])
 def test_non_positive_water_volume_is_rejected(volume) -> None:
     with pytest.raises(ValueError, match="volume must be greater than zero"):
@@ -189,3 +209,12 @@ def test_ion_contribution_normalizes_convertible_units_to_mg_per_liter() -> None
 
     assert contribution.concentration.units == Q_(1, "milligram / liter").units
     assert contribution.concentration.magnitude == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize("invalid", [float("nan"), float("inf"), float("-inf")])
+def test_ion_contribution_rejects_non_finite_concentration(invalid: float) -> None:
+    with pytest.raises(ValueError, match="must be finite"):
+        IonContribution(
+            ion=Ion.CALCIUM,
+            concentration=Q_(invalid, "milligram / liter"),
+        )
