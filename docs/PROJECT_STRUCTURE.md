@@ -68,6 +68,13 @@ including:
 - structured notices and validation;
 - calculation audit/provenance data.
 
+Development for 0.3 adds an explicit supported facade at the package root.
+Ordinary consumers should prefer the names in
+`water_chemistry_engine.__all__`; `docs/CONSUMER_API.md` defines that boundary,
+integration expectations, and the pre-1.0 compatibility policy. The facade
+re-exports the proven domain and orchestration objects rather than introducing
+a second chemistry implementation.
+
 As later milestones add optimization, treatment-plan ranking, richer
 constraints, calculated working-water pH, and serialization/interchange
 adapters, those responsibilities also belong in the engine.

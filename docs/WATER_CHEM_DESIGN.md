@@ -1023,7 +1023,20 @@ The release sequence is incremental:
 
 ### 16.2 Consumer-facing API milestone (0.3)
 
-The current 0.2 module APIs are sufficient for pinned early consumers, but `water_chemistry_engine.__init__` exports only `__version__`. Release 0.3 should establish a small documented facade around the proven forward-calculation boundary, provide integration examples, define pre-1.0 compatibility expectations, and add tests for the supported surface.
+The published 0.2 module APIs are sufficient for pinned early consumers, but
+that release's `water_chemistry_engine.__init__` exports only `__version__`.
+Release 0.3 establishes a small documented facade around the proven
+forward-calculation boundary, provides integration examples, defines pre-1.0
+compatibility expectations, and adds tests for the supported surface.
+
+The first 0.3 implementation slice now establishes that package-root facade on
+the development branch. Its explicit `__all__` includes the forward entry
+point, request/input models, primary result and comparison types, notice codes,
+and supported simple treatment ingredients required for a complete workflow.
+`docs/CONSUMER_API.md` defines the supported boundary and compatibility policy;
+API-level tests exercise both a complete calculation and conservative unknown
+propagation using only root imports. The facade delegates to the existing 0.2
+workflow and does not duplicate scientific logic.
 
 Convenience helpers should be driven by real consumer friction. They must not erase reported-value semantics, silently choose representative values, or move scientific/domain policy into an application.
 
@@ -1224,11 +1237,11 @@ implemented feature requires them.
 
 ## 22. Public API direction
 
-Release 0.3 should establish a deliberately small supported Python facade. The public API accepts framework-neutral structured requests/domain objects and returns structured results plus stable warning/explanation codes.
+Release 0.3 establishes a deliberately small supported Python facade. The public API accepts framework-neutral structured requests/domain objects and returns structured results plus stable warning/explanation codes.
 
 The 0.2 implementation already exposes the forward workflow through module-level APIs such as `ForwardWaterSource`, `SourceResolutionPolicy`, `TreatmentAddition`, and `calculate_forward_water(...)`. Those paths are usable by pinned pre-1.0 consumers but are not yet the final top-level facade.
 
-Illustrative future direction only:
+The implemented package-root direction is:
 
 ```python
 from water_chemistry_engine import calculate_forward_water

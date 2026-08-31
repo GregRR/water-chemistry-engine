@@ -5,6 +5,16 @@ distribution and its repository milestones.
 
 ## Unreleased
 
+### Added
+
+- Established the first supported package-root consumer facade for the proven
+  deterministic forward workflow, including explicit input models, result and
+  status types, structured notice codes, supported treatment ingredients, and
+  an exact `__all__` contract.
+- Added API-level integration tests and consumer documentation covering a
+  complete source/blend/treatment/target calculation, validation failures,
+  unknown propagation, notice handling, and pre-1.0 compatibility policy.
+
 ### Documentation
 
 - Documented the planned FermUnits M4 boundary for semantic pH values and the

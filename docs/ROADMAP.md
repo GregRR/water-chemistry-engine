@@ -43,8 +43,9 @@ consumer applications. Implemented foundations include:
 
 The next engine milestone is a deliberate consumer-facing API boundary. The
 existing 0.2 module APIs are already usable by pinned applications, but the
-package root currently exports only `__version__`; 0.3 will turn the important
-consumer operations into an intentional supported surface.
+published 0.2 package root exports only `__version__`. Development for 0.3 now
+exposes the important consumer operations through an intentional supported
+surface while the full milestone remains in progress.
 
 ## 0.2 — Deterministic Forward Calculator
 
@@ -84,9 +85,17 @@ aqueous model has sufficient inputs.
 
 ## 0.3 — Supported Consumer API
 
+**Status: in progress.**
+
 Establish a small, documented Python facade around the capabilities already
 proven in 0.2 rather than requiring applications to depend indefinitely on
 internal module layout.
+
+The first implementation slice establishes an explicit package-root export
+contract, API-level integration tests, and `docs/CONSUMER_API.md`. It preserves
+the existing scientific workflow rather than wrapping it in a second
+calculation layer. Version and release metadata remain at 0.2.0 until the full
+0.3 release gate is ready.
 
 ### Required work
 

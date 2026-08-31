@@ -20,6 +20,11 @@ Version 0.2 also establishes Python 3.11 as the compatibility baseline, with CI
 coverage on Python 3.11 through 3.14. Public APIs remain pre-1.0 and may evolve
 as real consumer applications exercise the engine.
 
+Development toward 0.3 is establishing a supported package-root consumer API.
+That unreleased surface and its compatibility expectations are documented in
+[`docs/CONSUMER_API.md`](docs/CONSUMER_API.md); published 0.2.0 consumers should
+continue using tested module-level imports until 0.3.0 is released.
+
 ### Implemented in 0.2
 
 - source-water and target/reference profile models;
@@ -164,6 +169,7 @@ Primary project documents are stored under `docs/`:
 - `WATER_CHEM_REFERENCES.md` — source and reference register;
 - `ROADMAP.md` — active engine release path;
 - `PROJECT_STRUCTURE.md` — repository/package boundaries;
+- `CONSUMER_API.md` — unreleased 0.3 package-root facade and integration guide;
 - `reviews/` — point-in-time external review records.
 
 Release history is summarized in `CHANGELOG.md`.
