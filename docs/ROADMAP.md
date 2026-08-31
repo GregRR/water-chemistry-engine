@@ -213,6 +213,19 @@ It must:
 - retain model/version, assumptions, relevant temperature/reference conditions,
   and warnings.
 
+Before or as part of this milestone:
+
+- adopt FermUnits' semantic `PHValue` and exact pH/hydrogen-ion-activity
+  transform only after the M4 implementation is released, passes FermUnits'
+  quality gates, and is included in this project's supported dependency range;
+- never represent chemical pH as `Q_(value, "pH")`, because FermUnits will not
+  redefine Pint's existing interpretation of that symbol as picohenry;
+- keep activity-coefficient selection, concentration/activity conversion,
+  equilibria, ionic strength, and all prediction policy in this engine;
+- review the current engine-level 0-through-14 validation for reported and
+  target pH, since FermUnits will require finite pH but will not claim that
+  range as a universal mathematical or scientific bound.
+
 This milestone is working-water pH only, not recipe-aware mash-pH prediction.
 If a sufficiently defensible model is not ready, Version 1 may continue to
 return derived pH as unsupported/unknown rather than ship a weak approximation.

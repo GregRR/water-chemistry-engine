@@ -114,10 +114,22 @@ FermUnits is responsible for:
 - quantities;
 - dimensional validation;
 - unit conversion;
-- explicit brewing and fermentation units.
+- explicit brewing and fermentation units;
+- once its M4 pH API is released and adopted here, a semantic `PHValue` and
+  the exact definitional transform between pH and dimensionless hydrogen-ion
+  activity.
 
-The Water Chemistry Engine is responsible for the chemical meaning of those
-quantities.
+FermUnits does not define chemical pH as a Pint unit. In particular,
+`Q_(7.0, "pH")` must not be used for chemical pH because Pint can interpret
+`pH` as picohenry. The M4 pH API is planned rather than part of the currently
+consumed FermUnits 0.1.x contract.
+
+The Water Chemistry Engine is responsible for the chemical meaning of
+quantities and for pH behavior that requires a chemistry model or application
+policy. This includes activity coefficients, concentration/activity modeling,
+equilibria, buffering, treatment and blending effects, prediction, targets,
+and reported/measurement provenance. FermUnits' pH/activity transform does not
+equate hydrogen-ion activity with concentration.
 
 Reporting bases and chemical semantics such as alkalinity “as CaCO3,” hardness,
 hydration state, and mass-versus-volume concentration remain explicit domain

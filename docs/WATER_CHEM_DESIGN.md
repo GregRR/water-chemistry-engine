@@ -106,7 +106,7 @@ FermentationJSON ───┘
 
 Responsibilities are intentionally separated:
 
-- **FermUnits** supplies quantity representation, dimensional validation, unit conversion, equivalent chemistry conversions, and explicit unit definitions.
+- **FermUnits** supplies quantity representation, dimensional validation, unit conversion, equivalent chemistry conversions, and explicit unit definitions. Its planned M4 API also supplies a semantic pH value and the exact definitional transform between pH and dimensionless hydrogen-ion activity; that API is not yet part of the FermUnits 0.1.x version consumed by this engine.
 - **Water Chemistry Engine** supplies water-chemistry semantics, reported-value semantics, blending, stoichiometry, comparison, optimization, warnings, and structured results.
 - **BeerJSON/FermentationJSON adapters** translate external interchange documents to and from engine boundary/domain models.
 - **Consumer applications** supply persistence, users, forms, visual presentation, document ingestion/review workflows, and product-specific interaction.
@@ -376,6 +376,24 @@ pH = -log10(a_H+)
 
 where `a_H+` is hydrogen-ion activity. A concentration-based `[H+]` treatment is an approximation and must be documented as such when used.
 
+FermUnits M4 is expected to own the finite semantic pH value and the exact
+bidirectional transform represented by this definition. It will not define
+`pH` as a Pint unit: `Q_(7.0, "pH")` must not be used for chemical pH because
+Pint can interpret that symbol as picohenry. Until the M4 implementation is
+released, validated, and included in this project's supported dependency
+range, this remains a planned integration boundary rather than an available
+engine API.
+
+The definition-level transform does not make activity interchangeable with
+hydrogen-ion concentration. Converting between activity and concentration
+requires an explicit activity coefficient and therefore a selected activity
+model and sufficient chemical state. Those choices, along with acid/base and
+carbonate equilibria, ionic-strength behavior, temperature-dependent chemistry,
+blending/treatment effects, prediction, and application-specific targets,
+remain responsibilities of this engine. Any ideal-solution approximation such
+as an activity coefficient of 1 must be explicit and versioned here rather than
+hidden in FermUnits.
+
 The implemented `ReportedPH` model preserves:
 
 ```text
@@ -403,6 +421,14 @@ derived_pH = -log10(mean_a)
 
 8. Any such aggregate is **derived pH**, never `reported_average`.
 9. Measurement temperature and activity-model assumptions should be retained when known and when material to the calculation.
+
+FermUnits M4 will validate the mathematical domain of its semantic pH
+representation (finite pH) and activity transform (finite activity greater than
+zero), not impose a supposedly universal 0-through-14 pH range. The engine must
+own any narrower validation as an explicit domain or application policy. The
+current `ReportedPH` and `TargetWaterProfile` models still enforce that range;
+the existing behavior must be reviewed deliberately before adopting the M4
+type rather than being mistaken for a FermUnits or thermodynamic invariant.
 
 #### 9.7.1 Reusable calculated-pH capability
 
@@ -1171,12 +1197,20 @@ The engine should normalize dimensional quantities without conflating unit conve
 
 ### 21.3 FermUnits boundary
 
-FermUnits handles physical quantities and conversions. The water engine retains semantic information that is not merely dimensional, including:
+FermUnits handles physical quantities and conversions. Once the planned M4 pH
+API is released and adopted, it also owns a non-Pint semantic `PHValue` and the
+exact pH-to-hydrogen-ion-activity transform. It does not own an activity model,
+concentration/activity conversion, calculated water pH, or measurement-result
+metadata.
+
+The water engine retains semantic information and chemistry policy that is not
+merely dimensional, including:
 
 - analyte identity;
 - `as CaCO3` basis;
 - reported vs. derived status;
-- pH/logarithmic behavior;
+- reported versus calculated pH, ranges/statistics, measurement context, and
+  every model-dependent pH operation;
 - treatment ingredient identity/hydration state;
 - source-document/reference attribution metadata;
 - source/target semantics.

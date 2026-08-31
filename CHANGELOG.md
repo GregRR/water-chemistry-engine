@@ -3,6 +3,17 @@
 This project follows semantic versioning for the Water Chemistry Engine
 distribution and its repository milestones.
 
+## Unreleased
+
+### Documentation
+
+- Documented the planned FermUnits M4 boundary for semantic pH values and the
+  exact pH/hydrogen-ion-activity transform while retaining activity models,
+  concentration conversion, calculated pH, and reporting policy in the engine.
+- Recorded that chemical pH must not be represented as a Pint `pH` unit and
+  that the engine's current 0-through-14 validation requires deliberate review
+  rather than being treated as a universal pH invariant.
+
 ## 0.2.0 - 2026-08-29
 
 ### Added
