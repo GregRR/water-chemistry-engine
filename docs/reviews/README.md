@@ -13,6 +13,8 @@ For the 0.2 engine checkpoint, read these together:
 1. `0.2-external-review.md`
 2. `0.2-remediation-follow-up.md`
 3. `0.2.0-release-candidate-review.md`
+4. `0.2.0-remediation-follow-up.md`
 
-The release-candidate review requires a focused remediation follow-up before
-the 0.2.0 release proceeds.
+The release-candidate review required focused remediation. The subsequent
+follow-up independently verified the release-blocking findings as resolved and
+cleared the project to proceed with the final 0.2.0 release audit.
