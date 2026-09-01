@@ -33,11 +33,20 @@ their complete contents are not automatically part of the supported facade.
 Applications should isolate any direct module-level imports that are not
 exported from the package root.
 
-The built-in treatment constants are the supported ingredient identities for
-this facade. The current `TreatmentIngredient` and `IonStoichiometry` authoring
-types are deliberately not root exports: their present structure does not yet
-cover the composition evidence, purity, use limits, and other requirements of
-the planned reusable treatment-ingredient contract.
+The built-in treatment constants are idealized supported chemical identities
+for this facade. They define formula/hydration-state stoichiometry; they do not
+imply that an arbitrary commercial product has the same purity, assay, retained
+moisture, physical form, or solution concentration. For example,
+`CALCIUM_CHLORIDE_DIHYDRATE` means the pure `CaCl2·2H2O` chemical identity, not
+"calcium chloride flakes" generically.
+
+The current `TreatmentIngredient` and `IonStoichiometry` authoring types are
+deliberately not root exports. Their present structure models ideal chemical
+identity only and does not yet cover the composition/specification evidence,
+material assay or concentration basis, density/reference temperature for
+volume dosing, practical-use limits, and other requirements of the planned
+reusable treatment-material contract. That broader authoring boundary is
+planned after the 0.3 facade rather than being improvised into this release.
 
 The facade also supports the complete source-report construction graph retained
 by `SourceWaterProfile`: reported pH and disinfectants, source-document

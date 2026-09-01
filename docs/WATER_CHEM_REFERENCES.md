@@ -10,8 +10,7 @@ Sources are not all treated as equally authoritative. Each entry should be class
 
 - **Primary scientific source:** peer-reviewed paper, standard, official analytical method, or original dataset.
 - **Authoritative technical source:** recognized professional organization, government agency, standards body, or established technical manual.
-- **Specialist secondary source:** technically informed book, article, calculator documentation, or practitioner reference.
-- **Historical/software reference:** useful for feature inspiration or comparison, but not accepted as chemical authority without independent verification.
+- **Specialist secondary source:** technically informed book, article, or practitioner reference.
 - **Introductory source:** useful for explanations and discovery, but not sufficient by itself for formulas, limits, or validation.
 
 For every calculation implemented from a source, record:
@@ -26,24 +25,6 @@ For every calculation implemented from a source, record:
 Where an authoritative ASBC method, table, or formula is known to exist but cannot yet be checked directly, mark the item **ASBC verification pending** and record the method or table identifier when known.
 
 ## 2. Foundational brewing-water sources
-
-### ProMash Water Profiler tour
-
-- **Title:** Water Profiler — ProMash Software Tour
-- **Publisher:** Sausalito Brewing Company / ProMash
-- **URL:** https://web.archive.org/web/20040806024646/http://www.promash.com/Software/Tour/StandAlone/Tour_Calculators5.html
-- **Type:** Historical/software reference
-- **Relevance:** Principal historical calculator inspiration. Demonstrates explicit stored water profiles, mineral-addition inputs, and per-mineral ion-contribution tables.
-- **Use in this project:** Preserve the transparent contribution table while replacing manual trial-and-error with automatic blend-and-treatment optimization.
-- **Caution:** ProMash behavior and formulas must not be treated as authoritative without independent verification.
-
-### Legacy BrewSession calculator source
-
-- **Artifact:** `BrewSessionCalculators(2).zip`
-- **Type:** Historical/software reference and regression candidate
-- **Relevance:** User's earlier calculator implementations may reveal intended workflows and calculations.
-- **Use in this project:** Catalogue features, extract test candidates, and identify legacy assumptions.
-- **Caution:** Every formula must be checked against stronger sources before adoption.
 
 ### Brewer World overview
 
@@ -74,15 +55,6 @@ Where an authoritative ASBC method, table, or formula is known to exist but cann
 - **Type:** Authoritative technical education
 - **Use in this project:** Practical brewing context and discovery. Some content may require membership access.
 
-### Bru'n Water knowledge resources
-
-- **Title:** Water Knowledge
-- **Author/site:** Martin Brungard / Bru'n Water
-- **URL:** https://www.brunwater.com/water-knowledge
-- **Type:** Specialist secondary source
-- **Relevant topics:** Brewing ions, alkalinity, hardness, mash effects, and practical adjustment.
-- **Use in this project:** Comparison, terminology, and test-case discovery. Formulas should be traced to primary or authoritative sources where possible.
-
 ### Eumann and Schildbach (2012)
 
 - **Authors:** Michael Eumann; Stefan Schildbach
@@ -95,6 +67,7 @@ Where an authoritative ASBC method, table, or formula is known to exist but cann
 - **Design implications:**
   - Intended water use belongs to calculation/application context because brew water, dilution water, service water, and other brewery uses have different requirements.
   - Chlorine and other oxidizing disinfectants can matter independently of chloride concentration and should not be discarded during report ingestion.
+  - The review identifies CaSO4 and CaCl2 additions as noncarbonate-hardness treatments and notes practical control problems from the poor solubility of calcium sulfate, supporting explicit treatment-model limits rather than assuming every mineral behaves like highly soluble calcium chloride.
   - Non-additive treatment processes exist, but a generalized treatment-operation abstraction is not required for Version 1.
 - **Caution:** The paper's numerical water-requirement tables are the authors' recommendations in an industrial-brewery context; they are not assumed to be universal standards for every brewery or product.
 
@@ -216,16 +189,113 @@ be acquired or checked are marked explicitly.
 
 ### Chemical composition and stoichiometry
 
-For every included salt, acid, or alkali:
+For every included salt, acid, or alkali, distinguish evidence for the ideal
+chemical identity from evidence for a real treatment material.
+
+Chemical-identity evidence should cover:
 
 - authoritative molecular formula and molar mass;
 - hydration state;
-- purity/concentration conventions;
-- ion yield per unit mass or volume;
-- solubility and practical-use limits;
-- safety documentation where relevant.
+- stoichiometric ion yield;
+- authoritative chemical reference.
+
+Treatment-material evidence should cover where applicable:
+
+- purity/assay, preserving reported ranges;
+- solution concentration and its explicit basis;
+- density and reference temperature/conditions when volume dosing requires it;
+- product grade or specification;
+- solubility, dissolution, and practical-use limits with their valid conditions;
+- safety documentation.
 
 Preferred sources include NIST, PubChem, recognized chemical suppliers' technical specifications, pharmacopeial/food-grade standards, and peer-reviewed chemistry references.
+
+#### Calcium chloride identity and material references
+
+- **PubChem CID 5284359 — Calcium chloride (`CaCl2`)**
+  - URL: https://pubchem.ncbi.nlm.nih.gov/compound/5284359
+  - Type: authoritative government chemical database
+  - Relevant data: anhydrous formula and molecular weight (~110.98 g/mol).
+  - Use: authoritative identity/reference case for anhydrous calcium chloride.
+- **PubChem CID 6093260 — Calcium chloride dihydrate (`CaCl2·2H2O`)**
+  - URL: https://pubchem.ncbi.nlm.nih.gov/compound/6093260
+  - Type: authoritative government chemical database
+  - Relevant data: dihydrate formula and molecular weight (~147.01 g/mol).
+  - Use: independent identity/reference case for the existing dihydrate model.
+- **Occidental Chemical Corporation (OxyChem), _Calcium Chloride: A Guide to Physical Properties_**
+  - URL: https://www.oxy.com/siteassets/documents/chemicals/products/other-essentials/173-01791.pdf
+  - Type: authoritative manufacturer technical guide
+  - Relevant data: physical properties of CaCl2 hydrates and solutions; the
+    guide lists pure dihydrate as 75.49% CaCl2 by composition and distinguishes
+    it from commercial-grade products; solution physical properties vary with
+    concentration and temperature.
+  - Design implication: pure hydrate composition and commercial material assay
+    are separate semantics; density used for volume dosing must retain its
+    applicable conditions.
+- **OxyChem DOWFLAKE Xtra 83–87% Calcium Chloride Flakes**
+  - URL: https://www.oxychemcalciumchloride.com/products/dowflake-xtra-83-87-calcium-chloride-flakes/
+  - Type: manufacturer product specification
+  - Relevant data: example of a commercial solid material specified by a CaCl2
+    assay range rather than by pure-hydrate stoichiometry alone.
+  - Design implication: preserve material assay ranges instead of treating a
+    product label as the definition of a hydrate or silently averaging it.
+- **OxyChem LIQUIDOW Food Grade Calcium Chloride Solution**
+  - URL: https://www.oxychemcalciumchloride.com/products/liquidow-food-grade-calcium-chloride-solution/
+  - Type: manufacturer food-grade product/technical data
+  - Relevant data: an example food-grade liquid material specified at
+    32.0–33.0% CaCl2 by weight, with certificate-of-analysis support.
+  - Design implication: a liquid treatment is a solution/material, not a third
+    calcium-chloride hydration state; mass dosing and volume dosing require
+    distinct conversion semantics. Density for volume conversion must come from
+    a validated source appropriate to the specified concentration and
+    conditions.
+
+#### Gypsum solubility references
+
+- **Voigt (2023)**
+  - Title: Solubility of anhydrite and gypsum at temperatures below 100°C and
+    the gypsum-anhydrite transition temperature in aqueous solutions: a
+    re-assessment
+  - Journal: *Frontiers in Nuclear Engineering*, Volume 2
+  - DOI: 10.3389/fnuen.2023.1208582
+  - Type: peer-reviewed scientific reassessment of experimental solubility and
+    calorimetric data
+  - Relevant topics: temperature-dependent gypsum/anhydrite solubility,
+    phase stability, electrolyte effects, and slow anhydrite crystallization
+    kinetics; the reassessment places the gypsum-anhydrite transition in water
+    near 42°C rather than supporting a universal one-line hot-versus-cold rule.
+  - Design implication: do not encode the shorthand that gypsum is simply
+    "less soluble in hot water than cold" as a general engine rule.
+    Temperature, phase, solution composition, and kinetics belong to any later
+    validated solubility model.
+
+#### Carbonate/chalk and dissolution references
+
+- **Plummer and Busenberg (1982)**
+  - Title: The solubilities of calcite, aragonite and vaterite in CO2-H2O
+    solutions between 0 and 90°C, and an evaluation of the aqueous model for
+    the system CaCO3-CO2-H2O
+  - Journal: *Geochimica et Cosmochimica Acta*, Volume 46, Issue 6, pages
+    1011–1040
+  - DOI: 10.1016/0016-7037(82)90056-4
+  - USGS record: https://pubs.usgs.gov/publication/70011789
+  - Type: primary scientific source / USGS-authored research
+  - Relevant topics: calcite solubility and CaCO3-CO2-H2O equilibria across
+    temperature and CO2 conditions.
+  - Design implication: chalk cannot be represented faithfully as a fixed
+    complete-dissolution Ca2+/carbonate dose independent of pH/CO2 state.
+- **USGS Alkalinity Calculator methods**
+  - URL: https://or.water.usgs.gov/alk/methods.html
+  - Type: authoritative government analytical-method documentation
+  - Relevant topics: carbonate-system titration endpoints and dependence on
+    carbonic-acid equilibrium constants.
+  - Design implication: pH 8.3/8.4 is not a hard chemical switch at which all
+    carbonate universally becomes bicarbonate; future speciation must use an
+    explicit equilibrium model.
+
+The specific claim that undissolved brewing chalk remains on grain and later
+continues reacting in the kettle or fermenter remains a research question. Do
+not encode that process narrative without direct experimental brewing evidence.
 
 ### Water quality and reporting semantics
 
@@ -329,11 +399,15 @@ Historical city profiles must not be labeled as a brewery's actual treated liquo
 
 ## 8. Immediate research priorities
 
-1. Validate the chemical definitions and ion yields for the version 1 salts.
-2. Establish authoritative semantics for alkalinity, hardness, bicarbonate, carbonate, and `as CaCO3` reporting.
-3. Identify defensible initial beer, mead, and distilling target profiles with redistribution rights.
-4. Identify the first defensible coffee target/reference profiles and classify each as standard, recommendation, practitioner reference, experimental reference, or optimized target as appropriate.
-5. Identify tea and dough/bread/pizza reference profiles only where the evidence and redistribution status support admission; do not manufacture optimal profiles from regional analyses.
-6. Find primary or authoritative water-blending and charge-balance references.
-7. Catalogue the legacy BrewSession water-calculator formulas and compare them against stronger sources.
-8. Define a citation, evidentiary-classification, and versioning format for bundled reference data.
+1. Validate the chemical definitions and ion yields for the version 1 salts,
+   including anhydrous calcium chloride as a distinct identity.
+2. Define and validate treatment-material semantics for solid assay/purity,
+   liquid concentration basis, mass dosing, density-supported volume dosing,
+   and ranged material specifications before optimizer work relies on them.
+3. Establish authoritative semantics for alkalinity, hardness, bicarbonate, carbonate, and `as CaCO3` reporting.
+4. Identify defensible initial beer, mead, and distilling target profiles with redistribution rights.
+5. Identify the first defensible coffee target/reference profiles and classify each as standard, recommendation, practitioner reference, experimental reference, or optimized target as appropriate.
+6. Identify tea and dough/bread/pizza reference profiles only where the evidence and redistribution status support admission; do not manufacture optimal profiles from regional analyses.
+7. Find primary or authoritative water-blending and charge-balance references.
+8. Catalogue unverified water-treatment formulas and claims encountered during research and compare them against stronger sources.
+9. Define a citation, evidentiary-classification, and versioning format for bundled reference data.

@@ -43,8 +43,9 @@ multiple implemented workflows demonstrate the common contract.
 - Grain buffering models.
 - Acid and alkali additions.
 - Separate mash and sparge optimization.
-- Deeper carbonate/bicarbonate equilibrium behavior.
-- Precipitation/solubility modeling where useful.
+- Deeper carbonate/bicarbonate and CO2 equilibrium behavior.
+- Equilibrium, precipitation, saturation, solubility, and dissolution behavior
+  where validated and practically useful, including carbonate/chalk systems.
 - Purpose-aware brewery process-water workflows beyond the first validated uses.
 - Spirit-proofing-specific guidance where scientifically supported.
 - Brewery-scale service/dilution/process-water calculations where appropriate.

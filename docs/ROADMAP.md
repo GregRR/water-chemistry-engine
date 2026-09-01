@@ -139,9 +139,11 @@ before this checkpoint is considered closed.
 - Keep the public source-input graph cohesive across reported pH,
   disinfectants, source documents, water identity, result context/statistics,
   and supporting reported properties.
-- Replace the current built-in-only treatment-ingredient facade only after a
-  reusable authoring contract includes composition evidence, purity, use
-  limits, and the other requirements recorded in the design.
+- Keep the current built-in-only treatment-ingredient facade narrow in 0.3;
+  broaden treatment authoring only after the reusable chemical-identity and
+  treatment-material contracts are defined with composition evidence, assay or
+  concentration semantics, use limits, and the other requirements recorded in
+  the design.
 - Identify any convenience constructors/helpers justified by real application
   use without duplicating chemistry or hiding reported-data semantics.
 
@@ -149,10 +151,12 @@ Consumer applications do not need to wait for this milestone to begin. During
 0.2/0.3 co-development they should isolate current module-level imports behind a
 small adapter and pin a tested engine version.
 
-## 0.4 — Curated Target and Reference Profiles
+## 0.4 — Curated Profiles and Treatment Materials
 
-Expand the useful profile library without requiring complete coffee-, tea-,
-bread-, or pizza-specific predictive engines.
+Expand the useful profile library and practical treatment-material model
+without requiring complete coffee-, tea-, bread-, or pizza-specific predictive
+engines. This milestone must establish real material dosing semantics before
+the first automatic optimizer chooses amounts for users.
 
 ### Generic profile/data work
 
@@ -198,6 +202,45 @@ semantics only where the requirement is concrete and scientifically clear; do
 not build a universal sensory-property framework merely to make every historic
 standard field machine-optimizable immediately.
 
+### Practical treatment-material work
+
+Preserve the existing distinction between ideal chemical stoichiometry and the
+real material a user measures and adds.
+
+- Treat hydration state as part of chemical identity. Calcium chloride
+  anhydrous and calcium chloride dihydrate are distinct identities, not unit
+  conversions or interchangeable product forms.
+- Add anhydrous calcium chloride as a supported chemical identity once its
+  authoritative composition and reference tests are recorded.
+- Introduce a reusable treatment-material representation for commercial or
+  user-defined preparations without changing the underlying chemical
+  stoichiometry.
+- Represent purity/assay separately from chemical hydration state. A commercial
+  flake specified as a range such as 77–80% or 83–87% CaCl2 is a material
+  specification, not the definition of pure calcium chloride dihydrate.
+- Represent solution concentration with an explicit basis; never accept an
+  unlabeled percentage whose meaning could be mass fraction, mass/volume, or
+  another convention.
+- Support mass-based dosing of liquid materials directly when their
+  concentration basis permits it. Support volume dosing only when sufficient
+  concentration and density information makes the conversion deterministic.
+- Associate density with the applicable/reference temperature when required;
+  never assume a concentrated aqueous treatment solution has density 1 g/mL.
+- Preserve reported assay/concentration ranges rather than silently replacing
+  them with an arithmetic midpoint. Any representative-value policy used for a
+  calculation must be explicit and auditable.
+- Retain authoritative composition/specification evidence and validated
+  practical-use limits with reusable material definitions.
+- Keep the current complete-dissolution model explicit for simple supported
+  additions rather than implying that every solid is fully soluble under every
+  process condition.
+
+Full equilibrium, precipitation, and dissolution modeling is not required for
+0.4. Calcium carbonate/chalk must not be added to the ordinary
+complete-dissolution ingredient set merely by assigning fixed Ca2+ and
+carbonate contributions; its useful dissolved contribution depends on the
+carbonate/CO2 system and remains later chemistry work.
+
 ## 0.5 — First Automatic Treatment Optimizer
 
 Let the engine answer:
@@ -208,10 +251,14 @@ Let the engine answer:
 
 - Continuous closest-match blending and mineral additions.
 - Source availability and maximum-volume constraints.
-- Caller-permitted water sources and treatment ingredients.
+- Caller-permitted water sources, chemical treatment identities, and available
+  treatment materials.
+- Material assay/concentration and validated use limits included in dose
+  calculations.
 - Hard target constraints where supported.
 - Explicit infeasibility and compromise diagnostics.
-- Practical dose rounding followed by full recalculation.
+- Practical material-dose rounding followed by resolution to active chemical
+  amount and full chemistry recalculation.
 - A structured recommended treatment plan.
 
 Do not require every future ranking policy before the first optimizer is useful.
@@ -352,8 +399,10 @@ optimization:
 - alkalinity neutralization;
 - recipe-aware separate mash/sparge treatment;
 - recipe-aware mash-pH prediction;
-- deeper carbonate/bicarbonate chemistry;
-- precipitation and solubility considerations where practical;
+- deeper carbonate/bicarbonate and CO2 equilibrium chemistry;
+- precipitation, saturation, solubility, and dissolution behavior where
+  practical and validated, including the chemistry needed before chalk can be
+  modeled as an actionable treatment;
 - uncertainty propagation;
 - optimization using uncertain/ranged source reports;
 - sensitivity and worst-case plans;

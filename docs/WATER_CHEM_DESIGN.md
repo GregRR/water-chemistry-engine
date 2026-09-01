@@ -667,23 +667,83 @@ This formula does not apply blindly to pH or to censored/not-detected values tha
 
 The current fixed-blend implementation also applies this linear relation to bicarbonate and carbonate as a **first-order approximation**. Mixing waters can shift carbonate speciation through pH-dependent equilibrium, CO2 exchange, and precipitation, so those species are not assumed to be rigorously conservative. Before reusable calculated-pH work or optimization begins relying materially on carbonate species, the engine must either surface this approximation as a structured assumption/warning or replace it with an equilibrium-aware treatment appropriate to that capability.
 
-### 9.16 Future TreatmentIngredient
+Dilution with RO, distilled, deionized, or otherwise low-mineral water is an
+ordinary multi-source blend when that water is represented by an explicit
+source profile. The engine does not need a separate "ion-free dilution rate"
+chemistry primitive. A consumer may offer such a convenience control, but it
+must resolve to the same ordinary blend semantics rather than a second dilution
+calculation path.
 
-Treatment ingredients must separate chemical identity from application inventory.
+### 9.16 Future treatment chemical identity and material model
 
-Required information will include:
+The treatment model must separate the ideal chemical identity used by
+stoichiometry from the real material a user measures and adds. The current
+`TreatmentIngredient` objects are deliberately ideal chemical identities even
+though the class name predates this distinction; future public authoring may
+retain or rename that type, but commercial-material semantics must remain
+separate.
+
+A chemical identity requires information such as:
 
 - stable identifier;
 - display name;
-- chemical formula/composition;
+- authoritative chemical formula/composition;
 - hydration state;
-- purity or solution concentration;
-- ion yield per mass or volume;
-- optional density for liquid treatments;
-- validated use limits;
-- evidence/source for composition.
+- molar mass and stoichiometric ion yields;
+- evidence/source for the chemical definition.
 
-Hydration states such as calcium chloride anhydrous vs. dihydrate are chemical identities, not unit conversions.
+Hydration state is part of chemical identity. For example, calcium chloride
+anhydrous (`CaCl2`) and calcium chloride dihydrate (`CaCl2·2H2O`) contain
+different active-ion fractions per gram and must not be represented as unit
+conversions or interchangeable product forms.
+
+A treatment material describes the physical/commercial preparation that is
+actually dosed. It may require:
+
+- stable material identifier and display description;
+- underlying chemical identity;
+- physical or product form;
+- purity or assay, including a preserved range when that is how the material is
+  specified;
+- solution concentration with an explicit basis, such as mass fraction or mass
+  per volume;
+- supported dose representation, including mass and, only when justified,
+  volume;
+- density when volume-to-mass conversion requires it;
+- reference temperature or applicable temperature conditions for density;
+- validated practical-use limits;
+- composition/specification evidence;
+- optional manufacturer/product metadata when it is part of a sourced material
+  definition.
+
+"Liquid" is therefore not a hydration state analogous to anhydrous or
+dihydrate. It is a material/solution containing an underlying chemical
+identity. A mass-fraction solution can be resolved from measured solution mass
+to active chemical mass without density. A volume dose requires enough
+concentration and density information to perform a defensible conversion; the
+engine must never assume that a concentrated aqueous solution has density
+1 g/mL.
+
+Reported assay or concentration ranges must remain ranges. The engine must not
+silently replace a commercial specification such as 77–80% with its arithmetic
+midpoint and present that value as measured or exact. If a deterministic
+calculation requires one representative value, the caller or material policy
+must select it explicitly and the result must retain that assumption.
+
+Solubility and dissolution kinetics are related but distinct. Equilibrium
+solubility/saturation depends on conditions such as temperature, pH, ionic
+composition, and for carbonate systems CO2 state; dissolution rate additionally
+depends on particle size, mixing, contact time, and other process conditions.
+A single generic solubility scalar must not be treated as a complete prediction
+of whether an addition dissolves during a real process.
+
+Calcium carbonate/chalk is intentionally excluded from the current simple
+complete-dissolution ingredient set. Its useful dissolved contribution depends
+strongly on carbonate/CO2 equilibrium and dissolution/precipitation behavior,
+so assigning every added gram fixed dissolved Ca2+ and carbonate contributions
+would overstate what the water actually receives. Specific claims about where
+undissolved chalk remains or when it later reacts require direct evidence before
+becoming engine behavior.
 
 ### 9.17 Future TreatmentPlan
 
@@ -970,7 +1030,13 @@ Calculate fixed or candidate blends
 Construct derived blended-water chemical state
         │
         ▼
-Apply treatment-ingredient stoichiometry
+Resolve treatment-material dose and assay/concentration
+        │
+        ▼
+Determine active chemical amount
+        │
+        ▼
+Apply chemical-identity stoichiometry
         │
         ▼
 Construct final treated-water chemical state and contribution matrix
@@ -1004,7 +1070,7 @@ The release sequence is incremental:
 
 - **0.2:** deterministic source -> fixed blend -> mineral additions -> result -> target/reference path;
 - **0.3:** supported consumer-facing Python API around the proven forward path;
-- **0.4:** curated and classified target/reference data;
+- **0.4:** curated/classified target/reference data plus practical treatment-material semantics;
 - **0.5:** first automatic treatment optimizer;
 - **0.6:** ranked practical treatment strategies;
 - **0.7:** reusable working-water pH and richer diagnostics if scientifically ready;
@@ -1016,10 +1082,11 @@ The release sequence is incremental:
 1. **Reported source-water representation** preserving exact/ranged/bounded/`ND` values, statistics, pH, reporting bases, identity, timing/context, provenance, and supported disinfectants.
 2. **Target/reference semantics** that distinguish desired targets from sourced references and preserve evidentiary classification/provenance.
 3. **Deterministic forward treatment** through explicit source resolution, fixed multi-source blending, supported mineral additions, derived blend/final states, contribution accounting, preparation instructions, notices, and target comparison.
-4. **Automatic optimization** for supported blends/additions with explicit feasibility/compromise diagnostics, practical rounding, and ranked named policies.
-5. **Reusable working-water pH** only if a defensible state-based model, minimum-input contract, reference cases, and limitations are validated. Missing support remains explicit rather than guessed.
-6. **Interchange and conformance** through BeerJSON/FermentationJSON adapters where appropriate, versioned result/request contracts, reference data, and portable test vectors.
-7. **Supported consumer API** that remains framework-neutral and does not return HTML, ORM objects, or product-specific state.
+4. **Practical treatment materials** that keep chemical identity separate from commercial/product assay or solution concentration and resolve measured material doses to active chemical amounts before optimization relies on them.
+5. **Automatic optimization** for supported blends/additions with explicit feasibility/compromise diagnostics, practical rounding, and ranked named policies.
+6. **Reusable working-water pH** only if a defensible state-based model, minimum-input contract, reference cases, and limitations are validated. Missing support remains explicit rather than guessed.
+7. **Interchange and conformance** through BeerJSON/FermentationJSON adapters where appropriate, versioned result/request contracts, reference data, and portable test vectors.
+8. **Supported consumer API** that remains framework-neutral and does not return HTML, ORM objects, or product-specific state.
 
 ### 16.2 Consumer-facing API milestone (0.3)
 
@@ -1053,7 +1120,7 @@ Convenience helpers should be driven by real consumer friction. They must not er
 
 ### 16.3 Version 1 reference data
 
-- Validated treatment-ingredient definitions.
+- Validated treatment chemical identities and practical material definitions, with composition/specification provenance.
 - Curated beer, mead, and distilling targets with explicit source/reference attribution.
 - Historical-city profiles clearly identified as references rather than silently canonicalized.
 - RO and distilled profiles represented explicitly rather than assumed silently.
@@ -1085,8 +1152,8 @@ Version 2 adds capabilities that require deeper chemistry models or materially d
 - alkalinity neutralization;
 - recipe-aware separate mash and sparge treatment;
 - recipe-aware mash-pH prediction;
-- deeper carbonate/bicarbonate chemistry beyond the focused working-water pH capability;
-- precipitation and solubility considerations where practical;
+- deeper carbonate/bicarbonate and CO2 equilibrium chemistry beyond the focused working-water pH capability;
+- precipitation, saturation, solubility, and dissolution behavior where practical and validated, including the chemistry needed before chalk can be modeled as an actionable treatment;
 - uncertainty propagation;
 - optimization using uncertain or ranged source-water reports;
 - sensitivity and worst-case plans;
@@ -1135,18 +1202,20 @@ Industrial support must not be created by simply relabeling the food-oriented op
 Version 1 decision variables may include:
 
 - volume or fraction of each source water;
-- mass of each solid treatment;
-- optional binary variable indicating whether a treatment product is used;
+- mass of each supported treatment material;
+- treatment-material volume only when concentration basis and density data make conversion to mass deterministic;
+- optional binary variable indicating whether a treatment material is used;
 - practical rounded amount where discrete dosing is required.
 
 ### 20.2 Constraints
 
 - Source fractions sum to the required volume.
 - Source amounts remain within availability bounds.
-- Treatment quantities remain within validated limits.
+- Treatment-material quantities remain within validated limits.
+- Material assay/concentration semantics are sufficient to resolve each candidate dose to an active chemical amount.
 - Hard target limits are respected when feasible.
 - Decision variables cannot be negative.
-- User-excluded waters and ingredients remain unused.
+- User-excluded waters, chemical identities, and treatment materials remain unused.
 
 ### 20.3 Objective components
 
@@ -1155,7 +1224,7 @@ Objective components should be calculated separately rather than hidden in one u
 - weighted ion deviation;
 - hard-constraint violation penalty;
 - number of treatment products;
-- total treatment mass;
+- total measured treatment-material mass;
 - dilution-water usage;
 - deviation introduced by dose rounding;
 - optional application-provided cost.
@@ -1240,7 +1309,7 @@ merely dimensional, including:
 - reported vs. derived status;
 - reported versus calculated pH, ranges/statistics, measurement context, and
   every model-dependent pH operation;
-- treatment ingredient identity/hydration state;
+- treatment chemical identity/hydration state and, where applicable, treatment-material assay/concentration semantics;
 - source-document/reference attribution metadata;
 - source/target semantics.
 
@@ -1304,7 +1373,8 @@ This preserves calculation consistency without making the engine repository own 
 - regulatory-reference separation from chemistry;
 - reporting-basis preservation;
 - pH nonlinear semantics;
-- stoichiometric contribution for each treatment ingredient;
+- stoichiometric contribution for each treatment chemical identity;
+- material-dose resolution for representative solid assays and liquid concentration bases once implemented;
 - unit conversions and dimensional rejection;
 - target deviation/range logic;
 - practical rounding;
@@ -1341,7 +1411,7 @@ Tests must prove that:
 - published analytical examples where licensing permits;
 - independently calculated stoichiometric examples;
 - cross-checks against trusted brewing references;
-- legacy BrewSession calculator outputs only after verifying their formulas and assumptions.
+- independently reconstructed historical calculation examples only after verifying their formulas and assumptions.
 
 ### 24.5 Optimizer tests
 
@@ -1361,7 +1431,9 @@ Portable versioned request/result pairs should allow Swift, Kotlin, Dart, JavaSc
 
 - Treat acids and alkalis as hazardous once supported.
 - Include practical-dose limits and clear warning codes.
-- Never infer missing concentration, purity, hydration state, or reporting basis without exposing the assumption.
+- Never infer missing concentration, concentration basis, purity/assay, hydration state, liquid density/reference temperature, or reporting basis without exposing the assumption.
+- Never replace a ranged commercial assay/concentration with an unlabeled midpoint and present it as exact.
+- Never model chalk as a fixed complete-dissolution Ca2+/carbonate addition without a validated carbonate/CO2 and dissolution/precipitation model.
 - Never silently replace reported data with calculated data.
 - Never silently convert alkalinity to bicarbonate.
 - Never arithmetic-average pH.
@@ -1464,13 +1536,19 @@ Completed:
 - explicit pre-1.0 request/result evolution policy;
 - application-driven convenience improvements only where they preserve scientific semantics.
 
-### Milestone 4 / release 0.4 — curated target/reference data
+### Milestone 4 / release 0.4 — curated profiles and treatment materials
 
 - generic target/reference classification and provenance enhancements;
 - brewing/mead/distilling profiles;
 - well-sourced coffee profiles/standards;
 - tea profiles where evidence permits;
 - defensible regional, practitioner, point-of-use, or experimental dough/bread/pizza references;
+- chemical-identity versus treatment-material separation;
+- authoritative anhydrous calcium chloride identity;
+- solid-material purity/assay semantics;
+- liquid concentration-basis semantics and mass dosing;
+- volume dosing only where density/reference-temperature data support it;
+- explicit ranged-assay handling and practical-use limits;
 - reference-data validation/versioning.
 
 ### Milestone 5 / releases 0.5–0.6 — optimization
@@ -1515,18 +1593,19 @@ A weak pH approximation is not a release requirement; unsupported derived pH may
 1. Exact boundary between frozen dataclasses and Pydantic boundary models.
 2. Exact supported top-level API surface for release 0.3 and which current module paths remain public.
 3. Whether SciPy's MILP support is sufficient for all Version 1 discrete policies.
-4. First authoritative composition sources for each included treatment ingredient.
-5. Redistribution/licensing policy for historical city, brewery, and style targets.
-6. Exact BeerJSON water adapter behavior and structured loss-report schema.
-7. Exact FermentationJSON water-profile and treatment-plan adapter contract once its schema is stable enough to implement.
-8. Whether additional alkalinity normalization belongs partly in FermUnits or entirely in engine semantics.
-9. How target-match scores should be normalized and explained.
-10. Whether charge-balance diagnostics should only warn or may optionally suggest likely missing information without altering source data.
-11. How regulatory/reference thresholds should be represented when preserved for report fidelity without contaminating chemistry models.
-12. Exact aqueous equilibrium/activity model, validated reference data, and minimum chemical-state inputs for the reusable `calculate_ph(...)` capability.
-13. Exact reusable representation for reported disinfectants and other non-optimization analytes once chlorine/chloramine support expands beyond the first concrete cases.
-14. First validated set of intended-water-use values for early post-1.0 purpose-aware guidance versus deeper Version 2 models.
-15. Exact generic metadata vocabulary for target versus reference profile classification without overfitting to coffee, tea, or dough.
+4. Authoritative chemical-identity and treatment-material sources for each supported addition, including hydration state, commercial assay/concentration conventions, density where required, and validated practical-use limits.
+5. Exact supported calculation policy for ranged commercial assay or solution concentration specifications when a deterministic representative value is required.
+6. Redistribution/licensing policy for historical city, brewery, and style targets.
+7. Exact BeerJSON water adapter behavior and structured loss-report schema.
+8. Exact FermentationJSON water-profile and treatment-plan adapter contract once its schema is stable enough to implement.
+9. Whether additional alkalinity normalization belongs partly in FermUnits or entirely in engine semantics.
+10. How target-match scores should be normalized and explained.
+11. Whether charge-balance diagnostics should only warn or may optionally suggest likely missing information without altering source data.
+12. How regulatory/reference thresholds should be represented when preserved for report fidelity without contaminating chemistry models.
+13. Exact aqueous equilibrium/activity model, validated reference data, and minimum chemical-state inputs for the reusable `calculate_ph(...)` capability.
+14. Exact reusable representation for reported disinfectants and other non-optimization analytes once chlorine/chloramine support expands beyond the first concrete cases.
+15. First validated set of intended-water-use values for early post-1.0 purpose-aware guidance versus deeper Version 2 models.
+16. Exact generic metadata vocabulary for target versus reference profile classification without overfitting to coffee, tea, or dough.
 
 ## 29. Versioning policy
 

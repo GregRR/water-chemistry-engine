@@ -59,6 +59,17 @@ distribution and its repository milestones.
   universal pH invariant.
 - Added IUPAC pH definition and measurement sources supporting the semantic
   activity-based pH boundary.
+- Documented the planned separation between ideal treatment chemical
+  identities and real treatment materials, including commercial assay/purity,
+  liquid concentration basis, density/reference-temperature requirements, and
+  explicit ranged-specification handling before optimization.
+- Added authoritative/reference-source entries for calcium chloride identities,
+  commercial flakes/solutions, and carbonate/chalk equilibrium; clarified that
+  non-authoritative practitioner claims remain discovery inputs until
+  independently verified.
+- Clarified that RO/distilled "ion-free dilution" is already ordinary
+  multi-source blending and does not require a separate engine chemistry
+  primitive.
 
 ## 0.2.0 - 2026-08-29
 
