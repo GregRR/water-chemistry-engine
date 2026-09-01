@@ -29,3 +29,14 @@ The first two records preserve the independent discovery and focused reviews
 of the original slice plus the maintainer's finding-by-finding adjudication.
 The remediation follow-up independently verified all four findings as closed,
 found no new defect, and cleared that bounded consumer-facade checkpoint.
+
+For the 0.3 source-reporting/provenance API checkpoint, read these together:
+
+1. `0.3-source-reporting-pass-1.md`
+2. `0.3-source-reporting-pass-2.md`
+
+The discovery and focused reviews found no scientific or runtime defect. They
+identified an unexported public typing alias and incomplete migration guidance
+for the published pH contracts. Both findings are remediated in the current
+development tree but require a focused external follow-up before the checkpoint
+is closed.

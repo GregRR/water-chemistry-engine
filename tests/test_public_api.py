@@ -100,6 +100,7 @@ EXPECTED_PUBLIC_API = {
     "WaterStage",
     "WaterType",
     "ResultCoverage",
+    "ScalarQuantity",
     "__version__",
     "calculate_forward_water",
 }
@@ -315,7 +316,7 @@ def test_complete_source_reporting_contract_uses_package_root_imports() -> None:
         ph=wce.ReportedPH(
             minimum=PHValue(7.2),
             maximum=PHValue(7.8),
-            reported_average=PHValue(7.5),
+            reported_average=PHValue(7.4),
             result_context=context,
         ),
         observation_period=period,
@@ -350,7 +351,7 @@ def test_complete_source_reporting_contract_uses_package_root_imports() -> None:
     assert profile.source_document is source_document
     assert profile.source_document.analysis_provider == "Example Laboratory"
     assert profile.ph is not None
-    assert profile.ph.calculation_value == PHValue(7.5)
+    assert profile.ph.calculation_value == PHValue(7.4)
     assert profile.alkalinity is not None
     assert profile.alkalinity.basis is wce.ReportingBasis.AS_CACO3
     assert profile.total_hardness is not None

@@ -21,15 +21,33 @@ distribution and its repository milestones.
 - Exposed the complete `SourceWaterProfile` reporting and provenance
   construction graph, including reported properties, disinfectants, result
   context/statistics, water identity, physical sources, and source documents.
+- Exported `ScalarQuantity` so typed consumers can name the scalar FermUnits
+  quantity policy used by supported fields and return values.
 
 ### Changed
 
 - Raised the minimum FermUnits version to 0.1.3 and imported quantity typing
   through its public API, keeping FermUnits as the sole unit dependency boundary
   while retaining real Pint quantities in the supported result contract.
-- Migrated reported and target pH storage to FermUnits `PHValue`, preserving the
-  range-only no-midpoint rule while removing the unsupported assumption that
-  every valid pH must fall between 0 and 14.
+- **Breaking from 0.2.0:** migrated `ReportedPH` fields and
+  `calculation_value` from floats to FermUnits `PHValue`. The `.exact()`,
+  `.range()`, and `.average()` constructors still accept numeric arguments,
+  while direct field construction now requires `PHValue`.
+- **Breaking from 0.2.0:** changed `TargetWaterProfile.ph` from a float to
+  `PHValue`; callers must replace values such as `ph=7.0` with
+  `ph=PHValue(7.0)`.
+- Removed the unsupported assumption that every valid pH must fall between 0
+  and 14 while preserving finite-value validation and the range-only
+  no-midpoint rule.
+
+### Migration from 0.2.0
+
+- Import `PHValue` from `fermunits` for direct reported-pH fields and target pH.
+- Existing calls such as `ReportedPH.exact(7.2)` remain valid, but stored pH
+  fields and `calculation_value` now return `PHValue`; use the semantic object's
+  `.value` attribute when a numeric display/interchange adapter requires it.
+- Change `TargetWaterProfile(..., ph=7.0)` to
+  `TargetWaterProfile(..., ph=PHValue(7.0))`.
 
 ### Documentation
 

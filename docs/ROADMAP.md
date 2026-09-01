@@ -116,6 +116,14 @@ unsupported universal 0-through-14 restriction as part of the consumer
 contract. This is representation and validation work; calculated working-water
 pH remains unsupported.
 
+Independent discovery and focused reviews found no scientific or runtime
+defect in that slice. They identified two API-completeness/documentation gaps:
+the public annotations used an unexported `ScalarQuantity` alias, and the
+published 0.2.0 float-to-`PHValue` migration needed explicit guidance for both
+`ReportedPH` and `TargetWaterProfile.ph`. The remediation exports the alias,
+adds the migration guidance, and requires its own focused external follow-up
+before this checkpoint is considered closed.
+
 ### Required work
 
 - Define and document the supported top-level consumer imports for the current

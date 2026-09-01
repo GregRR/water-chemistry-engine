@@ -82,6 +82,7 @@ The exact initial facade is:
   `ReportedStatistic`, `ReportedStatisticKind`, `ReportedPH`,
   `ReportedDisinfectant`, `DisinfectantKind`, `Alkalinity`, `TotalHardness`,
   `TotalDissolvedSolids`, `Conductivity`, and `ReportingBasis`;
+- shared scalar quantity typing: `ScalarQuantity`;
 - ions and reported concentration forms: `Ion`, `IonConcentration`,
   `IonConcentrationRange`, `IonConcentrationUpperBound`,
   `IonConcentrationLowerBound`, `IonConcentrationNotDetected`,
@@ -118,6 +119,11 @@ The engine imports both quantity construction and the public `Quantity` type
 through FermUnits 0.1.3 or later. Pint remains FermUnits' physical-unit engine
 and is installed transitively; ordinary engine consumers do not need a direct
 Pint dependency merely to use the quantities returned by this API.
+
+`ScalarQuantity` is the engine's supported annotation for a FermUnits quantity
+whose magnitude is an `int`, `float`, `Decimal`, or `Fraction`. Consumers may
+use it to type reported-value fields and return values without reproducing the
+engine's scalar-magnitude policy or importing `quantity_types` directly.
 
 ## Source reporting and provenance example
 
@@ -166,7 +172,7 @@ source = SourceWaterProfile(
     ph=ReportedPH(
         minimum=PHValue(7.2),
         maximum=PHValue(7.8),
-        reported_average=PHValue(7.5),
+        reported_average=PHValue(7.4),
         result_context=context,
     ),
     observation_period=period,
@@ -310,6 +316,50 @@ consumer should:
 4. display or localize the message appropriately; and
 5. tolerate additional notice codes in later compatible releases rather than
    assuming the current set is exhaustive.
+
+## Migrating pH code from 0.2.0
+
+Water Chemistry Engine 0.2.0 exposed float-based pH fields through its
+module-level models. The 0.3 consumer contract uses FermUnits `PHValue` so
+chemical pH cannot be confused with an ordinary dimensional quantity.
+
+The `ReportedPH.exact()`, `.range()`, and `.average()` constructors remain
+source-compatible and still accept finite numeric arguments:
+
+```python
+reported_ph = ReportedPH.exact(7.2)
+```
+
+The stored fields and `calculation_value` now return `PHValue`. Code that needs
+the underlying numeric magnitude for display or an explicit serialization
+adapter should read `.value` from that semantic object:
+
+```python
+numeric_ph = reported_ph.calculation_value.value
+```
+
+Direct `ReportedPH` field construction must wrap each pH value:
+
+```python
+from fermunits import PHValue
+
+reported_ph = ReportedPH(value=PHValue(7.2))
+```
+
+`TargetWaterProfile.ph` has no numeric convenience constructor, so 0.2 code
+must change from `ph=7.0` to `ph=PHValue(7.0)`:
+
+```python
+target = TargetWaterProfile(
+    name="Example target",
+    concentrations=(),
+    ph=PHValue(7.0),
+)
+```
+
+`PHValue` is not implicitly float-convertible or JSON-serializable. Consumers
+should keep it semantic inside their domain boundary and perform deliberate
+display or interchange adaptation at the application edge.
 
 ## Pre-1.0 compatibility expectations
 

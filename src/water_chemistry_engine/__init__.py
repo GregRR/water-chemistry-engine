@@ -61,6 +61,7 @@ from water_chemistry_engine.preparation_instructions import (
     WaterPreparationInstructions,
 )
 from water_chemistry_engine.profiles import SourceWaterProfile
+from water_chemistry_engine.quantity_types import ScalarQuantity
 from water_chemistry_engine.reported_disinfectants import (
     DisinfectantKind,
     ReportedDisinfectant,
@@ -182,6 +183,7 @@ __all__ = [
     "ResolvedSourceIon",
     "ResolvedTreatmentIon",
     "ResultCoverage",
+    "ScalarQuantity",
     "SourceContributionCell",
     "SourceContributionCellStatus",
     "SourceContributionColumn",
