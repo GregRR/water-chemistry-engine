@@ -19,7 +19,13 @@ The release-candidate review required focused remediation. The subsequent
 follow-up independently verified the release-blocking findings as resolved and
 cleared the project to proceed with the final 0.2.0 release audit.
 
-For the first 0.3 consumer-API checkpoint, read
-`0.3-consumer-api-pass-1.md` and `0.3-consumer-api-pass-2.md` together. They
-record the independent discovery and focused reviews of the original slice and
-the maintainer's finding-by-finding adjudication before remediation follow-up.
+For the first 0.3 consumer-API checkpoint, read these together:
+
+1. `0.3-consumer-api-pass-1.md`
+2. `0.3-consumer-api-pass-2.md`
+3. `0.3-consumer-api-remediation-follow-up.md`
+
+The first two records preserve the independent discovery and focused reviews
+of the original slice plus the maintainer's finding-by-finding adjudication.
+The remediation follow-up independently verified all four findings as closed,
+found no new defect, and cleared that bounded consumer-facade checkpoint.

@@ -104,6 +104,11 @@ treatment application, contribution matrices, and preparation instructions,
 and adds consumer-level checks for those paths. This is API-completeness work;
 it does not change the underlying calculations.
 
+A focused external follow-up independently verified all four original findings
+as closed at commit `c8518550b11487fe2ca6ab2b6840e3947666230c`, found no new
+defect, and cleared this first consumer-facade checkpoint. The remaining 0.3
+work below is deliberately separate from that reviewed result boundary.
+
 ### Required work
 
 - Define and document the supported top-level consumer imports for the current
