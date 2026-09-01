@@ -200,14 +200,14 @@ toml = [
 
 [[package]]
 name = "ferm-units"
-version = "0.1.2"
+version = "0.1.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pint" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8a/25/3c26791b745f957f790e4012aae65e965c63388569e9cab14ad4b690d44a/ferm_units-0.1.2.tar.gz", hash = "sha256:d800d908e6c3c85320e5c3ba896702a8c6768be91013200b8e8eb559046810d7", size = 47999, upload-time = "2026-08-28T20:34:59.179Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fa/9c/f1a6d916a6364a97f7852c636a5b5f6399e36990ffd46482d07c1283377e/ferm_units-0.1.3.tar.gz", hash = "sha256:8418bb8e1c778cbc79875f61d255da1dce817dc174402f30d9bef74ea235fe70", size = 90891, upload-time = "2026-09-01T01:40:47.877Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cb/a1/d1258ee2074815927f64f93d9f16538550494cc46f3a644fd757441d399e/ferm_units-0.1.2-py3-none-any.whl", hash = "sha256:6e746ff4c24fbfffa83f86a98114596427138e6c04de0d1ffb4e11ccb2822985", size = 14935, upload-time = "2026-08-28T20:34:58.098Z" },
+    { url = "https://files.pythonhosted.org/packages/77/19/ba004925f4cc453f9bafc048f3a2fc0916a46bd0423c74a6c05017b08869/ferm_units-0.1.3-py3-none-any.whl", hash = "sha256:43c2e01510b2b20559df51455ad70e91adc5fd086d5463daffd2d3347095edc0", size = 19015, upload-time = "2026-09-01T01:40:46.613Z" },
 ]
 
 [[package]]
@@ -676,7 +676,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "ferm-units", specifier = ">=0.1.2,<0.2.0" }]
+requires-dist = [{ name = "ferm-units", specifier = ">=0.1.3,<0.2.0" }]
 
 [package.metadata.requires-dev]
 dev = [

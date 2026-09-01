@@ -72,8 +72,10 @@ Development for 0.3 adds an explicit supported facade at the package root.
 Ordinary consumers should prefer the names in
 `water_chemistry_engine.__all__`; `docs/CONSUMER_API.md` defines that boundary,
 integration expectations, and the pre-1.0 compatibility policy. The facade
-re-exports the proven domain and orchestration objects rather than introducing
-a second chemistry implementation.
+re-exports the selected proven inputs and the complete forward-result audit
+graph rather than introducing a second chemistry implementation. Richer source
+profile provenance/property inputs and generalized treatment-ingredient
+authoring remain explicit later 0.3 contract decisions.
 
 As later milestones add optimization, treatment-plan ranking, richer
 constraints, calculated working-water pH, and serialization/interchange

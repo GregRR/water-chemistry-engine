@@ -18,3 +18,8 @@ For the 0.2 engine checkpoint, read these together:
 The release-candidate review required focused remediation. The subsequent
 follow-up independently verified the release-blocking findings as resolved and
 cleared the project to proceed with the final 0.2.0 release audit.
+
+For the first 0.3 consumer-API checkpoint, read
+`0.3-consumer-api-pass-1.md` and `0.3-consumer-api-pass-2.md` together. They
+record the independent discovery and focused reviews of the original slice and
+the maintainer's finding-by-finding adjudication before remediation follow-up.

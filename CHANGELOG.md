@@ -14,11 +14,21 @@ distribution and its repository milestones.
 - Added API-level integration tests and consumer documentation covering a
   complete source/blend/treatment/target calculation, validation failures,
   unknown propagation, notice handling, and pre-1.0 compatibility policy.
+- Exposed the forward result's source-resolution, blend, treatment,
+  contribution-matrix, and preparation-instruction audit types through the
+  supported facade so consumers can interpret the complete result graph
+  without importing its defining modules.
+
+### Changed
+
+- Raised the minimum FermUnits version to 0.1.3 and imported quantity typing
+  through its public API, keeping FermUnits as the sole unit dependency boundary
+  while retaining real Pint quantities in the supported result contract.
 
 ### Documentation
 
-- Documented the planned FermUnits M4 boundary for semantic pH values and the
-  exact pH/hydrogen-ion-activity transform while retaining activity models,
+- Documented the FermUnits 0.1.3 boundary for semantic pH values and the exact
+  pH/hydrogen-ion-activity transform while retaining activity models,
   concentration conversion, calculated pH, and reporting policy in the engine.
 - Recorded that chemical pH must not be represented as a Pint `pH` unit and
   that the engine's current 0-through-14 validation requires deliberate review

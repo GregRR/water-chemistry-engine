@@ -1,8 +1,7 @@
 import pytest
-from fermunits import Q_
+from fermunits import Q_, Quantity
 from hypothesis import given
 from hypothesis import strategies as st
-from pint import Quantity
 
 from water_chemistry_engine.blending import BlendSource, blend_waters
 from water_chemistry_engine.chemical_state import (

@@ -13,7 +13,7 @@ many otherwise suitable deployments.
 
 The engine already depends on Python 3.11 standard-library features such as
 `enum.StrEnum`, making Python 3.11 a natural minimum without compatibility
-shims. FermUnits 0.1.2 also supports Python 3.11 and is published on PyPI.
+shims. FermUnits 0.1.3 also supports Python 3.11 and is published on PyPI.
 
 The pre-0.2 codebase used Python 3.12 `type` alias syntax and also benefited from
 Python 3.14's deferred annotation behavior. Both assumptions must be removed to
@@ -34,8 +34,8 @@ Python 3.11 is the compatibility baseline:
   than Python 3.11;
 - CI compiles and tests the engine on every supported Python minor version.
 
-The engine requires `ferm-units>=0.1.2,<0.2.0` so its dependency floor shares
-this compatibility contract.
+The engine requires `ferm-units>=0.1.3,<0.2.0` so its dependency floor shares
+this compatibility contract and provides the public `Quantity` typing boundary.
 
 ## Consequences
 

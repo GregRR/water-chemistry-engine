@@ -376,13 +376,13 @@ pH = -log10(a_H+)
 
 where `a_H+` is hydrogen-ion activity. A concentration-based `[H+]` treatment is an approximation and must be documented as such when used.
 
-FermUnits M4 is expected to own the finite semantic pH value and the exact
-bidirectional transform represented by this definition. It will not define
-`pH` as a Pint unit: `Q_(7.0, "pH")` must not be used for chemical pH because
-Pint can interpret that symbol as picohenry. Until the M4 implementation is
-released, validated, and included in this project's supported dependency
-range, this remains a planned integration boundary rather than an available
-engine API.
+FermUnits 0.1.3 owns the finite semantic `PHValue` and the exact bidirectional
+activity transform represented by this definition. It does not define `pH` as
+a Pint unit: `Q_(7.0, "pH")` must not be used for chemical pH because Pint can
+interpret that symbol as picohenry. The type and transform are now available
+through this project's supported dependency range, but migrating the engine's
+reported and target pH contracts remains a deliberate later integration slice
+rather than an incidental dependency update.
 
 The definition-level transform does not make activity interchangeable with
 hydrogen-ion concentration. Converting between activity and concentration
@@ -422,13 +422,13 @@ derived_pH = -log10(mean_a)
 8. Any such aggregate is **derived pH**, never `reported_average`.
 9. Measurement temperature and activity-model assumptions should be retained when known and when material to the calculation.
 
-FermUnits M4 will validate the mathematical domain of its semantic pH
+FermUnits 0.1.3 validates the mathematical domain of its semantic pH
 representation (finite pH) and activity transform (finite activity greater than
-zero), not impose a supposedly universal 0-through-14 pH range. The engine must
-own any narrower validation as an explicit domain or application policy. The
-current `ReportedPH` and `TargetWaterProfile` models still enforce that range;
-the existing behavior must be reviewed deliberately before adopting the M4
-type rather than being mistaken for a FermUnits or thermodynamic invariant.
+zero), without imposing a supposedly universal 0-through-14 pH range. The
+engine must own any narrower validation as an explicit domain or application
+policy. The current `ReportedPH` and `TargetWaterProfile` models still enforce
+that range; the existing behavior must be reviewed deliberately before adopting
+`PHValue` rather than being mistaken for a FermUnits or thermodynamic invariant.
 
 #### 9.7.1 Reusable calculated-pH capability
 
@@ -1025,18 +1025,28 @@ The release sequence is incremental:
 
 The published 0.2 module APIs are sufficient for pinned early consumers, but
 that release's `water_chemistry_engine.__init__` exports only `__version__`.
-Release 0.3 establishes a small documented facade around the proven
+Release 0.3 establishes a bounded documented facade around the proven
 forward-calculation boundary, provides integration examples, defines pre-1.0
 compatibility expectations, and adds tests for the supported surface.
 
 The first 0.3 implementation slice now establishes that package-root facade on
 the development branch. Its explicit `__all__` includes the forward entry
-point, request/input models, primary result and comparison types, notice codes,
-and supported simple treatment ingredients required for a complete workflow.
+point, request/input models, the complete nested source/blend/treatment audit
+graph, contribution matrices, preparation instructions, comparison types,
+notice codes, and supported simple treatment ingredients required for a
+complete workflow.
 `docs/CONSUMER_API.md` defines the supported boundary and compatibility policy;
-API-level tests exercise both a complete calculation and conservative unknown
-propagation using only root imports. The facade delegates to the existing 0.2
-workflow and does not duplicate scientific logic.
+API-level tests exercise a complete calculation, its audit and instruction
+outputs, and conservative unknown propagation using only root imports. The
+facade delegates to the existing 0.2 workflow and does not duplicate scientific
+logic.
+
+The first external review of this slice identified that exporting only the
+outer forward-result types left their nested audit unions outside the declared
+compatibility boundary. Those nested result types are therefore part of the
+facade. This does not automatically make every transitive domain model a root
+export: richer `SourceWaterProfile` provenance/property fields and generalized
+treatment-ingredient authoring require separate, explicit contract decisions.
 
 Convenience helpers should be driven by real consumer friction. They must not erase reported-value semantics, silently choose representative values, or move scientific/domain policy into an application.
 
@@ -1210,11 +1220,16 @@ The engine should normalize dimensional quantities without conflating unit conve
 
 ### 21.3 FermUnits boundary
 
-FermUnits handles physical quantities and conversions. Once the planned M4 pH
-API is released and adopted, it also owns a non-Pint semantic `PHValue` and the
-exact pH-to-hydrogen-ion-activity transform. It does not own an activity model,
-concentration/activity conversion, calculated water pH, or measurement-result
-metadata.
+FermUnits handles physical quantities and conversions. Version 0.1.3 also owns
+a non-Pint semantic `PHValue` and the exact pH-to-hydrogen-ion-activity
+transform. It does not own an activity model, concentration/activity
+conversion, calculated water pH, or measurement-result metadata.
+
+The engine imports `Q_` and the public generic `Quantity` type from FermUnits,
+not directly from Pint. Pint remains the underlying physical-unit
+implementation and its genuine quantity objects cross the boundary, but
+FermUnits owns the dependency, supported version range, registry, and public
+typing surface used here.
 
 The water engine retains semantic information and chemistry policy that is not
 merely dimensional, including:
@@ -1237,7 +1252,7 @@ implemented feature requires them.
 
 ## 22. Public API direction
 
-Release 0.3 establishes a deliberately small supported Python facade. The public API accepts framework-neutral structured requests/domain objects and returns structured results plus stable warning/explanation codes.
+Release 0.3 establishes a deliberately bounded supported Python facade. The public API accepts framework-neutral structured requests/domain objects and returns structured results plus stable warning/explanation codes.
 
 The 0.2 implementation already exposes the forward workflow through module-level APIs such as `ForwardWaterSource`, `SourceResolutionPolicy`, `TreatmentAddition`, and `calculate_forward_water(...)`. Those paths are usable by pinned pre-1.0 consumers but are not yet the final top-level facade.
 
@@ -1248,6 +1263,14 @@ from water_chemistry_engine import calculate_forward_water
 
 result = calculate_forward_water(...)
 ```
+
+The supported result graph includes the derived state, source-resolution,
+fixed-blend, treatment-application, contribution-matrix,
+preparation-instruction, comparison, and notice types needed to interpret the
+complete forward result without importing their defining modules. Root export
+does not imply that every transitive source-report or future ingredient model
+is already a stable authoring contract; those boundaries are documented and
+added deliberately.
 
 Future capabilities such as `calculate_ph(...)` and `optimize_treatment(...)` should join the public facade only when their scientific contracts are implemented and validated.
 

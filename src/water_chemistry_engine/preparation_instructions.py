@@ -13,8 +13,7 @@ calculation, but they are omitted from actionable instructions.
 
 from dataclasses import dataclass
 
-from fermunits import Q_
-from pint import Quantity
+from fermunits import Q_, Quantity
 
 from water_chemistry_engine._workflow_validation import (
     require_treatment_matches_blend,

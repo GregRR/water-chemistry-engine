@@ -15,8 +15,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from math import isclose, isfinite
 
-from fermunits import Q_
-from pint import Quantity
+from fermunits import Q_, Quantity
 
 from water_chemistry_engine.chemical_state import AqueousChemicalState
 from water_chemistry_engine.concentrations import (

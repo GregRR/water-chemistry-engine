@@ -2,6 +2,8 @@
 
 from importlib.metadata import metadata, version
 
+from fermunits import Q_, Quantity
+
 import water_chemistry_engine
 
 
@@ -22,3 +24,12 @@ def test_license_metadata() -> None:
 
     assert package_metadata["License-Expression"] == "MPL-2.0"
     assert package_metadata.get_all("License-File") == ["LICENSE"]
+
+
+def test_fermunits_is_the_unit_dependency_boundary() -> None:
+    """The engine types quantities through FermUnits without declaring Pint."""
+    package_metadata = metadata("water-chemistry-engine")
+    quantity = Q_(1.0, "liter")
+
+    assert package_metadata.get_all("Requires-Dist") == ["ferm-units>=0.1.3,<0.2.0"]
+    assert isinstance(quantity, Quantity)

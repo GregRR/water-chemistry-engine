@@ -20,8 +20,7 @@ from fractions import Fraction
 from math import fsum, isclose, isfinite
 from typing import TypeAlias
 
-from fermunits import Q_
-from pint import Quantity
+from fermunits import Q_, Quantity
 
 from water_chemistry_engine.chemical_state import (
     AqueousChemicalState,

@@ -17,7 +17,9 @@ The package root exposes the supported deterministic forward-calculation
 surface through its explicit `__all__`. It includes:
 
 - `calculate_forward_water`, `ForwardWaterSource`, and the structured forward
-  result types;
+  result and audit types needed to interpret source resolution, blending,
+  treatment contributions, contribution matrices, and preparation
+  instructions;
 - `SourceWaterProfile`, `SourceResolutionPolicy`, `TargetWaterProfile`, and
   the ion concentration/report forms required to build inputs without erasing
   ranges, bounds, or `ND`;
@@ -31,11 +33,45 @@ their complete contents are not automatically part of the supported facade.
 Applications should isolate any direct module-level imports that are not
 exported from the package root.
 
+The built-in treatment constants are the supported ingredient identities for
+this facade. The current `TreatmentIngredient` and `IonStoichiometry` authoring
+types are deliberately not root exports: their present structure does not yet
+cover the composition evidence, purity, use limits, and other requirements of
+the planned reusable treatment-ingredient contract.
+
+Likewise, this initial facade supports the modeled-ion fields of
+`SourceWaterProfile`. Its richer reported pH, disinfectant, source-document,
+water-identity, and supporting-property types remain preserved module-level
+models pending a later 0.3 provenance/input-contract slice. Consumers that need
+those fields before that slice should isolate the necessary module imports.
+
 The exact initial facade is:
+
+<!-- public-api-inventory-start -->
 
 - entry point and primary results: `calculate_forward_water`,
   `ForwardWaterSource`, `ForwardSourceResult`, and
   `ForwardWaterCalculationResult`;
+- derived calculation states: `AqueousChemicalState` and
+  `DerivedIonConcentration`;
+- source-resolution audit: `SourceProfileResolutionResult`,
+  `SourceIonResolution`, `ResolvedSourceIon`, `UnresolvedSourceIon`,
+  `SourceIonResolutionMethod`, and `UnresolvedSourceIonReason`;
+- fixed-blend audit: `WaterBlendResult`, `BlendedSource`,
+  `BlendIonResolution`, `ResolvedBlendIon`, `UnresolvedBlendIon`,
+  `BlendIonContribution`, and `UnresolvedBlendIonReason`;
+- treatment audit: `TreatmentApplicationResult`, `AppliedTreatment`,
+  `TreatmentIonResolution`, `ResolvedTreatmentIon`,
+  `UnresolvedTreatmentIon`, `TreatmentIonContribution`, `IonContribution`,
+  and `UnresolvedTreatmentIonReason`;
+- contribution-matrix interpretation: `WaterContributionMatrix`,
+  `IonContributionMatrixRow`, `SourceContributionColumn`,
+  `SourceContributionCell`, `SourceContributionCellStatus`,
+  `TreatmentContributionColumn`, `TreatmentContributionCell`, and
+  `TreatmentContributionCellStatus`;
+- preparation-instruction interpretation: `WaterPreparationInstructions`,
+  `BlendPreparationInstruction`, `SourceVolumeInstruction`, and
+  `TreatmentPreparationInstruction`;
 - source and target inputs: `SourceWaterProfile`, `SourceResolutionPolicy`,
   and `TargetWaterProfile`;
 - ions and reported concentration forms: `Ion`, `IonConcentration`,
@@ -55,11 +91,18 @@ The exact initial facade is:
   `ForwardNoticeLevel`; and
 - package identity: `__version__`.
 
+<!-- public-api-inventory-end -->
+
 FermUnits remains the dimensional boundary. Construct masses and volumes with
 `fermunits.Q_`; the engine does not re-export the unit registry. Chemical pH
 must not be represented as `Q_(value, "pH")`, because Pint may interpret that
 symbol as picohenry. Reported pH and future calculated-pH contracts remain
 separate from ordinary dimensional quantities.
+
+The engine imports both quantity construction and the public `Quantity` type
+through FermUnits 0.1.3 or later. Pint remains FermUnits' physical-unit engine
+and is installed transitively; ordinary engine consumers do not need a direct
+Pint dependency merely to use the quantities returned by this API.
 
 ## Complete forward-calculation example
 
@@ -127,12 +170,27 @@ print(result.final_target_comparison.status)
 
 for notice in result.notices:
     print(notice.level, notice.code, notice.message)
+
+calcium_row = result.contribution_matrix.row_for(Ion.CALCIUM)
+print(calcium_row.known_source_contribution_sum)
+print(calcium_row.known_treatment_contribution_sum)
+
+for line in result.preparation_instructions.lines:
+    print(line)
 ```
 
 The expected final calcium concentration is approximately
 `65.81975 milligram / liter`, and the final target status is `satisfied`.
 The positive gypsum addition also produces a
 `treatment_complete_dissolution_model` assumption notice.
+
+The result graph is intended to be consumed through the same facade. For
+example, callers can use `isinstance` with `ResolvedSourceIon` versus
+`UnresolvedSourceIon`, `ResolvedBlendIon` versus `UnresolvedBlendIon`, and
+`ResolvedTreatmentIon` versus `UnresolvedTreatmentIon` without importing their
+defining modules. The corresponding reason and method enums are also root
+exports. Contribution-cell status enums provide the same explicit
+interpretation boundary for presentation code.
 
 ## Validation, unknowns, and notices
 
@@ -178,3 +236,11 @@ remains pre-1.0:
 The facade remains framework-neutral. It returns Python domain objects and
 FermUnits/Pint quantities, never HTML, ORM records, database handles, or
 product-specific persistence state.
+
+During development, the source tree continues to report the most recently
+released distribution version, currently `0.2.0`. The project changes version
+metadata only at its deliberate release-version gate. Therefore `__version__`
+is distribution identity, not a capability probe for an unreleased Git
+checkout. Consumers must not depend directly on `main`; use a released,
+explicitly pinned distribution or an exact commit while testing unreleased
+work.

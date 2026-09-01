@@ -15,8 +15,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from math import fsum
 
-from fermunits import Q_
-from pint import Quantity
+from fermunits import Q_, Quantity
 
 from water_chemistry_engine._workflow_validation import (
     require_treatment_matches_blend,

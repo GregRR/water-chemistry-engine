@@ -87,7 +87,7 @@ aqueous model has sufficient inputs.
 
 **Status: in progress.**
 
-Establish a small, documented Python facade around the capabilities already
+Establish a bounded, documented Python facade around the capabilities already
 proven in 0.2 rather than requiring applications to depend indefinitely on
 internal module layout.
 
@@ -96,6 +96,13 @@ contract, API-level integration tests, and `docs/CONSUMER_API.md`. It preserves
 the existing scientific workflow rather than wrapping it in a second
 calculation layer. Version and release metadata remain at 0.2.0 until the full
 0.3 release gate is ready.
+
+The first independent 0.3 review found that the initial facade returned rich
+nested audit objects without exporting the types needed to interpret them. The
+remediation expands the supported boundary across source resolution, blending,
+treatment application, contribution matrices, and preparation instructions,
+and adds consumer-level checks for those paths. This is API-completeness work;
+it does not change the underlying calculations.
 
 ### Required work
 
@@ -109,6 +116,13 @@ calculation layer. Version and release metadata remain at 0.2.0 until the full
 - Keep all dimensional inputs/outputs explicit through FermUnits/Pint.
 - Add API-level tests so refactors cannot silently break the documented
   consumer surface.
+- Complete a separate public-input/provenance decision for the reported pH,
+  disinfectant, source-document, water-identity, and supporting-property types
+  preserved by `SourceWaterProfile`; until then, those richer fields remain
+  documented module-level models rather than package-root exports.
+- Replace the current built-in-only treatment-ingredient facade only after a
+  reusable authoring contract includes composition evidence, purity, use
+  limits, and the other requirements recorded in the design.
 - Identify any convenience constructors/helpers justified by real application
   use without duplicating chemistry or hiding reported-data semantics.
 

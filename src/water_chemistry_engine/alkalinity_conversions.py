@@ -13,8 +13,7 @@ chemical model is deliberately used to derive species concentrations.
 
 from math import isfinite
 
-from fermunits import Q_
-from pint import Quantity
+from fermunits import Q_, Quantity
 
 from water_chemistry_engine.quantity_types import ScalarQuantity
 

@@ -15,8 +15,7 @@ calculation from masquerading as a complete water-chemistry model.
 from dataclasses import dataclass
 from math import isfinite
 
-from fermunits import Q_
-from pint import Quantity
+from fermunits import Q_, Quantity
 
 from water_chemistry_engine.ions import Ion
 from water_chemistry_engine.quantity_types import ScalarQuantity
