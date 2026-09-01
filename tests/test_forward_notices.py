@@ -1,5 +1,5 @@
 import pytest
-from fermunits import Q_
+from fermunits import Q_, PHValue
 
 from water_chemistry_engine.blending import BlendSource, blend_waters
 from water_chemistry_engine.concentrations import (
@@ -204,7 +204,7 @@ def test_unsupported_target_and_ph_are_separate_structured_notices() -> None:
                 maximum=UpperBoundConcentrationEndpoint.mg_per_liter(50.0),
             ),
         ),
-        ph=7.0,
+        ph=PHValue(7.0),
     )
     comparison = compare_state_to_target(blend.state, target)
 

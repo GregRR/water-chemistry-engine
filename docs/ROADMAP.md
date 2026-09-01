@@ -109,6 +109,13 @@ as closed at commit `c8518550b11487fe2ca6ab2b6840e3947666230c`, found no new
 defect, and cleared this first consumer-facade checkpoint. The remaining 0.3
 work below is deliberately separate from that reviewed result boundary.
 
+The next bounded slice exposes the complete source-reporting and provenance
+construction graph preserved by `SourceWaterProfile`. It also adopts FermUnits
+`PHValue` for reported and target pH rather than publishing the earlier
+unsupported universal 0-through-14 restriction as part of the consumer
+contract. This is representation and validation work; calculated working-water
+pH remains unsupported.
+
 ### Required work
 
 - Define and document the supported top-level consumer imports for the current
@@ -121,10 +128,9 @@ work below is deliberately separate from that reviewed result boundary.
 - Keep all dimensional inputs/outputs explicit through FermUnits/Pint.
 - Add API-level tests so refactors cannot silently break the documented
   consumer surface.
-- Complete a separate public-input/provenance decision for the reported pH,
-  disinfectant, source-document, water-identity, and supporting-property types
-  preserved by `SourceWaterProfile`; until then, those richer fields remain
-  documented module-level models rather than package-root exports.
+- Keep the public source-input graph cohesive across reported pH,
+  disinfectants, source documents, water identity, result context/statistics,
+  and supporting reported properties.
 - Replace the current built-in-only treatment-ingredient facade only after a
   reusable authoring contract includes composition evidence, purity, use
   limits, and the other requirements recorded in the design.
@@ -241,18 +247,15 @@ It must:
 - retain model/version, assumptions, relevant temperature/reference conditions,
   and warnings.
 
-Before or as part of this milestone:
+The semantic representation prerequisite is complete: FermUnits 0.1.3 is in
+the supported dependency range, and reported and target pH use its finite
+`PHValue` rather than an artificial universal 0-through-14 range. Before or as
+part of calculated working-water pH:
 
-- adopt FermUnits' semantic `PHValue` and exact pH/hydrogen-ion-activity
-  transform only after the M4 implementation is released, passes FermUnits'
-  quality gates, and is included in this project's supported dependency range;
 - never represent chemical pH as `Q_(value, "pH")`, because FermUnits will not
   redefine Pint's existing interpretation of that symbol as picohenry;
 - keep activity-coefficient selection, concentration/activity conversion,
-  equilibria, ionic strength, and all prediction policy in this engine;
-- review the current engine-level 0-through-14 validation for reported and
-  target pH, since FermUnits will require finite pH but will not claim that
-  range as a universal mathematical or scientific bound.
+  equilibria, ionic strength, and all prediction policy in this engine.
 
 This milestone is working-water pH only, not recipe-aware mash-pH prediction.
 If a sufficiently defensible model is not ready, Version 1 may continue to

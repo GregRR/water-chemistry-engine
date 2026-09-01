@@ -1,15 +1,17 @@
 """Contract tests for the supported package-root consumer API."""
 
 import re
+from datetime import date
 from pathlib import Path
 
 import pytest
-from fermunits import Q_
+from fermunits import Q_, PHValue
 
 import water_chemistry_engine as wce
 
 EXPECTED_PUBLIC_API = {
     "AqueousChemicalState",
+    "Alkalinity",
     "AppliedTreatment",
     "BlendIonContribution",
     "BlendIonResolution",
@@ -23,7 +25,9 @@ EXPECTED_PUBLIC_API = {
     "SODIUM_BICARBONATE",
     "SODIUM_CHLORIDE",
     "ConcentrationRangeEndpoint",
+    "Conductivity",
     "DerivedIonConcentration",
+    "DisinfectantKind",
     "ExactConcentrationEndpoint",
     "ForwardCalculationNotice",
     "ForwardNoticeCode",
@@ -42,6 +46,15 @@ EXPECTED_PUBLIC_API = {
     "IonContributionMatrixRow",
     "LowerBoundConcentrationEndpoint",
     "NotDetectedConcentrationEndpoint",
+    "ObservationPeriod",
+    "PhysicalSourceType",
+    "PhysicalWaterSource",
+    "ReportedDisinfectant",
+    "ReportedPH",
+    "ReportedResultContext",
+    "ReportedStatistic",
+    "ReportedStatisticKind",
+    "ReportingBasis",
     "ResolvedBlendIon",
     "ResolvedSourceIon",
     "ResolvedTreatmentIon",
@@ -52,6 +65,7 @@ EXPECTED_PUBLIC_API = {
     "SourceIonResolutionMethod",
     "SourceProfileResolutionResult",
     "SourceResolutionPolicy",
+    "SourceDocumentMetadata",
     "SourceVolumeInstruction",
     "SourceWaterProfile",
     "TargetIonComparison",
@@ -69,6 +83,8 @@ EXPECTED_PUBLIC_API = {
     "TreatmentIonContribution",
     "TreatmentIonResolution",
     "TreatmentPreparationInstruction",
+    "TotalDissolvedSolids",
+    "TotalHardness",
     "UnresolvedBlendIon",
     "UnresolvedBlendIonReason",
     "UnresolvedSourceIon",
@@ -79,7 +95,11 @@ EXPECTED_PUBLIC_API = {
     "UpperBoundConcentrationEndpoint",
     "WaterBlendResult",
     "WaterContributionMatrix",
+    "WaterIdentity",
     "WaterPreparationInstructions",
+    "WaterStage",
+    "WaterType",
+    "ResultCoverage",
     "__version__",
     "calculate_forward_water",
 }
@@ -237,6 +257,108 @@ def test_complete_forward_workflow_uses_only_package_root_imports() -> None:
         "Combine 10 L of Source A + 10 L of Source B to make 20 L of blended water.",
         "Add 0.5 g of Gypsum (CaSO4·2H2O).",
     )
+
+
+def test_complete_source_reporting_contract_uses_package_root_imports() -> None:
+    """Consumers can preserve source identity, provenance, and report semantics."""
+    period = wce.ObservationPeriod(
+        start=date(2025, 1, 1),
+        end=date(2025, 12, 31),
+    )
+    context = wce.ReportedResultContext(
+        observation_period=period,
+        coverage=wce.ResultCoverage.OBSERVATION_PERIOD_SUMMARY,
+        water_stage=wce.WaterStage.TREATMENT_PLANT_OUTPUT,
+        sample_location="Example Treatment Plant",
+    )
+    statistic = wce.ReportedStatistic(
+        kind=wce.ReportedStatisticKind.REPORTED_AVERAGE,
+    )
+    source_document = wce.SourceDocumentMetadata(
+        publisher="Example Water Utility",
+        analysis_provider="Example Laboratory",
+        title="2025 Water Quality Report",
+        publication_date=date(2026, 5, 1),
+        source_url="https://example.com/2025-water-quality-report.pdf",
+        retrieved_on=date(2026, 8, 31),
+        page_reference="Page 12, Table 3",
+    )
+    identity = wce.WaterIdentity(
+        provider="Example Water Utility",
+        water_type=wce.WaterType.MUNICIPAL_WATER,
+        physical_sources=(
+            wce.PhysicalWaterSource(
+                source_type=wce.PhysicalSourceType.RESERVOIR,
+                name="Example Reservoir",
+                location="Example County",
+            ),
+        ),
+    )
+    chlorine = wce.ReportedDisinfectant(
+        kind=wce.DisinfectantKind.TOTAL_CHLORINE,
+        minimum=Q_(0.2, "milligram / liter"),
+        maximum=Q_(0.8, "milligram / liter"),
+        reported_average=Q_(0.5, "milligram / liter"),
+        reported_statistic=statistic,
+        result_context=context,
+    )
+    profile = wce.SourceWaterProfile(
+        name="Example Municipal Water",
+        concentrations=(
+            wce.IonConcentration(
+                ion=wce.Ion.CALCIUM,
+                value=Q_(42.0, "milligram / liter"),
+                reported_statistic=statistic,
+                result_context=context,
+            ),
+        ),
+        ph=wce.ReportedPH(
+            minimum=PHValue(7.2),
+            maximum=PHValue(7.8),
+            reported_average=PHValue(7.5),
+            result_context=context,
+        ),
+        observation_period=period,
+        identity=identity,
+        source_document=source_document,
+        alkalinity=wce.Alkalinity(
+            value=Q_(105.0, "milligram / liter"),
+            basis=wce.ReportingBasis.AS_CACO3,
+            result_context=context,
+        ),
+        total_hardness=wce.TotalHardness(
+            value=Q_(140.0, "milligram / liter"),
+            result_context=context,
+        ),
+        total_dissolved_solids=wce.TotalDissolvedSolids(
+            value=Q_(220.0, "milligram / liter"),
+            result_context=context,
+        ),
+        conductivity=wce.Conductivity(
+            value=Q_(350.0, "microsiemens / centimeter"),
+            reference_temperature_celsius=25.0,
+            result_context=context,
+        ),
+        disinfectants=(chlorine,),
+    )
+
+    assert profile.observation_period is period
+    assert profile.identity is identity
+    assert profile.identity.physical_sources[0].source_type is (
+        wce.PhysicalSourceType.RESERVOIR
+    )
+    assert profile.source_document is source_document
+    assert profile.source_document.analysis_provider == "Example Laboratory"
+    assert profile.ph is not None
+    assert profile.ph.calculation_value == PHValue(7.5)
+    assert profile.alkalinity is not None
+    assert profile.alkalinity.basis is wce.ReportingBasis.AS_CACO3
+    assert profile.total_hardness is not None
+    assert profile.total_dissolved_solids is not None
+    assert profile.conductivity is not None
+    assert profile.disinfectant_for(wce.DisinfectantKind.TOTAL_CHLORINE) is chlorine
+    assert chlorine.reported_statistic is statistic
+    assert chlorine.result_context is context
 
 
 def test_public_api_preserves_unknown_and_notice_semantics() -> None:

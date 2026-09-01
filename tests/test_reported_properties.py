@@ -2,7 +2,7 @@ from decimal import Decimal
 from fractions import Fraction
 
 import pytest
-from fermunits import Q_
+from fermunits import Q_, PHValue
 
 from water_chemistry_engine.reported_properties import (
     Alkalinity,
@@ -261,9 +261,9 @@ def test_conductivity_rejects_non_finite_reference_temperature(
 def test_reported_ph_exact_value_is_usable_for_calculations() -> None:
     measurement = ReportedPH.exact(7.2)
 
-    assert measurement.value == 7.2
+    assert measurement.value == PHValue(7.2)
     assert measurement.reported_average is None
-    assert measurement.calculation_value == 7.2
+    assert measurement.calculation_value == PHValue(7.2)
 
 
 def test_reported_ph_preserves_range_without_inventing_average() -> None:
@@ -272,8 +272,8 @@ def test_reported_ph_preserves_range_without_inventing_average() -> None:
         maximum=7.4,
     )
 
-    assert measurement.minimum == 7.0
-    assert measurement.maximum == 7.4
+    assert measurement.minimum == PHValue(7.0)
+    assert measurement.maximum == PHValue(7.4)
     assert measurement.reported_average is None
 
 
@@ -297,10 +297,12 @@ def test_reported_ph_uses_reported_average_not_arithmetic_midpoint() -> None:
         reported_average=7.1,
     )
 
-    assert measurement.reported_average == 7.1
-    assert measurement.calculation_value == 7.1
-    assert measurement.calculation_value != pytest.approx(
-        (measurement.minimum + measurement.maximum) / 2
+    assert measurement.reported_average == PHValue(7.1)
+    assert measurement.calculation_value == PHValue(7.1)
+    assert measurement.minimum is not None
+    assert measurement.maximum is not None
+    assert measurement.calculation_value.value != pytest.approx(
+        (measurement.minimum.value + measurement.maximum.value) / 2
     )
 
 
@@ -310,16 +312,28 @@ def test_reported_ph_can_store_reported_average_without_range() -> None:
     assert measurement.value is None
     assert measurement.minimum is None
     assert measurement.maximum is None
-    assert measurement.reported_average == 7.35
-    assert measurement.calculation_value == 7.35
+    assert measurement.reported_average == PHValue(7.35)
+    assert measurement.calculation_value == PHValue(7.35)
 
 
-def test_reported_ph_rejects_out_of_range_value() -> None:
-    with pytest.raises(
-        ValueError,
-        match="between 0 and 14",
-    ):
-        ReportedPH.exact(14.1)
+@pytest.mark.parametrize("value", [-0.1, 14.1])
+def test_reported_ph_does_not_impose_a_universal_zero_to_fourteen_range(
+    value: float,
+) -> None:
+    measurement = ReportedPH.exact(value)
+
+    assert measurement.value == PHValue(value)
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
+def test_reported_ph_rejects_non_finite_values(value: float) -> None:
+    with pytest.raises(ValueError, match="finite"):
+        ReportedPH.exact(value)
+
+
+def test_reported_ph_fields_require_semantic_ph_values() -> None:
+    with pytest.raises(TypeError, match="fermunits.PHValue"):
+        ReportedPH(value=7.2)  # type: ignore[arg-type]
 
 
 def test_reported_ph_rejects_reversed_range() -> None:
@@ -350,7 +364,7 @@ def test_reported_ph_rejects_incomplete_range() -> None:
         ValueError,
         match="range requires both minimum and maximum",
     ):
-        ReportedPH(minimum=7.0)
+        ReportedPH(minimum=PHValue(7.0))
 
 
 def test_exact_ph_cannot_be_combined_with_reported_average() -> None:
@@ -359,8 +373,8 @@ def test_exact_ph_cannot_be_combined_with_reported_average() -> None:
         match="exact value cannot be combined",
     ):
         ReportedPH(
-            value=7.2,
-            reported_average=7.2,
+            value=PHValue(7.2),
+            reported_average=PHValue(7.2),
         )
 
 
@@ -403,7 +417,7 @@ def test_reported_ph_preserves_result_specific_context() -> None:
     )
 
     measurement = ReportedPH(
-        reported_average=7.2,
+        reported_average=PHValue(7.2),
         result_context=context,
     )
 

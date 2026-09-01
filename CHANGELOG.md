@@ -18,21 +18,29 @@ distribution and its repository milestones.
   contribution-matrix, and preparation-instruction audit types through the
   supported facade so consumers can interpret the complete result graph
   without importing its defining modules.
+- Exposed the complete `SourceWaterProfile` reporting and provenance
+  construction graph, including reported properties, disinfectants, result
+  context/statistics, water identity, physical sources, and source documents.
 
 ### Changed
 
 - Raised the minimum FermUnits version to 0.1.3 and imported quantity typing
   through its public API, keeping FermUnits as the sole unit dependency boundary
   while retaining real Pint quantities in the supported result contract.
+- Migrated reported and target pH storage to FermUnits `PHValue`, preserving the
+  range-only no-midpoint rule while removing the unsupported assumption that
+  every valid pH must fall between 0 and 14.
 
 ### Documentation
 
 - Documented the FermUnits 0.1.3 boundary for semantic pH values and the exact
   pH/hydrogen-ion-activity transform while retaining activity models,
   concentration conversion, calculated pH, and reporting policy in the engine.
-- Recorded that chemical pH must not be represented as a Pint `pH` unit and
-  that the engine's current 0-through-14 validation requires deliberate review
-  rather than being treated as a universal pH invariant.
+- Documented why chemical pH must not be represented as a Pint `pH` unit and
+  why the former 0-through-14 validation was reviewed rather than treated as a
+  universal pH invariant.
+- Added IUPAC pH definition and measurement sources supporting the semantic
+  activity-based pH boundary.
 
 ## 0.2.0 - 2026-08-29
 

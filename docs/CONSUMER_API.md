@@ -39,11 +39,13 @@ types are deliberately not root exports: their present structure does not yet
 cover the composition evidence, purity, use limits, and other requirements of
 the planned reusable treatment-ingredient contract.
 
-Likewise, this initial facade supports the modeled-ion fields of
-`SourceWaterProfile`. Its richer reported pH, disinfectant, source-document,
-water-identity, and supporting-property types remain preserved module-level
-models pending a later 0.3 provenance/input-contract slice. Consumers that need
-those fields before that slice should isolate the necessary module imports.
+The facade also supports the complete source-report construction graph retained
+by `SourceWaterProfile`: reported pH and disinfectants, source-document
+metadata, water and physical-source identity, observation/result context,
+reported statistics, alkalinity, hardness, TDS, and conductivity. Exporting
+these representation types does not make them automatic forward-calculation
+inputs. Only explicitly modeled ion concentrations currently enter source
+resolution.
 
 The exact initial facade is:
 
@@ -74,6 +76,12 @@ The exact initial facade is:
   `TreatmentPreparationInstruction`;
 - source and target inputs: `SourceWaterProfile`, `SourceResolutionPolicy`,
   and `TargetWaterProfile`;
+- source reporting and provenance: `SourceDocumentMetadata`, `WaterIdentity`,
+  `WaterType`, `PhysicalWaterSource`, `PhysicalSourceType`,
+  `ObservationPeriod`, `ReportedResultContext`, `ResultCoverage`, `WaterStage`,
+  `ReportedStatistic`, `ReportedStatisticKind`, `ReportedPH`,
+  `ReportedDisinfectant`, `DisinfectantKind`, `Alkalinity`, `TotalHardness`,
+  `TotalDissolvedSolids`, `Conductivity`, and `ReportingBasis`;
 - ions and reported concentration forms: `Ion`, `IonConcentration`,
   `IonConcentrationRange`, `IonConcentrationUpperBound`,
   `IonConcentrationLowerBound`, `IonConcentrationNotDetected`,
@@ -93,16 +101,103 @@ The exact initial facade is:
 
 <!-- public-api-inventory-end -->
 
-FermUnits remains the dimensional boundary. Construct masses and volumes with
-`fermunits.Q_`; the engine does not re-export the unit registry. Chemical pH
-must not be represented as `Q_(value, "pH")`, because Pint may interpret that
-symbol as picohenry. Reported pH and future calculated-pH contracts remain
-separate from ordinary dimensional quantities.
+FermUnits remains the measurement boundary. Construct masses and volumes with
+`fermunits.Q_`; the engine does not re-export the unit registry. Construct
+target pH and direct `ReportedPH` fields with `fermunits.PHValue`. The
+`ReportedPH.exact()`, `.range()`, and `.average()` helpers accept finite numeric
+values and normalize them to `PHValue`.
+
+Chemical pH must not be represented as `Q_(value, "pH")`, because Pint may
+interpret that symbol as picohenry. `PHValue` deliberately permits any finite
+pH rather than imposing a universal 0-through-14 restriction. This
+representation change does not add calculated working-water pH: target pH
+comparison remains explicitly `NOT_CALCULATED` until a validated reusable
+aqueous model exists.
 
 The engine imports both quantity construction and the public `Quantity` type
 through FermUnits 0.1.3 or later. Pint remains FermUnits' physical-unit engine
 and is installed transitively; ordinary engine consumers do not need a direct
 Pint dependency merely to use the quantities returned by this API.
+
+## Source reporting and provenance example
+
+This example preserves source identity, report provenance, result context,
+reported pH, alkalinity, and total chlorine without treating the supporting
+properties as calculated ions:
+
+```python
+from datetime import date
+
+from fermunits import PHValue, Q_
+
+from water_chemistry_engine import (
+    Alkalinity,
+    DisinfectantKind,
+    Ion,
+    IonConcentration,
+    ObservationPeriod,
+    PhysicalSourceType,
+    PhysicalWaterSource,
+    ReportedDisinfectant,
+    ReportedPH,
+    ReportedResultContext,
+    ResultCoverage,
+    SourceDocumentMetadata,
+    SourceWaterProfile,
+    WaterIdentity,
+    WaterStage,
+    WaterType,
+)
+
+period = ObservationPeriod(
+    start=date(2025, 1, 1),
+    end=date(2025, 12, 31),
+)
+context = ReportedResultContext(
+    observation_period=period,
+    coverage=ResultCoverage.OBSERVATION_PERIOD_SUMMARY,
+    water_stage=WaterStage.TREATMENT_PLANT_OUTPUT,
+    sample_location="Example Treatment Plant",
+)
+
+source = SourceWaterProfile(
+    name="Example Municipal Water",
+    concentrations=(IonConcentration.mg_per_liter(Ion.CALCIUM, 42.0),),
+    ph=ReportedPH(
+        minimum=PHValue(7.2),
+        maximum=PHValue(7.8),
+        reported_average=PHValue(7.5),
+        result_context=context,
+    ),
+    observation_period=period,
+    identity=WaterIdentity(
+        provider="Example Water Utility",
+        water_type=WaterType.MUNICIPAL_WATER,
+        physical_sources=(
+            PhysicalWaterSource(
+                source_type=PhysicalSourceType.RESERVOIR,
+                name="Example Reservoir",
+            ),
+        ),
+    ),
+    source_document=SourceDocumentMetadata(
+        publisher="Example Water Utility",
+        title="2025 Water Quality Report",
+        source_url="https://example.com/water-report.pdf",
+    ),
+    alkalinity=Alkalinity(
+        value=Q_(105.0, "milligram / liter"),
+        result_context=context,
+    ),
+    disinfectants=(
+        ReportedDisinfectant.mg_per_liter(
+            DisinfectantKind.TOTAL_CHLORINE,
+            0.5,
+            result_context=context,
+        ),
+    ),
+)
+```
 
 ## Complete forward-calculation example
 

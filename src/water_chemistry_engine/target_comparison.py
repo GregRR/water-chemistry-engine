@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from math import isclose, isfinite
 
-from fermunits import Q_, Quantity
+from fermunits import Q_, PHValue, Quantity
 
 from water_chemistry_engine.chemical_state import AqueousChemicalState
 from water_chemistry_engine.concentrations import (
@@ -90,8 +90,8 @@ class TargetIonComparison:
 class TargetPHComparison:
     """Explicit placeholder for a target pH while derived pH is unsupported."""
 
-    target_ph: float
-    actual_ph: float | None
+    target_ph: PHValue
+    actual_ph: PHValue | None
     status: TargetPHComparisonStatus
 
 

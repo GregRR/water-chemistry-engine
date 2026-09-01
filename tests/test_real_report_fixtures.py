@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, TypeAlias
 
 import pytest
-from fermunits import Q_
+from fermunits import Q_, PHValue
 
 from water_chemistry_engine.concentrations import (
     ExactConcentrationEndpoint,
@@ -351,19 +351,23 @@ def _load_ph(
     form = data["form"]
     if form == "exact":
         return ReportedPH(
-            value=data["value"],
+            value=PHValue(data["value"]),
             result_context=effective_result_context,
         )
     if form == "range":
         return ReportedPH(
-            minimum=data["minimum"],
-            maximum=data["maximum"],
-            reported_average=data.get("reported_average"),
+            minimum=PHValue(data["minimum"]),
+            maximum=PHValue(data["maximum"]),
+            reported_average=(
+                PHValue(data["reported_average"])
+                if data.get("reported_average") is not None
+                else None
+            ),
             result_context=effective_result_context,
         )
     if form == "average":
         return ReportedPH(
-            reported_average=data["reported_average"],
+            reported_average=PHValue(data["reported_average"]),
             result_context=effective_result_context,
         )
 
@@ -611,13 +615,13 @@ def test_real_report_fixture_preserves_reported_values(
         if raw_ph is not None:
             assert profile.ph is not None
             if raw_ph["form"] == "range":
-                assert profile.ph.minimum == pytest.approx(raw_ph["minimum"])
-                assert profile.ph.maximum == pytest.approx(raw_ph["maximum"])
+                assert profile.ph.minimum == PHValue(raw_ph["minimum"])
+                assert profile.ph.maximum == PHValue(raw_ph["maximum"])
             if raw_ph.get("reported_average") is not None:
-                assert profile.ph.reported_average == pytest.approx(
+                assert profile.ph.reported_average == PHValue(
                     raw_ph["reported_average"]
                 )
-                assert profile.ph.calculation_value == pytest.approx(
+                assert profile.ph.calculation_value == PHValue(
                     raw_ph["reported_average"]
                 )
 

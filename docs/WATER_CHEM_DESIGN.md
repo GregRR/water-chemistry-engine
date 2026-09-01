@@ -106,7 +106,7 @@ FermentationJSON ───┘
 
 Responsibilities are intentionally separated:
 
-- **FermUnits** supplies quantity representation, dimensional validation, unit conversion, equivalent chemistry conversions, and explicit unit definitions. Its planned M4 API also supplies a semantic pH value and the exact definitional transform between pH and dimensionless hydrogen-ion activity; that API is not yet part of the FermUnits 0.1.x version consumed by this engine.
+- **FermUnits** supplies quantity representation, dimensional validation, unit conversion, equivalent chemistry conversions, explicit unit definitions, the semantic `PHValue` used by reported and target pH, and the exact definitional transform between pH and dimensionless hydrogen-ion activity.
 - **Water Chemistry Engine** supplies water-chemistry semantics, reported-value semantics, blending, stoichiometry, comparison, optimization, warnings, and structured results.
 - **BeerJSON/FermentationJSON adapters** translate external interchange documents to and from engine boundary/domain models.
 - **Consumer applications** supply persistence, users, forms, visual presentation, document ingestion/review workflows, and product-specific interaction.
@@ -379,10 +379,9 @@ where `a_H+` is hydrogen-ion activity. A concentration-based `[H+]` treatment is
 FermUnits 0.1.3 owns the finite semantic `PHValue` and the exact bidirectional
 activity transform represented by this definition. It does not define `pH` as
 a Pint unit: `Q_(7.0, "pH")` must not be used for chemical pH because Pint can
-interpret that symbol as picohenry. The type and transform are now available
-through this project's supported dependency range, but migrating the engine's
-reported and target pH contracts remains a deliberate later integration slice
-rather than an incidental dependency update.
+interpret that symbol as picohenry. The engine's reported and target pH
+contracts use `PHValue`, while the engine retains reporting metadata,
+range/statistic policy, and every model-dependent pH operation.
 
 The definition-level transform does not make activity interchangeable with
 hydrogen-ion concentration. Converting between activity and concentration
@@ -394,7 +393,7 @@ remain responsibilities of this engine. Any ideal-solution approximation such
 as an activity coefficient of 1 must be explicit and versioned here rather than
 hidden in FermUnits.
 
-The implemented `ReportedPH` model preserves:
+The implemented `ReportedPH` model preserves semantic `PHValue` objects for:
 
 ```text
 value              # exact reported pH
@@ -424,11 +423,11 @@ derived_pH = -log10(mean_a)
 
 FermUnits 0.1.3 validates the mathematical domain of its semantic pH
 representation (finite pH) and activity transform (finite activity greater than
-zero), without imposing a supposedly universal 0-through-14 pH range. The
-engine must own any narrower validation as an explicit domain or application
-policy. The current `ReportedPH` and `TargetWaterProfile` models still enforce
-that range; the existing behavior must be reviewed deliberately before adopting
-`PHValue` rather than being mistaken for a FermUnits or thermodynamic invariant.
+zero), without imposing a supposedly universal 0-through-14 pH range.
+`ReportedPH` and `TargetWaterProfile` likewise accept any finite `PHValue`.
+Any future narrower validation must be an explicit, evidence-backed domain or
+application policy rather than being mistaken for a FermUnits or thermodynamic
+invariant.
 
 #### 9.7.1 Reusable calculated-pH capability
 
@@ -584,6 +583,7 @@ The current `SourceWaterProfile` supports:
 - optional total hardness;
 - optional TDS;
 - optional conductivity;
+- zero or more separately identified reported disinfectant results;
 - no duplicate ion entries.
 
 Individual reported results may additionally carry `ReportedStatistic` and `ReportedResultContext`, allowing result-specific timing, coverage, water stage, and sample location without forcing those details into the whole profile.
@@ -1044,9 +1044,10 @@ logic.
 The first external review of this slice identified that exporting only the
 outer forward-result types left their nested audit unions outside the declared
 compatibility boundary. Those nested result types are therefore part of the
-facade. This does not automatically make every transitive domain model a root
-export: richer `SourceWaterProfile` provenance/property fields and generalized
-treatment-ingredient authoring require separate, explicit contract decisions.
+facade. A subsequent bounded slice exports the complete `SourceWaterProfile`
+reporting/provenance construction graph and adopts FermUnits `PHValue` for
+reported and target pH. Generalized treatment-ingredient authoring remains a
+separate contract decision.
 
 Convenience helpers should be driven by real consumer friction. They must not erase reported-value semantics, silently choose representative values, or move scientific/domain policy into an application.
 
@@ -1397,7 +1398,7 @@ Implemented and tested domain work includes:
 - total hardness with explicit `as CaCO3` basis;
 - TDS;
 - conductivity with optional reference temperature;
-- structured `ReportedPH` with exact/range/reported-average semantics and enforced prohibition on arithmetic midpoint/mean behavior for range-only pH;
+- structured `ReportedPH` using FermUnits `PHValue`, with exact/range/reported-average semantics and enforced prohibition on arithmetic midpoint/mean behavior for range-only pH;
 - bicarbonate-alkalinity reporting-basis conversion for an explicitly identified bicarbonate result without treating total alkalinity as bicarbonate;
 - five data-driven real-report fixtures: Santa Cruz, Niagara, Primo/Sparkletts, Cal Water/Chico, and Bend;
 - focused reported-disinfectant preservation, including unqualified chlorine, free/total/combined chlorine, chloramine/named chloramine species, chlorine dioxide, source labels/bases, and result context/statistics.
@@ -1456,6 +1457,8 @@ Completed:
 ### Milestone 3 / release 0.3 — supported consumer API
 
 - documented top-level/public forward-calculation facade;
+- supported source-reporting and provenance construction graph;
+- FermUnits `PHValue` boundary for reported and target pH;
 - integration examples around the 0.2 workflow;
 - API-level compatibility tests;
 - explicit pre-1.0 request/result evolution policy;

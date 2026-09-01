@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from fermunits import PHValue
+
 from water_chemistry_engine.concentrations import IonConcentrationValue
 from water_chemistry_engine.ions import Ion
 
@@ -10,7 +12,7 @@ class TargetWaterProfile:
 
     name: str
     concentrations: tuple[IonConcentrationValue, ...]
-    ph: float | None = None
+    ph: PHValue | None = None
     style_associations: tuple[str, ...] = ()
     notes: str | None = None
 
@@ -24,8 +26,8 @@ class TargetWaterProfile:
                 "Target water profile cannot contain duplicate ion concentrations."
             )
 
-        if self.ph is not None and not 0.0 <= self.ph <= 14.0:
-            raise ValueError("Target water profile pH must be between 0 and 14.")
+        if self.ph is not None and not isinstance(self.ph, PHValue):
+            raise TypeError("Target water profile pH must use fermunits.PHValue.")
 
         if any(not style.strip() for style in self.style_associations):
             raise ValueError("Target water profile style associations cannot be empty.")

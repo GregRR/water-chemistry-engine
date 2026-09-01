@@ -201,9 +201,11 @@ Where an authoritative ASBC method, table, or formula is known to exist but cann
 - **Relevant topics:** Practical discussion of hardness, pH, chlorine/chloramine, yeast, gluten, and bread quality.
 - **Use in this project:** Discovery and user-workflow context only; its numerical recommendations are not accepted as authoritative target profiles without stronger validation.
 
-## 4. Authoritative and primary sources to acquire or verify
+## 4. Authoritative and primary source register and verification gaps
 
-The following categories are required before the corresponding calculations are considered validated.
+The verified sources and still-pending categories below are required before
+the corresponding calculations are considered validated. Items that remain to
+be acquired or checked are marked explicitly.
 
 ### Brewing chemistry and analytical methods
 
@@ -232,6 +234,38 @@ Preferred sources include NIST, PubChem, recognized chemical suppliers' technica
 - WHO drinking-water guidance where relevant.
 - Bottled-water regulatory and quality-report requirements.
 - Definitions and conversions for alkalinity, hardness, `as CaCO3`, equivalents, detection limits, and uncertainty.
+
+### IUPAC pH definition and measurement recommendations
+
+- **Entry:** pH, IUPAC Compendium of Chemical Terminology (Gold Book), term
+  P04524
+- **DOI:** 10.1351/goldbook.P04524
+- **URL:** https://goldbook.iupac.org/terms/view/P04524
+- **Type:** Authoritative chemical terminology
+- **Relevant claim:** Defines pH from hydrogen-ion activity as
+  `pH = -lg(a(H+))`.
+- **Project inference:** The activity-based definition does not itself impose a
+  universal numerical 0-through-14 boundary. Any narrower accepted range must
+  therefore come from a separately documented domain or application policy.
+- **Use in this project:** Supports representing chemical pH with a finite
+  semantic value rather than a Pint unit or an unexplained universal range.
+
+- **Authors:** R. P. Buck et al.
+- **Title:** Measurement of pH. Definition, Standards, and Procedures (IUPAC
+  Recommendations 2002)
+- **Journal:** *Pure and Applied Chemistry*, Volume 74, Issue 11, pages
+  2169–2200
+- **DOI:** 10.1351/pac200274112169
+- **NIST record:**
+  https://www.nist.gov/publications/measurement-ph-definition-standards-and-procedures-iupac-recommendations-2002
+- **Type:** IUPAC recommendation / authoritative primary technical source
+- **Relevant topics:** Notional activity-based pH definition, standards,
+  measurement procedures, traceability, and uncertainty for dilute aqueous
+  solutions.
+- **Use in this project:** Governs the semantic distinction between pH,
+  hydrogen-ion activity, operational measurement, and future calculated-pH
+  models. It does not justify treating activity as concentration or adding a
+  derived working-water pH model without further evidence.
 
 ### Mead and distilling
 

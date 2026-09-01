@@ -1,4 +1,5 @@
 import pytest
+from fermunits import PHValue
 
 from water_chemistry_engine.concentrations import (
     IonConcentration,
@@ -74,16 +75,25 @@ def test_duplicate_target_ions_are_rejected() -> None:
         )
 
 
-@pytest.mark.parametrize("ph", [-0.1, 14.1, float("nan"), float("inf"), float("-inf")])
-def test_invalid_target_ph_is_rejected(ph: float) -> None:
-    with pytest.raises(
-        ValueError,
-        match="pH must be between 0 and 14",
-    ):
+@pytest.mark.parametrize("value", [-0.1, 14.1])
+def test_target_ph_does_not_impose_a_universal_zero_to_fourteen_range(
+    value: float,
+) -> None:
+    profile = TargetWaterProfile(
+        name="Example Target",
+        concentrations=(),
+        ph=PHValue(value),
+    )
+
+    assert profile.ph == PHValue(value)
+
+
+def test_target_ph_requires_semantic_ph_value() -> None:
+    with pytest.raises(TypeError, match="fermunits.PHValue"):
         TargetWaterProfile(
             name="Example Target",
             concentrations=(),
-            ph=ph,
+            ph=7.0,  # type: ignore[arg-type]
         )
 
 

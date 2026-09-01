@@ -61,7 +61,30 @@ from water_chemistry_engine.preparation_instructions import (
     WaterPreparationInstructions,
 )
 from water_chemistry_engine.profiles import SourceWaterProfile
+from water_chemistry_engine.reported_disinfectants import (
+    DisinfectantKind,
+    ReportedDisinfectant,
+)
+from water_chemistry_engine.reported_properties import (
+    Alkalinity,
+    Conductivity,
+    ReportedPH,
+    ReportingBasis,
+    TotalDissolvedSolids,
+    TotalHardness,
+)
+from water_chemistry_engine.reported_statistics import (
+    ReportedStatistic,
+    ReportedStatisticKind,
+)
 from water_chemistry_engine.reported_values import SourceResolutionPolicy
+from water_chemistry_engine.reporting_context import (
+    ObservationPeriod,
+    ReportedResultContext,
+    ResultCoverage,
+    WaterStage,
+)
+from water_chemistry_engine.source_document import SourceDocumentMetadata
 from water_chemistry_engine.source_resolution import (
     ResolvedSourceIon,
     SourceIonResolution,
@@ -100,6 +123,12 @@ from water_chemistry_engine.treatment_ingredients import (
     SODIUM_CHLORIDE,
 )
 from water_chemistry_engine.treatment_stoichiometry import IonContribution
+from water_chemistry_engine.water_identity import (
+    PhysicalSourceType,
+    PhysicalWaterSource,
+    WaterIdentity,
+    WaterType,
+)
 
 __version__ = "0.2.0"
 
@@ -111,6 +140,7 @@ __all__ = [
     "SIMPLE_MINERAL_INGREDIENTS",
     "SODIUM_BICARBONATE",
     "SODIUM_CHLORIDE",
+    "Alkalinity",
     "AppliedTreatment",
     "AqueousChemicalState",
     "BlendIonContribution",
@@ -118,7 +148,9 @@ __all__ = [
     "BlendPreparationInstruction",
     "BlendedSource",
     "ConcentrationRangeEndpoint",
+    "Conductivity",
     "DerivedIonConcentration",
+    "DisinfectantKind",
     "ExactConcentrationEndpoint",
     "ForwardCalculationNotice",
     "ForwardNoticeCode",
@@ -137,12 +169,23 @@ __all__ = [
     "IonContributionMatrixRow",
     "LowerBoundConcentrationEndpoint",
     "NotDetectedConcentrationEndpoint",
+    "ObservationPeriod",
+    "PhysicalSourceType",
+    "PhysicalWaterSource",
+    "ReportedDisinfectant",
+    "ReportedPH",
+    "ReportedResultContext",
+    "ReportedStatistic",
+    "ReportedStatisticKind",
+    "ReportingBasis",
     "ResolvedBlendIon",
     "ResolvedSourceIon",
     "ResolvedTreatmentIon",
+    "ResultCoverage",
     "SourceContributionCell",
     "SourceContributionCellStatus",
     "SourceContributionColumn",
+    "SourceDocumentMetadata",
     "SourceIonResolution",
     "SourceIonResolutionMethod",
     "SourceProfileResolutionResult",
@@ -156,6 +199,8 @@ __all__ = [
     "TargetProfileComparison",
     "TargetProfileComparisonStatus",
     "TargetWaterProfile",
+    "TotalDissolvedSolids",
+    "TotalHardness",
     "TreatmentAddition",
     "TreatmentApplicationResult",
     "TreatmentContributionCell",
@@ -174,7 +219,10 @@ __all__ = [
     "UpperBoundConcentrationEndpoint",
     "WaterBlendResult",
     "WaterContributionMatrix",
+    "WaterIdentity",
     "WaterPreparationInstructions",
+    "WaterStage",
+    "WaterType",
     "__version__",
     "calculate_forward_water",
 ]

@@ -1,5 +1,5 @@
 import pytest
-from fermunits import Q_, Quantity
+from fermunits import Q_, PHValue, Quantity
 from hypothesis import given
 from hypothesis import strategies as st
 
@@ -229,13 +229,13 @@ def test_target_ph_is_retained_as_explicit_not_calculated_outcome() -> None:
     target = TargetWaterProfile(
         name="Target with pH",
         concentrations=(IonConcentration.mg_per_liter(Ion.CALCIUM, 50.0),),
-        ph=7.0,
+        ph=PHValue(7.0),
     )
 
     result = compare_state_to_target(_state(calcium=50.0), target)
 
     assert result.ph_comparison is not None
-    assert result.ph_comparison.target_ph == 7.0
+    assert result.ph_comparison.target_ph == PHValue(7.0)
     assert result.ph_comparison.actual_ph is None
     assert result.ph_comparison.status is TargetPHComparisonStatus.NOT_CALCULATED
     assert result.status is TargetProfileComparisonStatus.INDETERMINATE

@@ -25,6 +25,11 @@ That unreleased surface and its compatibility expectations are documented in
 [`docs/CONSUMER_API.md`](docs/CONSUMER_API.md); published 0.2.0 consumers should
 continue using tested module-level imports until 0.3.0 is released.
 
+The development facade now covers both the deterministic forward-result graph
+and the complete source-reporting/provenance input graph. Reported and target
+pH use FermUnits' semantic `PHValue`; calculated working-water pH remains
+explicitly deferred until a validated reusable model is ready.
+
 ### Implemented in 0.2
 
 - source-water and target/reference profile models;

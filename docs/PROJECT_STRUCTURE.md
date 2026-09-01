@@ -74,8 +74,9 @@ Ordinary consumers should prefer the names in
 integration expectations, and the pre-1.0 compatibility policy. The facade
 re-exports the selected proven inputs and the complete forward-result audit
 graph rather than introducing a second chemistry implementation. Richer source
-profile provenance/property inputs and generalized treatment-ingredient
-authoring remain explicit later 0.3 contract decisions.
+profile provenance/property inputs are also supported through a cohesive
+package-root construction graph. Generalized treatment-ingredient authoring
+remains an explicit later 0.3 contract decision.
 
 As later milestones add optimization, treatment-plan ranking, richer
 constraints, calculated working-water pH, and serialization/interchange

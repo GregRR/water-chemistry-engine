@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from math import isfinite
 
-from fermunits import Q_
+from fermunits import Q_, PHValue
 
 from water_chemistry_engine.quantity_types import ScalarQuantity
 from water_chemistry_engine.reported_values import (
@@ -426,22 +426,17 @@ class ReportedPH:
     arithmetic midpoint.
     """
 
-    value: float | None = None
-    minimum: float | None = None
-    maximum: float | None = None
-    reported_average: float | None = None
+    value: PHValue | None = None
+    minimum: PHValue | None = None
+    maximum: PHValue | None = None
+    reported_average: PHValue | None = None
 
     result_context: ReportedResultContext | None = None
 
     def __post_init__(self) -> None:
-        for item in (
-            self.value,
-            self.minimum,
-            self.maximum,
-            self.reported_average,
-        ):
-            if item is not None and not 0.0 <= item <= 14.0:
-                raise ValueError("Reported pH values must be between 0 and 14.")
+        for item in (self.value, self.minimum, self.maximum, self.reported_average):
+            if item is not None and not isinstance(item, PHValue):
+                raise TypeError("Reported pH values must use fermunits.PHValue.")
 
         if self.value is not None:
             if (
@@ -461,12 +456,14 @@ class ReportedPH:
             )
 
         if self.minimum is not None and self.maximum is not None:
-            if self.minimum > self.maximum:
+            if self.minimum.value > self.maximum.value:
                 raise ValueError("Reported pH minimum cannot exceed maximum.")
 
             if (
                 self.reported_average is not None
-                and not self.minimum <= self.reported_average <= self.maximum
+                and not self.minimum.value
+                <= self.reported_average.value
+                <= self.maximum.value
             ):
                 raise ValueError(
                     "Reported pH reported average must fall within the reported range."
@@ -482,7 +479,7 @@ class ReportedPH:
         )
 
     @property
-    def calculation_value(self) -> float:
+    def calculation_value(self) -> PHValue:
         """Return a representative pH only when one was actually reported."""
         if self.reported_average is not None:
             return self.reported_average
@@ -498,7 +495,7 @@ class ReportedPH:
     @classmethod
     def exact(cls, value: float) -> ReportedPH:
         """Construct an exact reported pH."""
-        return cls(value=value)
+        return cls(value=PHValue(value))
 
     @classmethod
     def range(
@@ -510,12 +507,14 @@ class ReportedPH:
     ) -> ReportedPH:
         """Construct a reported pH range with an optional reported average."""
         return cls(
-            minimum=minimum,
-            maximum=maximum,
-            reported_average=reported_average,
+            minimum=PHValue(minimum),
+            maximum=PHValue(maximum),
+            reported_average=(
+                None if reported_average is None else PHValue(reported_average)
+            ),
         )
 
     @classmethod
     def average(cls, reported_average: float) -> ReportedPH:
         """Construct a pH explicitly reported by the source as an average."""
-        return cls(reported_average=reported_average)
+        return cls(reported_average=PHValue(reported_average))

@@ -1,6 +1,7 @@
 from datetime import date
 
 import pytest
+from fermunits import PHValue
 
 from water_chemistry_engine.concentrations import (
     IonConcentration,
@@ -41,7 +42,7 @@ def test_source_water_profile_stores_reported_chemistry() -> None:
 
     assert profile.name == "Example Municipal Water"
     assert profile.ph is not None
-    assert profile.ph.calculation_value == 7.6
+    assert profile.ph.calculation_value == PHValue(7.6)
     assert profile.observed_on == date(2026, 7, 1)
     assert profile.source_document is source_document
     assert profile.concentration_for(Ion.CALCIUM) is calcium
@@ -110,10 +111,10 @@ def test_source_profile_accepts_reported_ph_range_and_average() -> None:
     )
 
     assert profile.ph is ph
-    assert profile.ph.minimum == 7.0
-    assert profile.ph.maximum == 7.4
-    assert profile.ph.reported_average == 7.2
-    assert profile.ph.calculation_value == 7.2
+    assert profile.ph.minimum == PHValue(7.0)
+    assert profile.ph.maximum == PHValue(7.4)
+    assert profile.ph.reported_average == PHValue(7.2)
+    assert profile.ph.calculation_value == PHValue(7.2)
 
 
 def test_source_profile_preserves_range_only_ph() -> None:
