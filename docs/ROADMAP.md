@@ -121,8 +121,15 @@ defect in that slice. They identified two API-completeness/documentation gaps:
 the public annotations used an unexported `ScalarQuantity` alias, and the
 published 0.2.0 float-to-`PHValue` migration needed explicit guidance for both
 `ReportedPH` and `TargetWaterProfile.ph`. The remediation exports the alias,
-adds the migration guidance, and requires its own focused external follow-up
-before this checkpoint is considered closed.
+adds the migration guidance, and strengthens the pH example so its reported
+average differs from the forbidden arithmetic midpoint.
+
+A focused external follow-up independently verified both findings as closed at
+commit `15ff61c36ae30b7a8d09aeaf168492e89f70f0eb`, found no new defect, and
+cleared this source-reporting/provenance checkpoint. The same review also found
+the subsequent treatment-material documentation scientifically accurate,
+internally consistent, and correctly presented as future 0.4 work rather than
+an implemented 0.3 capability.
 
 ### Required work
 

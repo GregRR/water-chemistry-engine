@@ -222,8 +222,8 @@ Preferred sources include NIST, PubChem, recognized chemical suppliers' technica
   - Type: authoritative government chemical database
   - Relevant data: dihydrate formula and molecular weight (~147.01 g/mol).
   - Use: independent identity/reference case for the existing dihydrate model.
-- **Occidental Chemical Corporation (OxyChem), _Calcium Chloride: A Guide to Physical Properties_**
-  - URL: https://www.oxy.com/siteassets/documents/chemicals/products/other-essentials/173-01791.pdf
+- **Occidental Chemical Corporation (OxyChem), _Calcium Chloride Handbook_**
+  - URL: https://www.oxychemcalciumchloride.com/siteassets/documents/guides/calcium-chloride-handbook.pdf
   - Type: authoritative manufacturer technical guide
   - Relevant data: physical properties of CaCl2 hydrates and solutions; the
     guide lists pure dihydrate as 75.49% CaCl2 by composition and distinguishes

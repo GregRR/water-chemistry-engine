@@ -34,9 +34,12 @@ For the 0.3 source-reporting/provenance API checkpoint, read these together:
 
 1. `0.3-source-reporting-pass-1.md`
 2. `0.3-source-reporting-pass-2.md`
+3. `0.3-source-reporting-remediation-follow-up.md`
 
 The discovery and focused reviews found no scientific or runtime defect. They
 identified an unexported public typing alias and incomplete migration guidance
-for the published pH contracts. Both findings are remediated in the current
-development tree but require a focused external follow-up before the checkpoint
-is closed.
+for the published pH contracts. The remediation follow-up independently
+verified both findings as closed, found no new defect, and cleared the bounded
+source-reporting/provenance checkpoint. It also reviewed the subsequent
+treatment-material documentation and found it accurate, internally consistent,
+and correctly scoped as future work.

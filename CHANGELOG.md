@@ -67,6 +67,8 @@ distribution and its repository milestones.
   commercial flakes/solutions, and carbonate/chalk equilibrium; clarified that
   non-authoritative practitioner claims remain discovery inputs until
   independently verified.
+- Updated the OxyChem calcium-chloride handbook citation to its current verified
+  PDF location after external review.
 - Clarified that RO/distilled "ion-free dilution" is already ordinary
   multi-source blending and does not require a separate engine chemistry
   primitive.
