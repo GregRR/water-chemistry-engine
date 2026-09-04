@@ -16,9 +16,9 @@ multiple characterized sources, apply supported mineral additions, calculate
 the resulting water, compare it with target/reference criteria, and return
 auditable contribution, instruction, and notice data.
 
-Version 0.2 also establishes Python 3.11 as the compatibility baseline, with CI
-coverage on Python 3.11 through 3.14. Public APIs remain pre-1.0 and may evolve
-as real consumer applications exercise the engine.
+Python 3.11 is the project compatibility baseline, with CI coverage through
+Python 3.14. Public APIs remain pre-1.0 and may evolve as real consumer
+applications exercise the engine.
 
 Version 0.3 establishes a supported package-root consumer facade covering both
 the deterministic forward-result graph and the complete source-reporting and
@@ -28,7 +28,7 @@ Reported and target pH use FermUnits' semantic `PHValue`; calculated
 working-water pH remains explicitly deferred until a validated reusable model
 is ready.
 
-### Implemented in 0.2
+### Forward-calculator capabilities established in 0.2
 
 - source-water and target/reference profile models;
 - preservation of exact values, ranges, bounds, `ND`, reported statistics,
