@@ -43,3 +43,12 @@ verified both findings as closed, found no new defect, and cleared the bounded
 source-reporting/provenance checkpoint. It also reviewed the subsequent
 treatment-material documentation and found it accurate, internally consistent,
 and correctly scoped as future work.
+
+For the 0.3.0 release-candidate checkpoint, read:
+
+1. `0.3.0-release-candidate-review.md`
+
+That record summarizes the independent discovery and focused release reviews,
+the README remediation follow-up, exact-candidate CI, finding dispositions,
+artifact reproducibility, clean-install results, and the remaining explicit
+owner-controlled publication gates.

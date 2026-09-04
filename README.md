@@ -10,11 +10,11 @@ package from separate projects.
 
 ## Project status
 
-The **0.3 supported-consumer-API milestone is complete and undergoing release
-validation**. The engine can resolve reported source-water chemistry, blend
-multiple characterized sources, apply supported mineral additions, calculate
-the resulting water, compare it with target/reference criteria, and return
-auditable contribution, instruction, and notice data.
+The **0.3 supported-consumer-API milestone is complete**. The engine can
+resolve reported source-water chemistry, blend multiple characterized sources,
+apply supported mineral additions, calculate the resulting water, compare it
+with target/reference criteria, and return auditable contribution, instruction,
+and notice data.
 
 Python 3.11 is the project compatibility baseline, with CI coverage through
 Python 3.14. Public APIs remain pre-1.0 and may evolve as real consumer

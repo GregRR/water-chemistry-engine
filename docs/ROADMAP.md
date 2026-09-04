@@ -45,11 +45,10 @@ for consuming that path. Implemented foundations include:
 - API-level compatibility and integration tests;
 - Python 3.11 through 3.14 support with 3.11 as the compatibility baseline.
 
-The 0.3 implementation is complete and undergoing release validation. Its
-package-root facade exposes the important consumer operations, source-reporting
-inputs, and nested result graph through an intentional supported surface. The
-next implementation milestone after release is 0.4 curated profiles and
-practical treatment materials.
+Release 0.3 completes the supported consumer boundary. Its package-root facade
+exposes the important consumer operations, source-reporting inputs, and nested
+result graph through an intentional supported surface. The next implementation
+milestone is 0.4 curated profiles and practical treatment materials.
 
 ## 0.2 — Deterministic Forward Calculator
 
@@ -89,7 +88,7 @@ aqueous model has sufficient inputs.
 
 ## 0.3 — Supported Consumer API
 
-**Status: implementation complete; release validation in progress.**
+**Status: complete.**
 
 Establish a bounded, documented Python facade around the capabilities already
 proven in 0.2 rather than requiring applications to depend indefinitely on
@@ -158,9 +157,9 @@ an implemented 0.3 capability.
   justified by real application use without duplicating chemistry or hiding
   reported-data semantics.
 
-Once published, consumer applications should depend on and pin the 0.3 release
-rather than depending on the engine repository. Release-candidate integration
-may use an exact commit or locally built artifact.
+Consumer applications should depend on and pin the 0.3 release rather than
+depending on the engine repository. Pre-release integration may use an exact
+commit or locally built artifact.
 
 ## 0.4 — Curated Profiles and Treatment Materials
 
