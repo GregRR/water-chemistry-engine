@@ -3,7 +3,7 @@
 This project follows semantic versioning for the Water Chemistry Engine
 distribution and its repository milestones.
 
-## Unreleased
+## 0.3.0 - Unreleased
 
 ### Added
 

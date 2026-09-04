@@ -129,7 +129,7 @@ The engine never imports a consumer application, database ORM, or product-specif
 
 ### 6.2 Current and planned core libraries
 
-- **FermUnits 0.1.x:** required by `water-chemistry-engine`; resolved from PyPI with the supported `>=0.1.2,<0.2.0` dependency range. FermUnits 0.1.2 is the minimum release that shares the Python 3.11 compatibility floor.
+- **FermUnits 0.1.x:** required by `water-chemistry-engine`; resolved from PyPI with the supported `>=0.1.3,<0.2.0` dependency range. FermUnits 0.1.3 is the minimum release because it provides the public quantity typing and semantic `PHValue` boundary consumed by the engine while sharing the Python 3.11 compatibility floor.
 - **Pint:** transitive quantity implementation through FermUnits.
 - **NumPy:** planned for vector/matrix work when the calculation implementation actually requires it.
 - **SciPy:** planned for continuous and mixed-integer optimization when optimization work begins.
@@ -1096,8 +1096,8 @@ Release 0.3 establishes a bounded documented facade around the proven
 forward-calculation boundary, provides integration examples, defines pre-1.0
 compatibility expectations, and adds tests for the supported surface.
 
-The first 0.3 implementation slice now establishes that package-root facade on
-the development branch. Its explicit `__all__` includes the forward entry
+The completed 0.3 implementation establishes that package-root facade. Its
+explicit `__all__` includes the forward entry
 point, request/input models, the complete nested source/blend/treatment audit
 graph, contribution matrices, preparation instructions, comparison types,
 notice codes, and supported simple treatment ingredients required for a
@@ -1108,13 +1108,15 @@ outputs, and conservative unknown propagation using only root imports. The
 facade delegates to the existing 0.2 workflow and does not duplicate scientific
 logic.
 
-The first external review of this slice identified that exporting only the
+The first external review of this work identified that exporting only the
 outer forward-result types left their nested audit unions outside the declared
 compatibility boundary. Those nested result types are therefore part of the
-facade. A subsequent bounded slice exports the complete `SourceWaterProfile`
+facade. The completed source-input work also exports the complete
+`SourceWaterProfile`
 reporting/provenance construction graph and adopts FermUnits `PHValue` for
 reported and target pH. Generalized treatment-ingredient authoring remains a
-separate contract decision.
+separate 0.4 contract decision. Focused external follow-up reviews verified the
+result and source-input remediations before release validation began.
 
 Convenience helpers should be driven by real consumer friction. They must not erase reported-value semantics, silently choose representative values, or move scientific/domain policy into an application.
 
@@ -1324,7 +1326,11 @@ implemented feature requires them.
 
 Release 0.3 establishes a deliberately bounded supported Python facade. The public API accepts framework-neutral structured requests/domain objects and returns structured results plus stable warning/explanation codes.
 
-The 0.2 implementation already exposes the forward workflow through module-level APIs such as `ForwardWaterSource`, `SourceResolutionPolicy`, `TreatmentAddition`, and `calculate_forward_water(...)`. Those paths are usable by pinned pre-1.0 consumers but are not yet the final top-level facade.
+The 0.2 implementation exposed the forward workflow through module-level APIs
+such as `ForwardWaterSource`, `SourceResolutionPolicy`, `TreatmentAddition`,
+and `calculate_forward_water(...)`. Release 0.3 establishes the package root as
+the supported consumer facade; specialized module paths remain importable but
+are not the preferred compatibility boundary.
 
 The implemented package-root direction is:
 
@@ -1448,7 +1454,14 @@ Portable versioned request/result pairs should allow Swift, Kotlin, Dart, JavaSc
 
 ## 26. Current implementation status
 
-As of this revision, the engine repository supports Python 3.11 through 3.14, with Python 3.11 as the compatibility baseline, plus uv, Ruff, mypy, pytest, Hypothesis, GitHub Actions, the installable `water-chemistry-engine` distribution, and FermUnits 0.1.2 from PyPI. CI executes the runtime test suite across Python 3.11, 3.12, 3.13, and 3.14, while Ruff and mypy are configured against Python 3.11 language semantics. The reproducible project gate synchronizes the engine and development dependencies before running formatting, linting, strict typing, tests, and the engine distribution build.
+As of this revision, the engine repository supports Python 3.11 through 3.14,
+with Python 3.11 as the compatibility baseline, plus uv, Ruff, mypy, pytest,
+Hypothesis, GitHub Actions, the installable `water-chemistry-engine`
+distribution, and FermUnits 0.1.3 from PyPI. CI executes the runtime test suite
+across Python 3.11, 3.12, 3.13, and 3.14, while Ruff and mypy are configured
+against Python 3.11 language semantics. The reproducible project gate
+synchronizes the engine and development dependencies before running formatting,
+linting, strict typing, tests, and the engine distribution build.
 
 Implemented and tested domain work includes:
 
@@ -1481,7 +1494,7 @@ The real-report pressure-test phase has served its immediate purpose. Additional
 
 First-class source-report preservation of chlorine/chloramine and related disinfectant reporting is now implemented. The Santa Cruz 2025 fixture pressure-tests an unqualified distribution-system `Chlorine` result as its own reported disinfectant rather than inferring free chlorine or mapping the result to chloride. Treatment/removal modeling remains deliberately out of scope for this representation layer.
 
-Release 0.2 completes the **deterministic forward treatment calculation** boundary. Validated simple treatment-ingredient identities, generic stoichiometric ion contributions, exact derived aqueous chemical states, forward application of one or more additions to a known water volume, explicit source-profile-to-derived-state resolution, fixed source-water blending by volume or fraction, structured target/reference comparison, and end-to-end orchestration across those boundaries are implemented. The forward-calculator result retains every source-resolution result, the normalized fixed-blend result, treatment-application result, explicit blend/final states, and optional source/blend/final target comparisons rather than flattening the workflow into final numbers. Blend and treatment results both preserve structured per-ion resolution outcomes and contribution detail while keeping unknown totals unknown. Target comparison preserves exact/range/bound satisfaction and signed deviation, keeps missing state ions indeterminate, refuses to reinterpret qualified ranges or `ND` as numeric targets, and retains target pH as explicitly not calculated until a validated working-water pH model exists. Boundary classification uses a 1e-9 mg/L absolute tolerance solely to suppress floating-point representation noise from otherwise exact deterministic arithmetic; this tolerance is not a chemical, sensory, or user-facing "close enough" policy. A combined row-per-ion contribution matrix now reshapes the existing blend and treatment audit records for presentation without recalculating chemistry. It preserves each source and treatment as a stable column, distinguishes positive-volume unknown source chemistry from zero-volume sources, distinguishes noncontributing treatment ingredients from unknown data, and retains known partial source/treatment contribution subtotals without presenting them as complete totals when the blend or final concentration is unresolved. Structured preparation instructions now transform those already-calculated blend/treatment results into deterministic human-readable actions while retaining canonical quantities for consumer reformatting. Zero-volume sources and zero-mass treatment rows remain in the calculation/audit results but are omitted from actionable instruction text because they require no physical action. Forward-result notices now surface calculation assumptions and result limitations that consumers should not have to reconstruct from nested audit records: midpoint use, unresolved contributing source results, first-order carbonate-species blending, the complete-dissolution treatment model, unknown final-target actuals, unsupported final-target criteria, and deferred final-target-pH comparison. Source- and blend-stage target comparisons remain available on their own structured results rather than duplicating target notices at every stage. These notices do not change chemistry and preserve structured codes/context alongside deterministic English messages. That completes the deterministic 0.2 forward-result boundary; the next engine focus is a deliberate supported consumer-facing API around these proven capabilities.
+Release 0.2 completes the **deterministic forward treatment calculation** boundary. Validated simple treatment-ingredient identities, generic stoichiometric ion contributions, exact derived aqueous chemical states, forward application of one or more additions to a known water volume, explicit source-profile-to-derived-state resolution, fixed source-water blending by volume or fraction, structured target/reference comparison, and end-to-end orchestration across those boundaries are implemented. The forward-calculator result retains every source-resolution result, the normalized fixed-blend result, treatment-application result, explicit blend/final states, and optional source/blend/final target comparisons rather than flattening the workflow into final numbers. Blend and treatment results both preserve structured per-ion resolution outcomes and contribution detail while keeping unknown totals unknown. Target comparison preserves exact/range/bound satisfaction and signed deviation, keeps missing state ions indeterminate, refuses to reinterpret qualified ranges or `ND` as numeric targets, and retains target pH as explicitly not calculated until a validated working-water pH model exists. Boundary classification uses a 1e-9 mg/L absolute tolerance solely to suppress floating-point representation noise from otherwise exact deterministic arithmetic; this tolerance is not a chemical, sensory, or user-facing "close enough" policy. A combined row-per-ion contribution matrix now reshapes the existing blend and treatment audit records for presentation without recalculating chemistry. It preserves each source and treatment as a stable column, distinguishes positive-volume unknown source chemistry from zero-volume sources, distinguishes noncontributing treatment ingredients from unknown data, and retains known partial source/treatment contribution subtotals without presenting them as complete totals when the blend or final concentration is unresolved. Structured preparation instructions now transform those already-calculated blend/treatment results into deterministic human-readable actions while retaining canonical quantities for consumer reformatting. Zero-volume sources and zero-mass treatment rows remain in the calculation/audit results but are omitted from actionable instruction text because they require no physical action. Forward-result notices now surface calculation assumptions and result limitations that consumers should not have to reconstruct from nested audit records: midpoint use, unresolved contributing source results, first-order carbonate-species blending, the complete-dissolution treatment model, unknown final-target actuals, unsupported final-target criteria, and deferred final-target-pH comparison. Source- and blend-stage target comparisons remain available on their own structured results rather than duplicating target notices at every stage. These notices do not change chemistry and preserve structured codes/context alongside deterministic English messages. Release 0.3 adds the reviewed supported consumer facade, complete source-reporting/provenance construction graph, and FermUnits `PHValue` boundary around these proven capabilities. The next implementation focus after the 0.3 release gate is curated profiles and practical treatment materials.
 
 ## 27. Development milestones
 
@@ -1526,7 +1539,9 @@ Completed:
 - structured forward-result notices for material calculation assumptions, unresolved contributing source values, treatment-model assumptions, target limitations, and deferred target-pH comparison;
 - Python 3.11–3.14 runtime support with Python 3.11 as the compatibility baseline.
 
-### Milestone 3 / release 0.3 — supported consumer API
+### Milestone 3 / release 0.3 — supported consumer API — complete
+
+Completed:
 
 - documented top-level/public forward-calculation facade;
 - supported source-reporting and provenance construction graph;
@@ -1591,7 +1606,8 @@ A weak pH approximation is not a release requirement; unsupported derived pH may
 ## 28. Open design questions
 
 1. Exact boundary between frozen dataclasses and Pydantic boundary models.
-2. Exact supported top-level API surface for release 0.3 and which current module paths remain public.
+2. Which additional convenience helpers real consumer use justifies without
+   weakening the supported 0.3 boundary or hiding scientific policy.
 3. Whether SciPy's MILP support is sufficient for all Version 1 discrete policies.
 4. Authoritative chemical-identity and treatment-material sources for each supported addition, including hydration state, commercial assay/concentration conventions, density where required, and validated practical-use limits.
 5. Exact supported calculation policy for ranged commercial assay or solution concentration specifications when a deterministic representative value is required.
@@ -1624,9 +1640,20 @@ A consumer-application-only change should not imply that chemistry results were 
 
 ## 30. Summary decision
 
-The repository is now explicitly the open-source Water Chemistry Engine rather than a combined engine-and-application project. Release 0.2 completes deterministic source -> blend -> treatment -> result -> target/reference calculations and establishes Python 3.11 as the compatibility baseline. Release 0.3 will make those capabilities easier and safer for external products to consume through a deliberate supported API.
+The repository is now explicitly the open-source Water Chemistry Engine rather
+than a combined engine-and-application project. Release 0.2 completes
+deterministic source -> blend -> treatment -> result -> target/reference
+calculations and establishes Python 3.11 as the compatibility baseline. Release
+0.3 makes those capabilities easier and safer for external products to consume
+through a deliberate supported API.
 
-Consumer applications may begin now against pinned 0.2 APIs. Their development is expected to pressure-test the engine and reveal useful improvements, but the ownership boundary is strict: chemistry, water-domain interpretation, validation, optimization, calculation semantics, and scientific notices belong in the engine; presentation, persistence, authentication, workflow, and interaction state belong in the application.
+Consumer applications should normally depend on a released, pinned engine
+distribution; release-candidate testing may use an exact commit or built
+artifact. Their development is expected to pressure-test the engine and reveal
+useful improvements, but the ownership boundary is strict: chemistry,
+water-domain interpretation, validation, optimization, calculation semantics,
+and scientific notices belong in the engine; presentation, persistence,
+authentication, workflow, and interaction state belong in the application.
 
 Version 1 will provide a reusable, explainable water-chemistry engine for supported beer, mead, and distilling workflows while keeping the underlying water core generic. It preserves real-world source-report semantics—including exact values, ranges, bounds, `ND`, qualified endpoints, named statistics, reporting bases, timing, water identity, sampling context, source-document metadata, and source-reported disinfectants such as chlorine/chloramine—while supporting multiple sources, exact and ranged targets/references, practical mineral additions, final-state comparison, automatic and ranked treatment plans, contribution data, source/reference attribution, and stable consumer contracts. Intended water use remains calculation/request context rather than part of source-water identity.
 

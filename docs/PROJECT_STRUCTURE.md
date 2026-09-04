@@ -5,7 +5,8 @@
     water-chemistry-engine/
     ├── .github/
     │   └── workflows/
-    │       └── ci.yml
+    │       ├── ci.yml
+    │       └── release.yml
     ├── src/
     │   └── water_chemistry_engine/
     │       ├── ... scientific/calculation modules
@@ -55,7 +56,7 @@ accidentally bypass the installed package.
 
 This is the importable engine package.
 
-In 0.2 it owns the implemented reusable scientific and engineering behavior,
+It owns the implemented reusable scientific and engineering behavior,
 including:
 
 - water-profile domain models;
@@ -68,15 +69,16 @@ including:
 - structured notices and validation;
 - calculation audit/provenance data.
 
-Development for 0.3 adds an explicit supported facade at the package root.
+Release 0.3 adds an explicit supported facade at the package root.
 Ordinary consumers should prefer the names in
 `water_chemistry_engine.__all__`; `docs/CONSUMER_API.md` defines that boundary,
 integration expectations, and the pre-1.0 compatibility policy. The facade
 re-exports the selected proven inputs and the complete forward-result audit
 graph rather than introducing a second chemistry implementation. Richer source
 profile provenance/property inputs are also supported through a cohesive
-package-root construction graph. Generalized treatment-ingredient authoring
-remains an explicit later 0.3 contract decision.
+package-root construction graph. Generalized treatment-material authoring is
+planned for 0.4 after the necessary identity, composition, assay/concentration,
+and practical-use contracts are established.
 
 As later milestones add optimization, treatment-plan ranking, richer
 constraints, calculated working-water pH, and serialization/interchange
@@ -125,14 +127,14 @@ FermUnits is responsible for:
 - dimensional validation;
 - unit conversion;
 - explicit brewing and fermentation units;
-- once its M4 pH API is released and adopted here, a semantic `PHValue` and
-  the exact definitional transform between pH and dimensionless hydrogen-ion
+- semantic `PHValue` values; and
+- the exact definitional transform between pH and dimensionless hydrogen-ion
   activity.
 
 FermUnits does not define chemical pH as a Pint unit. In particular,
 `Q_(7.0, "pH")` must not be used for chemical pH because Pint can interpret
-`pH` as picohenry. The M4 pH API is planned rather than part of the currently
-consumed FermUnits 0.1.x contract.
+`pH` as picohenry. Water Chemistry Engine consumes this pH API from FermUnits
+0.1.3 or newer in the compatible 0.1 release line.
 
 The Water Chemistry Engine is responsible for the chemical meaning of
 quantities and for pH behavior that requires a chemistry model or application

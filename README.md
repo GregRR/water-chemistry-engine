@@ -10,25 +10,23 @@ package from separate projects.
 
 ## Project status
 
-The **0.2 deterministic forward-calculator milestone is complete**. The engine
-can resolve reported source-water chemistry, blend multiple characterized
-sources, apply supported mineral additions, calculate the resulting water,
-compare it with target/reference criteria, and return auditable contribution,
-instruction, and notice data.
+The **0.3 supported-consumer-API milestone is complete and undergoing release
+validation**. The engine can resolve reported source-water chemistry, blend
+multiple characterized sources, apply supported mineral additions, calculate
+the resulting water, compare it with target/reference criteria, and return
+auditable contribution, instruction, and notice data.
 
 Version 0.2 also establishes Python 3.11 as the compatibility baseline, with CI
 coverage on Python 3.11 through 3.14. Public APIs remain pre-1.0 and may evolve
 as real consumer applications exercise the engine.
 
-Development toward 0.3 is establishing a supported package-root consumer API.
-That unreleased surface and its compatibility expectations are documented in
-[`docs/CONSUMER_API.md`](docs/CONSUMER_API.md); published 0.2.0 consumers should
-continue using tested module-level imports until 0.3.0 is released.
-
-The development facade now covers both the deterministic forward-result graph
-and the complete source-reporting/provenance input graph. Reported and target
-pH use FermUnits' semantic `PHValue`; calculated working-water pH remains
-explicitly deferred until a validated reusable model is ready.
+Version 0.3 establishes a supported package-root consumer facade covering both
+the deterministic forward-result graph and the complete source-reporting and
+provenance input graph. Its compatibility expectations are documented in
+the [consumer API guide](https://github.com/GregRR/water-chemistry-engine/blob/v0.3.0/docs/CONSUMER_API.md).
+Reported and target pH use FermUnits' semantic `PHValue`; calculated
+working-water pH remains explicitly deferred until a validated reusable model
+is ready.
 
 ### Implemented in 0.2
 
@@ -44,10 +42,9 @@ explicitly deferred until a validated reusable model is ready.
 - structured notices for assumptions, unresolved inputs, model limitations,
   and deferred target-pH calculation.
 
-### Planned after 0.2
+### Planned after 0.3
 
-- **0.3:** supported consumer-facing Python API and integration examples;
-- **0.4:** curated target/reference profiles;
+- **0.4:** curated target/reference profiles and practical treatment materials;
 - **0.5–0.6:** automatic and ranked treatment optimization;
 - **0.7:** reusable working-water pH if a defensible model is ready;
 - **0.8:** BeerJSON/FermentationJSON interchange, conformance work, and 1.0
@@ -85,49 +82,53 @@ Water Chemistry Engine requires Python 3.11 or newer. Install the published
 package with uv or pip:
 
 ```bash
-uv add water-chemistry-engine
+uv add water-chemistry-engine==0.3.0
 ```
 
 or:
 
 ```bash
-python -m pip install water-chemistry-engine
+python -m pip install water-chemistry-engine==0.3.0
 ```
 
-Version 0.2 exposes useful module-level APIs for calculations and domain models.
-These APIs remain pre-1.0 and may evolve as the supported consumer-facing API is
-formalized in milestone 0.3.
+Version 0.3 exposes a supported package-root facade. APIs remain pre-1.0 and may
+evolve under the [consumer API compatibility policy](https://github.com/GregRR/water-chemistry-engine/blob/v0.3.0/docs/CONSUMER_API.md).
 
 ## Quickstart
 
-This example blends equal volumes of two already-resolved water states. Calcium
-therefore blends from 40 mg/L and 80 mg/L to 60 mg/L:
+This example resolves and blends equal volumes of two reported source waters.
+Calcium therefore blends from 40 mg/L and 80 mg/L to 60 mg/L:
 
 ```python
 from fermunits import Q_
 
-from water_chemistry_engine.blending import BlendSource, blend_waters
-from water_chemistry_engine.chemical_state import (
-    AqueousChemicalState,
-    DerivedIonConcentration,
-)
-from water_chemistry_engine.ions import Ion
-
-source_a = AqueousChemicalState(
-    concentrations=(DerivedIonConcentration.mg_per_liter(Ion.CALCIUM, 40.0),)
-)
-source_b = AqueousChemicalState(
-    concentrations=(DerivedIonConcentration.mg_per_liter(Ion.CALCIUM, 80.0),)
+from water_chemistry_engine import (
+    ForwardWaterSource,
+    Ion,
+    IonConcentration,
+    SourceResolutionPolicy,
+    SourceWaterProfile,
+    calculate_forward_water,
 )
 
-blend = blend_waters(
+source_a = SourceWaterProfile(
+    name="Source A",
+    concentrations=(IonConcentration.mg_per_liter(Ion.CALCIUM, 40.0),),
+)
+source_b = SourceWaterProfile(
+    name="Source B",
+    concentrations=(IonConcentration.mg_per_liter(Ion.CALCIUM, 80.0),),
+)
+
+result = calculate_forward_water(
     (
-        BlendSource("Source A", source_a, Q_(1.0, "liter")),
-        BlendSource("Source B", source_b, Q_(1.0, "liter")),
-    )
+        ForwardWaterSource(source_a, Q_(1.0, "liter")),
+        ForwardWaterSource(source_b, Q_(1.0, "liter")),
+    ),
+    source_resolution_policy=SourceResolutionPolicy(allow_exact_range_midpoints=False),
 )
 
-calcium = blend.state.concentration_for(Ion.CALCIUM)
+calcium = result.final_state.concentration_for(Ion.CALCIUM)
 assert calcium is not None
 print(calcium)
 ```
@@ -138,9 +139,11 @@ Expected output:
 60.0 milligram / liter
 ```
 
-Reported source-water values should normally be passed through the engine's
-explicit source-resolution workflow before blending. The example starts from
-resolved states to keep the first installed-package example focused.
+The explicit source-resolution policy prevents the example from silently
+choosing representative values for ranges. See the
+[consumer API guide](https://github.com/GregRR/water-chemistry-engine/blob/v0.3.0/docs/CONSUMER_API.md)
+for the complete supported workflow, including treatments, targets, notices,
+and audit results.
 
 ## Development stack
 
@@ -174,7 +177,7 @@ Primary project documents are stored under `docs/`:
 - `WATER_CHEM_REFERENCES.md` — source and reference register;
 - `ROADMAP.md` — active engine release path;
 - `PROJECT_STRUCTURE.md` — repository/package boundaries;
-- `CONSUMER_API.md` — unreleased 0.3 package-root facade and integration guide;
+- `CONSUMER_API.md` — supported 0.3 package-root facade and integration guide;
 - `reviews/` — point-in-time external review records.
 
 Release history is summarized in `CHANGELOG.md`.

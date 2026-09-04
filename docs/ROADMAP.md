@@ -11,8 +11,9 @@ consumer application's presentation or persistence layer.
 
 ## Current state
 
-Release 0.2 completes the deterministic source-to-result path needed by real
-consumer applications. Implemented foundations include:
+Release 0.2 completed the deterministic source-to-result path needed by real
+consumer applications. Release 0.3 adds the supported package-root boundary
+for consuming that path. Implemented foundations include:
 
 - source-water and target-water domain models;
 - `SourceDocumentMetadata` and `SourceWaterProfile.source_document`;
@@ -39,13 +40,16 @@ consumer applications. Implemented foundations include:
 - structured preparation instructions;
 - machine-readable notices for assumptions, unresolved inputs, model limits,
   target limitations, and deferred target-pH calculation;
+- a supported package-root consumer facade with the complete input and result
+  graph required for the forward workflow;
+- API-level compatibility and integration tests;
 - Python 3.11 through 3.14 support with 3.11 as the compatibility baseline.
 
-The next engine milestone is a deliberate consumer-facing API boundary. The
-existing 0.2 module APIs are already usable by pinned applications, but the
-published 0.2 package root exports only `__version__`. Development for 0.3 now
-exposes the important consumer operations through an intentional supported
-surface while the full milestone remains in progress.
+The 0.3 implementation is complete and undergoing release validation. Its
+package-root facade exposes the important consumer operations, source-reporting
+inputs, and nested result graph through an intentional supported surface. The
+next implementation milestone after release is 0.4 curated profiles and
+practical treatment materials.
 
 ## 0.2 — Deterministic Forward Calculator
 
@@ -85,17 +89,16 @@ aqueous model has sufficient inputs.
 
 ## 0.3 — Supported Consumer API
 
-**Status: in progress.**
+**Status: implementation complete; release validation in progress.**
 
 Establish a bounded, documented Python facade around the capabilities already
 proven in 0.2 rather than requiring applications to depend indefinitely on
 internal module layout.
 
-The first implementation slice establishes an explicit package-root export
-contract, API-level integration tests, and `docs/CONSUMER_API.md`. It preserves
-the existing scientific workflow rather than wrapping it in a second
-calculation layer. Version and release metadata remain at 0.2.0 until the full
-0.3 release gate is ready.
+The implementation establishes an explicit package-root export contract,
+API-level integration tests, and `docs/CONSUMER_API.md`. It preserves the
+existing scientific workflow rather than wrapping it in a second calculation
+layer.
 
 The first independent 0.3 review found that the initial facade returned rich
 nested audit objects without exporting the types needed to interpret them. The
@@ -107,9 +110,9 @@ it does not change the underlying calculations.
 A focused external follow-up independently verified all four original findings
 as closed at commit `c8518550b11487fe2ca6ab2b6840e3947666230c`, found no new
 defect, and cleared this first consumer-facade checkpoint. The remaining 0.3
-work below is deliberately separate from that reviewed result boundary.
+source-input work was deliberately reviewed as a separate boundary.
 
-The next bounded slice exposes the complete source-reporting and provenance
+The second bounded slice exposes the complete source-reporting and provenance
 construction graph preserved by `SourceWaterProfile`. It also adopts FermUnits
 `PHValue` for reported and target pH rather than publishing the earlier
 unsupported universal 0-through-14 restriction as part of the consumer
@@ -131,32 +134,33 @@ the subsequent treatment-material documentation scientifically accurate,
 internally consistent, and correctly presented as future 0.4 work rather than
 an implemented 0.3 capability.
 
-### Required work
+### Completed work
 
-- Define and document the supported top-level consumer imports for the current
+- Defined and documented the supported top-level consumer imports for the current
   forward workflow.
-- Keep request/result objects structured and framework-neutral.
-- Provide concise integration examples for source creation, fixed blending,
+- Kept request/result objects structured and framework-neutral.
+- Provided concise integration examples for source creation, fixed blending,
   target comparison, and supported additions.
-- Document validation/error and notice-handling expectations.
-- Define compatibility expectations for pre-1.0 result/request evolution.
-- Keep all dimensional inputs/outputs explicit through FermUnits/Pint.
-- Add API-level tests so refactors cannot silently break the documented
+- Documented validation/error and notice-handling expectations.
+- Defined compatibility expectations for pre-1.0 result/request evolution.
+- Kept all dimensional inputs/outputs explicit through FermUnits/Pint.
+- Added API-level tests so refactors cannot silently break the documented
   consumer surface.
-- Keep the public source-input graph cohesive across reported pH,
+- Kept the public source-input graph cohesive across reported pH,
   disinfectants, source documents, water identity, result context/statistics,
   and supporting reported properties.
-- Keep the current built-in-only treatment-ingredient facade narrow in 0.3;
-  broaden treatment authoring only after the reusable chemical-identity and
+- Kept the built-in-only treatment-ingredient facade narrow in 0.3; broader
+  treatment authoring remains deferred until the reusable chemical-identity and
   treatment-material contracts are defined with composition evidence, assay or
   concentration semantics, use limits, and the other requirements recorded in
   the design.
-- Identify any convenience constructors/helpers justified by real application
-  use without duplicating chemistry or hiding reported-data semantics.
+- Established the rule that future convenience constructors/helpers must be
+  justified by real application use without duplicating chemistry or hiding
+  reported-data semantics.
 
-Consumer applications do not need to wait for this milestone to begin. During
-0.2/0.3 co-development they should isolate current module-level imports behind a
-small adapter and pin a tested engine version.
+Once published, consumer applications should depend on and pin the 0.3 release
+rather than depending on the engine repository. Release-candidate integration
+may use an exact commit or locally built artifact.
 
 ## 0.4 — Curated Profiles and Treatment Materials
 

@@ -2,14 +2,11 @@
 
 ## Status
 
-The supported package-root facade described here is under development for
-Water Chemistry Engine 0.3.0. It is available from the current source tree but
-is not part of the published 0.2.0 distribution.
-
-Released 0.2.x consumers should continue using their tested module-level
-imports and pinning the engine version. Once 0.3.0 is released, ordinary
-consumers should prefer imports from `water_chemistry_engine` as documented
-here.
+This document defines the supported package-root facade for Water Chemistry
+Engine 0.3.0. Ordinary 0.3 consumers should prefer imports from
+`water_chemistry_engine` as documented here. Consumers remaining on 0.2.x
+should continue using their tested module-level imports and pinned version
+until they deliberately migrate.
 
 ## Supported boundary
 
@@ -391,10 +388,7 @@ The facade remains framework-neutral. It returns Python domain objects and
 FermUnits/Pint quantities, never HTML, ORM records, database handles, or
 product-specific persistence state.
 
-During development, the source tree continues to report the most recently
-released distribution version, currently `0.2.0`. The project changes version
-metadata only at its deliberate release-version gate. Therefore `__version__`
-is distribution identity, not a capability probe for an unreleased Git
-checkout. Consumers must not depend directly on `main`; use a released,
-explicitly pinned distribution or an exact commit while testing unreleased
-work.
+The 0.3 release source reports `0.3.0`. `__version__` is distribution identity,
+not a capability probe for an arbitrary Git checkout. Consumers must not
+depend directly on `main`; use a released, explicitly pinned distribution or
+an exact commit or built artifact while testing unreleased work.

@@ -9,7 +9,7 @@ import water_chemistry_engine
 
 def test_package_version() -> None:
     """The import package and distribution expose the release version."""
-    assert water_chemistry_engine.__version__ == "0.2.0"
+    assert water_chemistry_engine.__version__ == "0.3.0"
     assert version("water-chemistry-engine") == water_chemistry_engine.__version__
 
 
