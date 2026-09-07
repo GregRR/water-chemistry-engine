@@ -221,6 +221,9 @@ requests require current source volumes
 to equal the requested total. Proportional-dilution requests require an
 explicit zero-current-volume diluent profile; neither ideal-zero chemistry nor
 the identity of real RO water is inferred by the engine.
+Every permitted material also requires a positive caller-declared maximum mass
+for the batch. This is an operational optimization bound, not a universal
+safety, sensory, solubility, or regulatory limit.
 
 ### Candidate plans and strategies
 

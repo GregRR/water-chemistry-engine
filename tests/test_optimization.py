@@ -5,6 +5,7 @@ from water_chemistry_engine.optimization import (
     OptimizerBlendPolicy,
     OptimizerFeasibilityStatus,
     OptimizerInputSupportStatus,
+    OptimizerMaterialConstraint,
     OptimizerPracticalityStatus,
     OptimizerRequest,
     OptimizerSource,
@@ -24,7 +25,7 @@ def test_optimizer_request_preserves_explicit_blend_authority() -> None:
     request = OptimizerRequest(
         total_volume=Q_(1, "liter"),
         sources=(_source(),),
-        permitted_materials=(),
+        material_constraints=(),
         source_resolution_policy=SourceResolutionPolicy(
             allow_exact_range_midpoints=False
         ),
@@ -93,11 +94,12 @@ def test_optimizer_request_rejects_duplicate_material_keys() -> None:
     material = ExactMassDosedTreatmentMaterial(
         "gypsum", "Gypsum", GYPSUM, Q_(0.1, "gram")
     )
+    constraint = OptimizerMaterialConstraint(material, Q_(10, "gram"))
     with pytest.raises(ValueError, match="duplicate material keys"):
         OptimizerRequest(
             Q_(1, "liter"),
             (_source(),),
-            (material, material),
+            (constraint, constraint),
             SourceResolutionPolicy(False),
             OptimizerBlendPolicy.FIXED,
         )
@@ -302,7 +304,7 @@ def test_optimizer_request_rejects_wrong_collection_member_types() -> None:
             SourceResolutionPolicy(False),
             OptimizerBlendPolicy.FIXED,
         )
-    with pytest.raises(TypeError, match="only exact mass-dosed materials"):
+    with pytest.raises(TypeError, match="only OptimizerMaterialConstraint"):
         OptimizerRequest(
             Q_(1, "liter"),
             (_source(),),
@@ -310,6 +312,36 @@ def test_optimizer_request_rejects_wrong_collection_member_types() -> None:
             SourceResolutionPolicy(False),
             OptimizerBlendPolicy.FIXED,
         )
+
+
+@pytest.mark.parametrize(
+    "maximum",
+    [
+        Q_(0, "gram"),
+        Q_(-1, "gram"),
+        Q_(float("nan"), "gram"),
+        Q_(float("inf"), "gram"),
+    ],
+)
+def test_optimizer_material_constraint_requires_positive_finite_maximum(
+    maximum: object,
+) -> None:
+    material = ExactMassDosedTreatmentMaterial(
+        "gypsum", "Gypsum", GYPSUM, Q_(0.1, "gram")
+    )
+    with pytest.raises(ValueError, match="finite and greater than zero"):
+        OptimizerMaterialConstraint(
+            material,
+            maximum,  # type: ignore[arg-type]
+        )
+
+
+def test_optimizer_material_constraint_rejects_wrong_dimension() -> None:
+    material = ExactMassDosedTreatmentMaterial(
+        "gypsum", "Gypsum", GYPSUM, Q_(0.1, "gram")
+    )
+    with pytest.raises(ValueError, match="convertible to mass"):
+        OptimizerMaterialConstraint(material, Q_(1, "liter"))
 
 
 def test_optimizer_request_rejects_wrong_diluent_type() -> None:

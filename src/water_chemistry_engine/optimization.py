@@ -82,6 +82,17 @@ def _positive_volume(value: ScalarQuantity, *, label: str) -> Quantity[float]:
     return normalized
 
 
+def _positive_mass(value: ScalarQuantity, *, label: str) -> Quantity[float]:
+    try:
+        normalized = value.to("gram")
+    except Exception as exc:
+        raise ValueError(f"{label} must be convertible to mass.") from exc
+    magnitude = float(normalized.magnitude)
+    if not isfinite(magnitude) or magnitude <= 0:
+        raise ValueError(f"{label} must be finite and greater than zero.")
+    return Q_(magnitude, "gram")
+
+
 @dataclass(frozen=True, slots=True)
 class OptimizerSource:
     """One caller-permitted source and its current/available quantities."""
@@ -106,6 +117,29 @@ class OptimizerSource:
 
 
 @dataclass(frozen=True, slots=True)
+class OptimizerMaterialConstraint:
+    """One permitted exact material and its caller-declared batch limit.
+
+    ``maximum_mass`` is an explicit operational constraint for this request. It
+    prevents an unbounded recommendation but is not represented as a universal
+    safety, sensory, solubility, or regulatory limit.
+    """
+
+    material: ExactMassDosedTreatmentMaterial
+    maximum_mass: ScalarQuantity
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.material, ExactMassDosedTreatmentMaterial):
+            raise TypeError(
+                "Optimizer material constraint requires an exact mass-dosed material."
+            )
+        _positive_mass(
+            self.maximum_mass,
+            label="Optimizer material maximum mass",
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class OptimizerRequest:
     """Declared inputs and authority for an optimizer invocation.
 
@@ -118,7 +152,7 @@ class OptimizerRequest:
 
     total_volume: ScalarQuantity
     sources: tuple[OptimizerSource, ...]
-    permitted_materials: tuple[ExactMassDosedTreatmentMaterial, ...]
+    material_constraints: tuple[OptimizerMaterialConstraint, ...]
     source_resolution_policy: SourceResolutionPolicy
     blend_policy: OptimizerBlendPolicy
     target_profile: TargetWaterProfile | None = None
@@ -150,13 +184,14 @@ class OptimizerRequest:
                 "Optimizer sources must contain only OptimizerSource values."
             )
         if any(
-            not isinstance(material, ExactMassDosedTreatmentMaterial)
-            for material in self.permitted_materials
+            not isinstance(constraint, OptimizerMaterialConstraint)
+            for constraint in self.material_constraints
         ):
             raise TypeError(
-                "Optimizer permitted_materials must contain only exact mass-dosed materials."
+                "Optimizer material_constraints must contain only "
+                "OptimizerMaterialConstraint values."
             )
-        keys = [material.key for material in self.permitted_materials]
+        keys = [constraint.material.key for constraint in self.material_constraints]
         if len(keys) != len(set(keys)):
             raise ValueError(
                 "Optimizer request cannot contain duplicate material keys."

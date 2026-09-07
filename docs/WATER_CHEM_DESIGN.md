@@ -757,6 +757,10 @@ of measured material is exactly one gram of its identified treatment chemical.
 Its positive mass dose increment records operational resolution without
 performing rounding. Assay variation, liquid preparations, volume dosing, and
 material-specific use limits remain outside this initial type.
+Each optimizer request separately supplies a positive maximum measured mass for
+every permitted material. That batch-specific value is an explicit operational
+constraint and must not be presented as a sourced universal safety, sensory,
+solubility, or regulatory limit.
 
 ### 9.17 Future TreatmentPlan
 
