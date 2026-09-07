@@ -167,6 +167,8 @@ commit or locally built artifact.
 
 ## 0.3.1 — FermUnits 1.0 Compatibility
 
+**Status: release candidate.**
+
 Adopt and verify FermUnits 1.0 without changing the Water Chemistry Engine's
 scientific behavior or supported consumer contract. This patch release should:
 

@@ -3,6 +3,29 @@
 This project follows semantic versioning for the Water Chemistry Engine
 distribution and its repository milestones.
 
+## 0.3.1 - 2026-09-06
+
+### Changed
+
+- Expanded the supported FermUnits dependency range from
+  `>=0.1.3,<0.2.0` to `>=0.1.3,<2.0.0`. This retains the previously supported
+  floor while allowing the stable FermUnits 1.x contract; the locked development
+  and release environment uses FermUnits 1.0.0.
+- Updated the release workflow to the Node 24-based `actions/upload-artifact`
+  v7.0.1 release, pinned to its immutable commit.
+- Added a dedicated Python 3.11 CI job for the retained FermUnits 0.1.3
+  compatibility floor while the ordinary locked matrix tests FermUnits 1.0.0
+  across Python 3.11 through 3.14.
+- Bumped the Water Chemistry Engine package version to 0.3.1 without changing
+  the supported package-root consumer facade or scientific calculations.
+
+### Documentation
+
+- Recorded the FermUnits 1.0 compatibility policy and clarified that consumers
+  do not need a direct Pint dependency for functionality exposed by FermUnits.
+- Reprioritized the first practical optimizer and ranked candidate-plan slice
+  to 0.4 based on concrete consumer integration needs.
+
 ## 0.3.0 - 2026-09-04
 
 ### Added

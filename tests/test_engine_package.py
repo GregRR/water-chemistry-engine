@@ -9,7 +9,7 @@ import water_chemistry_engine
 
 def test_package_version() -> None:
     """The import package and distribution expose the release version."""
-    assert water_chemistry_engine.__version__ == "0.3.0"
+    assert water_chemistry_engine.__version__ == "0.3.1"
     assert version("water-chemistry-engine") == water_chemistry_engine.__version__
 
 
@@ -31,5 +31,5 @@ def test_fermunits_is_the_unit_dependency_boundary() -> None:
     package_metadata = metadata("water-chemistry-engine")
     quantity = Q_(1.0, "liter")
 
-    assert package_metadata.get_all("Requires-Dist") == ["ferm-units>=0.1.3,<0.2.0"]
+    assert package_metadata.get_all("Requires-Dist") == ["ferm-units>=0.1.3,<2.0.0"]
     assert isinstance(quantity, Quantity)

@@ -23,10 +23,14 @@ applications exercise the engine.
 Version 0.3 establishes a supported package-root consumer facade covering both
 the deterministic forward-result graph and the complete source-reporting and
 provenance input graph. Its compatibility expectations are documented in
-the [consumer API guide](https://github.com/GregRR/water-chemistry-engine/blob/v0.3.0/docs/CONSUMER_API.md).
+the [consumer API guide](https://github.com/GregRR/water-chemistry-engine/blob/v0.3.1/docs/CONSUMER_API.md).
 Reported and target pH use FermUnits' semantic `PHValue`; calculated
 working-water pH remains explicitly deferred until a validated reusable model
 is ready.
+
+Version 0.3.1 expands the supported FermUnits dependency range to include the
+stable 1.x series while retaining the compatible 0.1.3 floor; the Engine
+continues to import unit functionality only through FermUnits.
 
 ### Forward-calculator capabilities established in 0.2
 
@@ -42,7 +46,7 @@ is ready.
 - structured notices for assumptions, unresolved inputs, model limitations,
   and deferred target-pH calculation.
 
-### Planned after 0.3
+### Release path
 
 - **0.3.1:** FermUnits 1.0 compatibility and release-workflow maintenance;
 - **0.4:** automatic treatment optimization with practical candidate plans,
@@ -88,17 +92,17 @@ Water Chemistry Engine requires Python 3.11 or newer. Install the published
 package with uv or pip:
 
 ```bash
-uv add water-chemistry-engine==0.3.0
+uv add water-chemistry-engine==0.3.1
 ```
 
 or:
 
 ```bash
-python -m pip install water-chemistry-engine==0.3.0
+python -m pip install water-chemistry-engine==0.3.1
 ```
 
 Version 0.3 exposes a supported package-root facade. APIs remain pre-1.0 and may
-evolve under the [consumer API compatibility policy](https://github.com/GregRR/water-chemistry-engine/blob/v0.3.0/docs/CONSUMER_API.md).
+evolve under the [consumer API compatibility policy](https://github.com/GregRR/water-chemistry-engine/blob/v0.3.1/docs/CONSUMER_API.md).
 
 ## Quickstart
 
@@ -147,7 +151,7 @@ Expected output:
 
 The explicit source-resolution policy prevents the example from silently
 choosing representative values for ranges. See the
-[consumer API guide](https://github.com/GregRR/water-chemistry-engine/blob/v0.3.0/docs/CONSUMER_API.md)
+[consumer API guide](https://github.com/GregRR/water-chemistry-engine/blob/v0.3.1/docs/CONSUMER_API.md)
 for the complete supported workflow, including treatments, targets, notices,
 and audit results.
 

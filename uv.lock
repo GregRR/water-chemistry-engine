@@ -200,14 +200,14 @@ toml = [
 
 [[package]]
 name = "ferm-units"
-version = "0.1.3"
+version = "1.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pint" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fa/9c/f1a6d916a6364a97f7852c636a5b5f6399e36990ffd46482d07c1283377e/ferm_units-0.1.3.tar.gz", hash = "sha256:8418bb8e1c778cbc79875f61d255da1dce817dc174402f30d9bef74ea235fe70", size = 90891, upload-time = "2026-09-01T01:40:47.877Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/af/26/84198daeee8f246c64c7b2b0a6c2961297cc4944514d84ca5a48699d8f33/ferm_units-1.0.0.tar.gz", hash = "sha256:3931f8ad813ab8f1a0d75186c504dc801d2fac5b820c942190ae9386a43c6309", size = 139838, upload-time = "2026-09-07T05:47:42.612Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/77/19/ba004925f4cc453f9bafc048f3a2fc0916a46bd0423c74a6c05017b08869/ferm_units-0.1.3-py3-none-any.whl", hash = "sha256:43c2e01510b2b20559df51455ad70e91adc5fd086d5463daffd2d3347095edc0", size = 19015, upload-time = "2026-09-01T01:40:46.613Z" },
+    { url = "https://files.pythonhosted.org/packages/b0/b7/7a69f8a3d1540b08d50af4f73016d6d8270ce854092c2db2cf30b1d76daf/ferm_units-1.0.0-py3-none-any.whl", hash = "sha256:0bd3730c1e859db766f7068e32f6cdf80959af6e2a20335af6bcc58e5bf32790", size = 21157, upload-time = "2026-09-07T05:47:41.301Z" },
 ]
 
 [[package]]
@@ -660,7 +660,7 @@ wheels = [
 
 [[package]]
 name = "water-chemistry-engine"
-version = "0.3.0"
+version = "0.3.1"
 source = { editable = "." }
 dependencies = [
     { name = "ferm-units" },
@@ -676,7 +676,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "ferm-units", specifier = ">=0.1.3,<0.2.0" }]
+requires-dist = [{ name = "ferm-units", specifier = ">=0.1.3,<2.0.0" }]
 
 [package.metadata.requires-dev]
 dev = [

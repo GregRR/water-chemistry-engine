@@ -34,8 +34,12 @@ Python 3.11 is the compatibility baseline:
   than Python 3.11;
 - CI compiles and tests the engine on every supported Python minor version.
 
-The engine requires `ferm-units>=0.1.3,<0.2.0` so its dependency floor shares
-this compatibility contract and provides the public `Quantity` typing boundary.
+The engine requires `ferm-units>=0.1.3,<2.0.0`. FermUnits 0.1.3 established the
+Python 3.11 and public `Quantity` typing boundary used by Water Chemistry Engine
+0.3.0. FermUnits 1.0.0 retains that boundary under its stable 1.x compatibility
+contract, so Water Chemistry Engine 0.3.1 accepts both the previously supported
+0.1.3 floor and the compatible 1.x series rather than forcing an unnecessary
+dependency upgrade.
 
 ## Consequences
 
