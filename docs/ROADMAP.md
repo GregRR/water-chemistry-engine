@@ -235,6 +235,16 @@ claim across ions. Every accepted plan is recalculated through the ordinary
 forward path. The two variable-blend policies remain explicitly unsupported by
 this initial slice rather than being silently approximated.
 
+The initial SciPy/HiGHS integration accepts at most 1,000,000 dose increments
+per permitted material. Larger integer ranges are reported as unsupported and
+are never silently coarsened. This conservative implementation limit is not a
+scientific or operational recommendation. Coefficients and bounds outside the
+backend's documented numerical range are likewise rejected rather than passed
+through as if they were ordinary finite values. The engine independently
+validates returned increment counts, reconstructs the primary objective from
+those counts, retains the raw solver-reported objective for audit, and compares
+its reconstruction with the ordinary forward result before returning a plan.
+
 ### Candidate plans and strategies
 
 - Return up to two meaningfully different preferred plans when the supported

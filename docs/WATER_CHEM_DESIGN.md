@@ -1240,6 +1240,19 @@ policies may add continuous source-volume variables to the same problem. ADR
 responsibility between the numerical solver and the engine's validation and
 result semantics.
 
+The initial integration deliberately limits each material variable to
+1,000,000 dose increments. Requests above that project-tested numerical range
+are explicitly unsupported rather than silently coarsened or trusted to a
+numerically unreliable solve. This ceiling is an implementation safeguard, not
+a claim about meaningful real-world dosing resolution. Solver success and its
+documented matrix-coefficient and bound ranges are also treated as explicit
+support boundaries rather than relying on the backend to reinterpret small
+values as zero or large values as infinite. Solver success and its reported
+objective are retained as audit data but are not accepted as the engine result:
+the engine validates integer counts and bounds, rejects a non-finite or negative
+raw deviation objective, reconstructs the objective from the returned counts,
+and verifies that reconstruction against the ordinary forward calculation.
+
 ### 20.1 Decision variables
 
 Version 1 decision variables may include:

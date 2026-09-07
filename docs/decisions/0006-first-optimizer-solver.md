@@ -55,5 +55,16 @@ operational constraint.
   current runtime baseline remains in force.
 - Solver method, status, tolerances relevant to interpretation, and the engine's
   optimization-policy version must be visible in plan results.
+- The SciPy/HiGHS integration accepts at most 1,000,000 dose increments per
+  material. This conservative, project-tested numerical ceiling is an
+  implementation limit rather than a scientific or operational limit. Larger
+  ranges are explicitly unsupported and are not silently coarsened.
+- Model coefficients at or beyond HiGHS's documented small/large matrix-value
+  thresholds, and constraint bounds at or beyond its documented infinite-bound
+  threshold, are rejected as unsupported before solving.
+- The raw solver objective is audit data, not the postvalidation reference. The
+  engine validates the returned integer counts and bounds, rejects a negative
+  raw deviation objective, reconstructs the primary objective from the counts,
+  and compares that value with the ordinary forward-calculation result.
 - Independent analytical cases and post-solver forward recalculation remain
   required; tests must not merely reproduce SciPy's returned arrays.

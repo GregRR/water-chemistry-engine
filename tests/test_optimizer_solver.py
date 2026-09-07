@@ -1,8 +1,10 @@
 from itertools import product
+from types import SimpleNamespace
 
 import pytest
 from fermunits import Q_, PHValue
 
+from water_chemistry_engine import optimizer_solver
 from water_chemistry_engine.concentrations import (
     IonConcentration,
     IonConcentrationLowerBound,
@@ -35,6 +37,7 @@ from water_chemistry_engine.treatment_application import TreatmentAddition
 from water_chemistry_engine.treatment_ingredients import (
     CALCIUM_CHLORIDE_DIHYDRATE,
     GYPSUM,
+    POTASSIUM_CHLORIDE,
 )
 from water_chemistry_engine.treatment_materials import ExactMassDosedTreatmentMaterial
 
@@ -122,6 +125,10 @@ def test_fixed_optimizer_selects_analytically_expected_gypsum_dose() -> None:
         _CALCIUM_MG_PER_LITER_PER_GYPSUM_GRAM_IN_TEN_LITERS
     )
     assert plan.solver_report.primary_objective_mg_per_liter == pytest.approx(0.0)
+    assert (
+        plan.solver_report.solver_reported_primary_objective_mg_per_liter
+        == pytest.approx(0.0)
+    )
     assert plan.solver_report.secondary_objective_grams == pytest.approx(1.0)
     assert plan.solver_report.mip_relative_gap == pytest.approx(0.0)
     assert result.solver_report is plan.solver_report
@@ -371,6 +378,220 @@ def test_nonfixed_blend_policy_is_explicitly_unsupported_by_first_slice() -> Non
     assert result.plans == ()
     assert tuple(diagnostic.code for diagnostic in result.diagnostics) == (
         OptimizerDiagnosticCode.BLEND_POLICY_NOT_IMPLEMENTED,
+    )
+
+
+def test_excessive_material_increment_range_is_explicitly_unsupported() -> None:
+    tiny_increment = _gypsum_constraint(
+        increment_grams=1e-9,
+        maximum_grams=10.0,
+    )
+    request = _fixed_request(
+        source=_source(calcium=0.0, sulfate=0.0),
+        target=_target(50.0),
+        constraints=(tiny_increment,),
+    )
+
+    result = optimize_treatment(request)
+
+    assert result.input_support is OptimizerInputSupportStatus.UNSUPPORTED
+    assert result.feasibility is OptimizerFeasibilityStatus.INDETERMINATE
+    assert result.plans == ()
+    assert result.solver_report is None
+    assert tuple(diagnostic.code for diagnostic in result.diagnostics) == (
+        OptimizerDiagnosticCode.MATERIAL_INCREMENT_RANGE_UNSUPPORTED,
+    )
+    assert result.diagnostics[0].material_key == "gypsum"
+
+
+def test_increment_range_at_supported_ceiling_is_accepted() -> None:
+    request = _fixed_request(
+        source=_source(calcium=0.0, sulfate=0.0),
+        target=_target(5.0 * _CALCIUM_MG_PER_LITER_PER_GYPSUM_GRAM_IN_TEN_LITERS),
+        constraints=(
+            _gypsum_constraint(
+                increment_grams=1e-5,
+                maximum_grams=10.0,
+            ),
+        ),
+    )
+
+    result = optimize_treatment(request)
+
+    assert result.input_support is OptimizerInputSupportStatus.SUPPORTED
+    assert len(result.plans) == 1
+    assert float(
+        result.plans[0].material_additions[0].measured_mass.to("gram").magnitude
+    ) == pytest.approx(5.0)
+
+
+@pytest.mark.parametrize("volume_liters", [1e12, 1e-19])
+def test_solver_rejects_material_effect_outside_backend_matrix_range(
+    volume_liters: float,
+) -> None:
+    source = _source(volume_liters=volume_liters, calcium=0.0, sulfate=0.0)
+    request = _fixed_request(
+        source=source,
+        target=_target(1e-4),
+        constraints=(
+            _gypsum_constraint(
+                increment_grams=1e-5,
+                maximum_grams=10.0,
+            ),
+        ),
+    )
+
+    result = optimize_treatment(request)
+
+    assert result.input_support is OptimizerInputSupportStatus.UNSUPPORTED
+    assert result.plans == ()
+    assert tuple(diagnostic.code for diagnostic in result.diagnostics) == (
+        OptimizerDiagnosticCode.NUMERICAL_MODEL_RANGE_UNSUPPORTED,
+    )
+    assert result.diagnostics[0].ion is Ion.CALCIUM
+    assert result.diagnostics[0].material_key == "gypsum"
+
+
+def test_solver_rejects_target_difference_at_backend_infinite_bound() -> None:
+    request = _fixed_request(
+        source=_source(calcium=0.0),
+        target=_target(1e20),
+        constraints=(),
+    )
+
+    result = optimize_treatment(request)
+
+    assert result.input_support is OptimizerInputSupportStatus.UNSUPPORTED
+    assert result.plans == ()
+    assert tuple(diagnostic.code for diagnostic in result.diagnostics) == (
+        OptimizerDiagnosticCode.NUMERICAL_MODEL_RANGE_UNSUPPORTED,
+    )
+    assert result.diagnostics[0].ion is Ion.CALCIUM
+    assert result.diagnostics[0].material_key is None
+
+
+def test_impossible_negative_solver_objective_is_rejected(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def invalid_milp(**_kwargs: object) -> SimpleNamespace:
+        return SimpleNamespace(
+            success=True,
+            status=0,
+            message="claimed success",
+            fun=-1e-7,
+            x=(0.0, 50.0, 0.0),
+            mip_gap=0.0,
+        )
+
+    monkeypatch.setattr(optimizer_solver, "milp", invalid_milp)
+    request = _fixed_request(
+        source=_source(calcium=0.0, sulfate=0.0),
+        target=_target(50.0),
+        constraints=(_gypsum_constraint(),),
+    )
+
+    result = optimize_treatment(request)
+
+    assert result.feasibility is OptimizerFeasibilityStatus.INDETERMINATE
+    assert result.plans == ()
+    assert result.solver_report is not None
+    assert result.solver_report.success is False
+    assert result.solver_report.solver_reported_primary_objective_mg_per_liter == (
+        pytest.approx(-1e-7)
+    )
+    assert "negative primary objective" in result.solver_report.message
+
+
+def test_secondary_solver_failure_does_not_silently_drop_mass_policy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    responses = iter(
+        (
+            SimpleNamespace(
+                success=True,
+                status=0,
+                message="primary optimal",
+                fun=50.0,
+                x=(0.0, 50.0, 0.0),
+                mip_gap=0.0,
+            ),
+            SimpleNamespace(
+                success=False,
+                status=4,
+                message="secondary failed",
+                fun=None,
+                x=None,
+                mip_gap=None,
+            ),
+        )
+    )
+
+    def staged_milp(**_kwargs: object) -> SimpleNamespace:
+        return next(responses)
+
+    monkeypatch.setattr(optimizer_solver, "milp", staged_milp)
+    request = _fixed_request(
+        source=_source(calcium=0.0, sulfate=0.0),
+        target=_target(50.0),
+        constraints=(_gypsum_constraint(),),
+    )
+
+    result = optimize_treatment(request)
+
+    assert result.feasibility is OptimizerFeasibilityStatus.INDETERMINATE
+    assert result.plans == ()
+    assert result.solver_report is not None
+    assert result.solver_report.success is False
+    assert result.solver_report.message == "secondary failed"
+    assert result.solver_report.primary_objective_mg_per_liter == pytest.approx(50.0)
+
+
+def test_postvalidation_uses_returned_counts_not_solver_fun() -> None:
+    source = _source(calcium=40.0, chloride=20.0, potassium=1.0)
+    potassium_chloride = ExactMassDosedTreatmentMaterial(
+        "potassium_chloride",
+        "Potassium chloride",
+        POTASSIUM_CHLORIDE,
+        Q_(0.37, "gram"),
+    )
+    calcium_chloride = ExactMassDosedTreatmentMaterial(
+        "calcium_chloride",
+        "Calcium chloride dihydrate",
+        CALCIUM_CHLORIDE_DIHYDRATE,
+        Q_(0.13, "gram"),
+    )
+    target = TargetWaterProfile(
+        "Calcium and chloride target",
+        (
+            IonConcentration.mg_per_liter(Ion.CALCIUM, 40.0),
+            IonConcentration.mg_per_liter(Ion.CHLORIDE, 90.0),
+        ),
+    )
+    request = _fixed_request(
+        source=source,
+        target=target,
+        constraints=(
+            OptimizerMaterialConstraint(potassium_chloride, Q_(6, "gram")),
+            OptimizerMaterialConstraint(calcium_chloride, Q_(6, "gram")),
+        ),
+    )
+
+    result = optimize_treatment(request)
+
+    assert result.feasibility is OptimizerFeasibilityStatus.FEASIBLE
+    assert len(result.plans) == 1
+    plan = result.plans[0]
+    assert len(plan.material_additions) == 1
+    assert plan.material_additions[0].constraint.material.key == "potassium_chloride"
+    assert float(
+        plan.material_additions[0].measured_mass.to("gram").magnitude
+    ) == pytest.approx(1.48)
+    assert plan.solver_report.primary_objective_mg_per_liter == pytest.approx(
+        0.37853311208974505
+    )
+    assert (
+        plan.solver_report.solver_reported_primary_objective_mg_per_liter
+        == pytest.approx(0.3785321120897411)
     )
 
 

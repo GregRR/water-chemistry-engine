@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from decimal import ROUND_FLOOR, Decimal
-from math import fabs, inf, isclose
+from math import fabs, inf, isclose, isfinite
 from typing import Protocol, cast
 
 from fermunits import Q_
@@ -60,8 +60,13 @@ _SOLVER = "scipy.optimize.milp"
 _METHOD = "highs"
 _PRIMARY_OBJECTIVE_TOLERANCE_MG_PER_LITER = 1e-9
 _POSTVALIDATION_ABS_TOLERANCE_MG_PER_LITER = 1e-7
+_POSTVALIDATION_REL_TOLERANCE = 1e-12
 _INTEGER_ABS_TOLERANCE = 1e-7
 _MIP_RELATIVE_GAP = 0.0
+_MAXIMUM_INCREMENT_COUNT = 1_000_000
+_SMALLEST_SOLVER_MATRIX_VALUE = 1e-9
+_LARGEST_SOLVER_MATRIX_VALUE = 1e15
+_LARGEST_SOLVER_BOUND = 1e20
 
 
 class _MilpResult(Protocol):
@@ -76,6 +81,7 @@ class _MilpResult(Protocol):
 def _solver_report(
     result: _MilpResult,
     *,
+    solver_reported_primary_objective: float | None,
     primary_objective: float | None,
     secondary_objective: float | None,
 ) -> OptimizerSolverReport:
@@ -85,8 +91,36 @@ def _solver_report(
         success=result.success,
         status_code=result.status,
         message=result.message,
+        solver_reported_primary_objective_mg_per_liter=(
+            solver_reported_primary_objective
+        ),
         primary_objective_mg_per_liter=primary_objective,
         secondary_objective_grams=secondary_objective,
+        primary_objective_tolerance_mg_per_liter=(
+            _PRIMARY_OBJECTIVE_TOLERANCE_MG_PER_LITER
+        ),
+        mip_relative_gap=(None if result.mip_gap is None else float(result.mip_gap)),
+    )
+
+
+def _rejected_solver_report(
+    result: _MilpResult,
+    *,
+    message: str,
+    solver_reported_primary_objective: float | None,
+    primary_objective: float | None = None,
+) -> OptimizerSolverReport:
+    return OptimizerSolverReport(
+        solver=_SOLVER,
+        method=_METHOD,
+        success=False,
+        status_code=4,
+        message=message,
+        solver_reported_primary_objective_mg_per_liter=(
+            solver_reported_primary_objective
+        ),
+        primary_objective_mg_per_liter=primary_objective,
+        secondary_objective_grams=None,
         primary_objective_tolerance_mg_per_liter=(
             _PRIMARY_OBJECTIVE_TOLERANCE_MG_PER_LITER
         ),
@@ -150,6 +184,22 @@ def _input_diagnostics(
                 )
             )
 
+    for constraint in request.material_constraints:
+        increment_count = _maximum_increment_count(constraint)
+        if increment_count > _MAXIMUM_INCREMENT_COUNT:
+            support = OptimizerInputSupportStatus.UNSUPPORTED
+            diagnostics.append(
+                OptimizerDiagnostic(
+                    code=(OptimizerDiagnosticCode.MATERIAL_INCREMENT_RANGE_UNSUPPORTED),
+                    message=(
+                        f"Material {constraint.material.key} permits "
+                        f"{increment_count} dose increments; this solver supports at "
+                        f"most {_MAXIMUM_INCREMENT_COUNT} per material."
+                    ),
+                    material_key=constraint.material.key,
+                )
+            )
+
     return support, tuple(diagnostics)
 
 
@@ -184,6 +234,122 @@ def _increment_coefficients(
     return tuple(by_material)
 
 
+def _numerical_model_diagnostics(
+    request: OptimizerRequest,
+    comparisons: tuple[TargetIonComparison, ...],
+) -> tuple[OptimizerDiagnostic, ...]:
+    diagnostics: list[OptimizerDiagnostic] = []
+    coefficients = _increment_coefficients(request, comparisons)
+    for material_index, material_coefficients in enumerate(coefficients):
+        constraint = request.material_constraints[material_index]
+        contributed_ions = {
+            entry.ion for entry in constraint.material.ingredient.ion_stoichiometry
+        }
+        for comparison, coefficient in zip(
+            comparisons,
+            material_coefficients,
+            strict=True,
+        ):
+            magnitude = fabs(coefficient)
+            if comparison.ion in contributed_ions and (
+                magnitude <= _SMALLEST_SOLVER_MATRIX_VALUE
+                or magnitude >= _LARGEST_SOLVER_MATRIX_VALUE
+            ):
+                diagnostics.append(
+                    OptimizerDiagnostic(
+                        code=(
+                            OptimizerDiagnosticCode.NUMERICAL_MODEL_RANGE_UNSUPPORTED
+                        ),
+                        message=(
+                            f"The {constraint.material.key} dose-increment effect on "
+                            f"{comparison.ion.value} is outside this solver's "
+                            "supported numerical coefficient range."
+                        ),
+                        ion=comparison.ion,
+                        material_key=constraint.material.key,
+                    )
+                )
+
+    for comparison in comparisons:
+        assert comparison.actual_concentration is not None
+        actual = float(
+            comparison.actual_concentration.to("milligram / liter").magnitude
+        )
+        for bound in (comparison.target_minimum, comparison.target_maximum):
+            if bound is not None and fabs(float(bound.magnitude) - actual) >= (
+                _LARGEST_SOLVER_BOUND
+            ):
+                diagnostics.append(
+                    OptimizerDiagnostic(
+                        code=(
+                            OptimizerDiagnosticCode.NUMERICAL_MODEL_RANGE_UNSUPPORTED
+                        ),
+                        message=(
+                            f"The {comparison.ion.value} target difference is outside "
+                            "this solver's supported numerical bound range."
+                        ),
+                        ion=comparison.ion,
+                    )
+                )
+                break
+
+    return tuple(diagnostics)
+
+
+def _validated_increment_counts(
+    result: _MilpResult,
+    *,
+    material_count: int,
+    maximum_counts: Sequence[int],
+) -> tuple[int, ...] | None:
+    if result.x is None:
+        return None
+    if len(result.x) < material_count:
+        return None
+
+    counts: list[int] = []
+    for raw_count, maximum_count in zip(
+        result.x[:material_count],
+        maximum_counts,
+        strict=True,
+    ):
+        count_value = float(raw_count)
+        if not isfinite(count_value):
+            return None
+        rounded_count = round(count_value)
+        if (
+            fabs(count_value - rounded_count) > _INTEGER_ABS_TOLERANCE
+            or rounded_count < 0
+            or rounded_count > maximum_count
+        ):
+            return None
+        counts.append(rounded_count)
+    return tuple(counts)
+
+
+def _objective_from_counts(
+    comparisons: tuple[TargetIonComparison, ...],
+    coefficients: tuple[tuple[float, ...], ...],
+    counts: tuple[int, ...],
+) -> float:
+    objective = 0.0
+    for comparison_index, comparison in enumerate(comparisons):
+        assert comparison.actual_concentration is not None
+        predicted = float(
+            comparison.actual_concentration.to("milligram / liter").magnitude
+        ) + sum(
+            count * coefficients[material_index][comparison_index]
+            for material_index, count in enumerate(counts)
+        )
+        if comparison.target_minimum is not None:
+            minimum = float(comparison.target_minimum.magnitude)
+            objective += max(0.0, minimum - predicted)
+        if comparison.target_maximum is not None:
+            maximum = float(comparison.target_maximum.magnitude)
+            objective += max(0.0, predicted - maximum)
+    return objective
+
+
 def _solve_increment_counts(
     request: OptimizerRequest,
     comparisons: tuple[TargetIonComparison, ...],
@@ -199,6 +365,7 @@ def _solve_increment_counts(
                 success=True,
                 status_code=0,
                 message="No numeric ion targets were supplied; no additions selected.",
+                solver_reported_primary_objective_mg_per_liter=0.0,
                 primary_objective_mg_per_liter=0.0,
                 secondary_objective_grams=0.0,
                 primary_objective_tolerance_mg_per_liter=(
@@ -212,10 +379,13 @@ def _solve_increment_counts(
     variable_count = material_count + 2 * comparison_count
     primary_objective = [0.0] * material_count + [1.0] * (2 * comparison_count)
     lower_bounds = [0.0] * variable_count
-    upper_bounds = [
-        float(_maximum_increment_count(constraint))
+    maximum_counts = tuple(
+        _maximum_increment_count(constraint)
         for constraint in request.material_constraints
-    ] + [inf] * (2 * comparison_count)
+    )
+    upper_bounds = [float(count) for count in maximum_counts] + [inf] * (
+        2 * comparison_count
+    )
     integrality = [1] * material_count + [0] * (2 * comparison_count)
     rows: list[list[float]] = []
     row_upper_bounds: list[float] = []
@@ -267,9 +437,35 @@ def _solve_increment_counts(
     if not primary.success or primary.fun is None or primary.x is None:
         return None, _solver_report(
             primary,
+            solver_reported_primary_objective=(
+                None if primary.fun is None else float(primary.fun)
+            ),
             primary_objective=None,
             secondary_objective=None,
         )
+    raw_primary_objective = float(primary.fun)
+    if not isfinite(raw_primary_objective) or raw_primary_objective < 0.0:
+        return None, _rejected_solver_report(
+            primary,
+            message="Solver returned a non-finite or negative primary objective.",
+            solver_reported_primary_objective=raw_primary_objective,
+        )
+    primary_counts = _validated_increment_counts(
+        primary,
+        material_count=material_count,
+        maximum_counts=maximum_counts,
+    )
+    if primary_counts is None:
+        return None, _rejected_solver_report(
+            primary,
+            message="Solver returned invalid material increment counts.",
+            solver_reported_primary_objective=raw_primary_objective,
+        )
+    primary_recomputed_objective = _objective_from_counts(
+        comparisons,
+        coefficients,
+        primary_counts,
+    )
 
     secondary_objective = [
         float(constraint.material.normalized_dose_increment.magnitude)
@@ -290,33 +486,58 @@ def _solve_increment_counts(
                 LinearConstraint(
                     [primary_objective],
                     [-inf],
-                    [float(primary.fun) + _PRIMARY_OBJECTIVE_TOLERANCE_MG_PER_LITER],
+                    [
+                        primary_recomputed_objective
+                        + _PRIMARY_OBJECTIVE_TOLERANCE_MG_PER_LITER
+                    ],
                 ),
             ),
             options={"mip_rel_gap": _MIP_RELATIVE_GAP},
         ),
     )
-    selected = secondary if secondary.success and secondary.x is not None else primary
-    assert selected.x is not None
-    counts: list[int] = []
-    for raw_count in selected.x[:material_count]:
-        rounded_count = round(float(raw_count))
-        if fabs(float(raw_count) - rounded_count) > _INTEGER_ABS_TOLERANCE:
-            invalid_report = OptimizerSolverReport(
-                solver=_SOLVER,
-                method=_METHOD,
-                success=False,
-                status_code=4,
-                message="Solver returned a non-integral material increment count.",
-                primary_objective_mg_per_liter=float(primary.fun),
-                secondary_objective_grams=None,
-                primary_objective_tolerance_mg_per_liter=(
-                    _PRIMARY_OBJECTIVE_TOLERANCE_MG_PER_LITER
-                ),
-                mip_relative_gap=None,
-            )
-            return None, invalid_report
-        counts.append(rounded_count)
+    secondary_fun = secondary.fun
+    if not secondary.success or secondary_fun is None or secondary.x is None:
+        return None, _solver_report(
+            secondary,
+            solver_reported_primary_objective=raw_primary_objective,
+            primary_objective=primary_recomputed_objective,
+            secondary_objective=None,
+        )
+    if not isfinite(secondary_fun) or secondary_fun < 0:
+        return None, _rejected_solver_report(
+            secondary,
+            message="Solver returned a non-finite or negative secondary objective.",
+            solver_reported_primary_objective=raw_primary_objective,
+            primary_objective=primary_recomputed_objective,
+        )
+    secondary_counts = _validated_increment_counts(
+        secondary,
+        material_count=material_count,
+        maximum_counts=maximum_counts,
+    )
+    if secondary_counts is None:
+        return None, _rejected_solver_report(
+            secondary,
+            message="Solver returned invalid secondary material increment counts.",
+            solver_reported_primary_objective=raw_primary_objective,
+            primary_objective=primary_recomputed_objective,
+        )
+    secondary_recomputed_objective = _objective_from_counts(
+        comparisons,
+        coefficients,
+        secondary_counts,
+    )
+    if secondary_recomputed_objective > (
+        primary_recomputed_objective + _PRIMARY_OBJECTIVE_TOLERANCE_MG_PER_LITER
+    ):
+        return None, _rejected_solver_report(
+            secondary,
+            message="Secondary solve violated the primary-objective tolerance.",
+            solver_reported_primary_objective=raw_primary_objective,
+            primary_objective=secondary_recomputed_objective,
+        )
+
+    counts = secondary_counts
 
     selected_secondary = sum(
         count * increment
@@ -326,9 +547,10 @@ def _solve_increment_counts(
             strict=True,
         )
     )
-    return tuple(counts), _solver_report(
-        selected,
-        primary_objective=float(primary.fun),
+    return counts, _solver_report(
+        secondary,
+        solver_reported_primary_objective=raw_primary_objective,
+        primary_objective=secondary_recomputed_objective,
         secondary_objective=selected_secondary,
     )
 
@@ -377,6 +599,13 @@ def optimize_treatment(request: OptimizerRequest) -> OptimizerResult:
             request,
             support=support,
             diagnostics=diagnostics,
+        )
+    numerical_diagnostics = _numerical_model_diagnostics(request, comparisons)
+    if numerical_diagnostics:
+        return _unsupported_result(
+            request,
+            support=OptimizerInputSupportStatus.UNSUPPORTED,
+            diagnostics=numerical_diagnostics,
         )
 
     increment_counts, solver_report = _solve_increment_counts(request, comparisons)
@@ -433,7 +662,7 @@ def optimize_treatment(request: OptimizerRequest) -> OptimizerResult:
     if expected_objective is None or not isclose(
         final_objective,
         expected_objective,
-        rel_tol=0.0,
+        rel_tol=_POSTVALIDATION_REL_TOLERANCE,
         abs_tol=_POSTVALIDATION_ABS_TOLERANCE_MG_PER_LITER,
     ):
         diagnostic = OptimizerDiagnostic(

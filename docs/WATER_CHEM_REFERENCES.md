@@ -349,6 +349,29 @@ Version 1 requires a focused research set for:
 
 These use cases must remain distinct. A profile suitable for fermentation is not automatically suitable for proofing finished spirits.
 
+### Numerical optimization backend
+
+- **Entry:** SciPy 1.17 `scipy.optimize.milp` documentation
+- **URL:** https://docs.scipy.org/doc/scipy-1.17.0/reference/generated/scipy.optimize.milp.html
+- **Type:** Authoritative library documentation
+- **Relevant claims:** Defines SciPy's mixed-integer linear-programming
+  interface, integer-variable semantics, bounds and linear constraints, result
+  statuses, MIP gap, and deterministic HiGHS backend. Its example explicitly
+  demonstrates that rounding a continuous optimum need not produce the correct
+  integer solution.
+- **Use in this project:** Supports modeling measured material doses as integer
+  counts of declared dose increments and recording solver termination data.
+
+- **Entry:** HiGHS option definitions
+- **URL:** https://ergo-code.github.io/HiGHS/dev/options/definitions/
+- **Type:** Authoritative solver documentation
+- **Relevant claims:** Documents numerical thresholds and feasibility options,
+  including the MIP feasibility tolerance. Solver feasibility tolerances are
+  not a substitute for engine-level reconstruction of the returned plan.
+- **Use in this project:** Supports retaining raw solver results for audit while
+  independently validating increment counts, bounds, objective nonnegativity,
+  and agreement with the ordinary forward calculation.
+
 ## 5. Cross-domain profile and domain-model research queues
 
 Research now has two distinct purposes: (1) admit well-sourced target/reference data that the generic engine can already use, and (2) prepare later domain-specific predictive/guidance models. Coffee is the strongest early profile-data candidate; deeper coffee, tea, and dough science remains separate later work. Create separate research notes as needed:

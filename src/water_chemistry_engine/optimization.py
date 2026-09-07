@@ -82,6 +82,8 @@ class OptimizerDiagnosticCode(StrEnum):
     TARGET_PH_UNSUPPORTED = "target_ph_unsupported"
     TARGET_CRITERION_UNSUPPORTED = "target_criterion_unsupported"
     REQUIRED_SOURCE_CHEMISTRY_UNKNOWN = "required_source_chemistry_unknown"
+    MATERIAL_INCREMENT_RANGE_UNSUPPORTED = "material_increment_range_unsupported"
+    NUMERICAL_MODEL_RANGE_UNSUPPORTED = "numerical_model_range_unsupported"
     SOLVER_FAILED = "solver_failed"
     SOLVER_POSTVALIDATION_FAILED = "solver_postvalidation_failed"
     TARGET_NOT_MET = "target_not_met"
@@ -183,13 +185,14 @@ class OptimizerDiagnostic:
 
 @dataclass(frozen=True, slots=True)
 class OptimizerSolverReport:
-    """Numerical backend identity and termination details."""
+    """Numerical backend identity and independently checked objective details."""
 
     solver: str
     method: str
     success: bool
     status_code: int
     message: str
+    solver_reported_primary_objective_mg_per_liter: float | None
     primary_objective_mg_per_liter: float | None
     secondary_objective_grams: float | None
     primary_objective_tolerance_mg_per_liter: float

@@ -19,6 +19,11 @@ distribution and its repository milestones.
   absolute target deviation in mg/L over bounded whole dose increments, use
   total measured material mass as a tie-breaker, and verify the selected plan
   through the ordinary forward-calculation path.
+- Hardened the solver boundary after independent review: reject unsupported
+  integer-count ranges, reject impossible negative objectives, recompute the
+  selected objective from returned increment counts, preserve the raw solver
+  objective separately, and compare the reconstructed objective with the
+  ordinary forward result.
 
 ## 0.3.1 - 2026-09-06
 
