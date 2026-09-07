@@ -48,3 +48,15 @@ def test_optimizer_request_rejects_duplicate_material_keys() -> None:
             SourceResolutionPolicy(False),
             OptimizerBlendPolicy.FIXED,
         )
+
+
+def test_optimizer_request_allows_sources_with_the_same_display_name() -> None:
+    request = OptimizerRequest(
+        Q_(2, "liter"),
+        (_source("Well"), _source("Well")),
+        (),
+        SourceResolutionPolicy(False),
+        OptimizerBlendPolicy.FIXED,
+    )
+
+    assert len(request.sources) == 2

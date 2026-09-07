@@ -89,9 +89,6 @@ class OptimizerRequest:
         _positive_volume(self.total_volume, label="Optimizer total volume")
         if not self.sources:
             raise ValueError("Optimizer request requires at least one source.")
-        names = [source.source_profile.name for source in self.sources]
-        if len(names) != len(set(names)):
-            raise ValueError("Optimizer request cannot contain duplicate source names.")
         keys = [material.key for material in self.permitted_materials]
         if len(keys) != len(set(keys)):
             raise ValueError(
