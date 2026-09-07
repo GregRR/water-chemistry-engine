@@ -1,6 +1,6 @@
 [project]
 name = "water-chemistry-engine"
-version = "0.3.1"
+version = "0.4.0"
 description = "Reusable water-chemistry engine for brewing, fermentation, and other validated uses."
 readme = "README.md"
 requires-python = ">=3.11"

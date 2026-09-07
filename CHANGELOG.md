@@ -3,6 +3,12 @@
 This project follows semantic versioning for the Water Chemistry Engine
 distribution and its repository milestones.
 
+## Unreleased
+
+### Changed
+
+- Began 0.4.0 development for the first practical treatment optimizer.
+
 ## 0.3.1 - 2026-09-06
 
 ### Changed

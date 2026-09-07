@@ -388,7 +388,7 @@ The facade remains framework-neutral. It returns Python domain objects and
 FermUnits/Pint quantities, never HTML, ORM records, database handles, or
 product-specific persistence state.
 
-The current 0.3 release source reports `0.3.1`. `__version__` is distribution
+The active 0.4 development source reports `0.4.0`. `__version__` is distribution
 identity, not a capability probe for an arbitrary Git checkout. Consumers must
 not depend directly on `main`; use a released, explicitly pinned distribution
 or an exact commit or built artifact while testing unreleased work.
