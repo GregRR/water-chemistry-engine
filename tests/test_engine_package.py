@@ -26,10 +26,13 @@ def test_license_metadata() -> None:
     assert package_metadata.get_all("License-File") == ["LICENSE"]
 
 
-def test_fermunits_is_the_unit_dependency_boundary() -> None:
-    """The engine types quantities through FermUnits without declaring Pint."""
+def test_declared_runtime_dependencies_are_deliberate() -> None:
+    """FermUnits owns units and SciPy provides the optimizer's numerical solver."""
     package_metadata = metadata("water-chemistry-engine")
     quantity = Q_(1.0, "liter")
 
-    assert package_metadata.get_all("Requires-Dist") == ["ferm-units>=0.1.3,<2.0.0"]
+    assert package_metadata.get_all("Requires-Dist") == [
+        "ferm-units>=0.1.3,<2.0.0",
+        "scipy>=1.17,<1.18",
+    ]
     assert isinstance(quantity, Quantity)

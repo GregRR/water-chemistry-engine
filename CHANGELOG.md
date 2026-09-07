@@ -13,6 +13,8 @@ distribution and its repository milestones.
   source availability, bounded material inputs, diluent input, and separate
   support, feasibility, target-fit, and operational-practicality status
   vocabularies.
+- Selected SciPy's HiGHS linear-programming interface for the first continuous
+  optimizer, constrained to the Python 3.11-compatible 1.17 release line.
 
 ## 0.3.1 - 2026-09-06
 

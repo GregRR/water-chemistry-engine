@@ -1231,6 +1231,11 @@ Industrial support must not be created by simply relabeling the food-oriented op
 
 ## 20. Optimization design
 
+The first continuous optimizer uses SciPy 1.17's
+`scipy.optimize.linprog(method="highs")`. ADR 0006 records the dependency,
+Python-compatibility constraint, and division of responsibility between the
+numerical solver and the engine's scientific validation and result semantics.
+
 ### 20.1 Decision variables
 
 Version 1 decision variables may include:
