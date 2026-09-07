@@ -96,7 +96,7 @@ class OptimizerSource:
         current = _nonnegative_volume(
             self.current_volume, label="Optimizer source volume"
         )
-        maximum = _nonnegative_volume(
+        maximum = _positive_volume(
             self.maximum_volume, label="Optimizer source maximum"
         )
         if maximum.magnitude < current.magnitude:
@@ -184,6 +184,10 @@ class OptimizerRequest:
             if self.diluent_source is None:
                 raise ValueError(
                     "A proportional-dilution request requires an explicit diluent source."
+                )
+            if self.diluent_source in self.sources:
+                raise ValueError(
+                    "A proportional-dilution diluent cannot also be an ordinary source."
                 )
             if self.diluent_source.current_volume.to("liter").magnitude != 0:
                 raise ValueError(

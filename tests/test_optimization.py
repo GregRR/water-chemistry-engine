@@ -68,15 +68,25 @@ def test_optimizer_source_rejects_wrong_volume_dimension() -> None:
 
 @pytest.mark.parametrize(
     "volume",
-    [Q_(-1, "liter"), Q_(float("nan"), "liter"), Q_(float("inf"), "liter")],
+    [
+        Q_(0, "liter"),
+        Q_(-1, "liter"),
+        Q_(float("nan"), "liter"),
+        Q_(float("inf"), "liter"),
+    ],
 )
 def test_optimizer_source_rejects_invalid_maximum_volume(volume: object) -> None:
-    with pytest.raises(ValueError, match="finite and nonnegative"):
+    with pytest.raises(ValueError):
         OptimizerSource(
             SourceWaterProfile("Source", ()),
             Q_(0, "liter"),
             volume,  # type: ignore[arg-type]
         )
+
+
+def test_optimizer_source_rejects_wrong_maximum_volume_dimension() -> None:
+    with pytest.raises(ValueError, match="convertible to volume"):
+        OptimizerSource(SourceWaterProfile("Source", ()), Q_(0, "liter"), Q_(1, "gram"))
 
 
 def test_optimizer_request_rejects_duplicate_material_keys() -> None:
@@ -229,6 +239,21 @@ def test_proportional_dilution_rejects_nonzero_current_diluent() -> None:
             SourceResolutionPolicy(False),
             OptimizerBlendPolicy.PROPORTIONAL_DILUTION,
             diluent_source=_source("RO"),
+        )
+
+
+def test_proportional_dilution_rejects_diluent_repeated_as_source() -> None:
+    diluent = OptimizerSource(
+        SourceWaterProfile("RO", ()), Q_(0, "liter"), Q_(2, "liter")
+    )
+    with pytest.raises(ValueError, match="cannot also be an ordinary source"):
+        OptimizerRequest(
+            Q_(2, "liter"),
+            (_source(), diluent),
+            (),
+            SourceResolutionPolicy(False),
+            OptimizerBlendPolicy.PROPORTIONAL_DILUTION,
+            diluent_source=diluent,
         )
 
 

@@ -215,8 +215,9 @@ Unknown or unresolved source chemistry remains unknown. It must not become zero
 merely to make an optimization problem solvable.
 
 The initial internal request boundary now encodes all three blend-policy
-identities, source current/maximum volumes, exact mass-dosed materials, and the
-source-resolution policy. Fixed-blend requests require current source volumes
+identities, nonnegative current and positive maximum source volumes,
+exact mass-dosed materials, and the source-resolution policy. Fixed-blend
+requests require current source volumes
 to equal the requested total. Proportional-dilution requests require an
 explicit zero-current-volume diluent profile; neither ideal-zero chemistry nor
 the identity of real RO water is inferred by the engine.
