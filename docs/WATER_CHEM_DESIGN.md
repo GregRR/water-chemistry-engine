@@ -749,17 +749,27 @@ becoming engine behavior.
 
 A complete plan should contain:
 
+- stable strategy identity and a result-local plan identity;
 - source-water volumes and fractions;
-- treatment additions;
+- measured treatment-material additions and resolved active chemical amounts;
+- blended-water profile;
 - predicted final profile;
 - per-source and per-treatment contribution matrix;
 - objective and component scores;
 - target deviations;
 - constraint outcomes;
+- distinct input-support, feasibility, target-fit, and operational-practicality
+  outcomes;
 - warnings and explanation codes;
 - assumptions;
 - solver status/tolerances;
 - chemistry, solver, and reference-data versions.
+
+Optimizer plans must reuse the ordinary blend and treatment domain semantics.
+Applying an accepted plan through the standard forward path after operational
+rounding must reproduce the final chemistry stored in the plan; the optimizer
+must not introduce a parallel chemistry representation for generated
+additions.
 
 ### 9.18 Intended water use is calculation context
 
@@ -1070,9 +1080,14 @@ The release sequence is incremental:
 
 - **0.2:** deterministic source -> fixed blend -> mineral additions -> result -> target/reference path;
 - **0.3:** supported consumer-facing Python API around the proven forward path;
-- **0.4:** curated/classified target/reference data plus practical treatment-material semantics;
-- **0.5:** first automatic treatment optimizer;
-- **0.6:** ranked practical treatment strategies;
+- **0.3.1:** FermUnits 1.0 compatibility and release-workflow maintenance;
+- **0.4:** first automatic optimizer with practical ranked candidate plans,
+  explicit diagnostics, and the minimum exact-composition treatment-material
+  semantics required for safe recommendations;
+- **0.5:** broader treatment materials, curated/classified target/reference
+  data, and richer comparison semantics;
+- **0.6:** optimizer and public-contract hardening beyond the first useful
+  strategy set;
 - **0.7:** reusable working-water pH and richer diagnostics if scientifically ready;
 - **0.8:** BeerJSON/FermentationJSON interchange, versioned contracts, conformance work, and 1.0 hardening;
 - **1.0:** stable documented engine and conformance boundary.
@@ -1209,6 +1224,13 @@ Version 1 decision variables may include:
 - optional binary variable indicating whether a treatment material is used;
 - practical rounded amount where discrete dosing is required.
 
+The first optimizer request must make blend authority explicit. A caller may
+require the existing blend to remain fixed, allow its existing source
+proportions to scale down to admit a diluent, or permit source volumes to vary
+within supplied bounds. The optimizer must not silently change source
+quantities or move between these policies. Existing manual treatment additions
+are deliberately not decision-variable inputs for the first release.
+
 ### 20.2 Constraints
 
 - Source fractions sum to the required volume.
@@ -1218,6 +1240,9 @@ Version 1 decision variables may include:
 - Hard target limits are respected when feasible.
 - Decision variables cannot be negative.
 - User-excluded waters, chemical identities, and treatment materials remain unused.
+- Real RO water is a characterized source unless the caller deliberately
+  selects a separately documented ideal-diluent model; unknown RO chemistry
+  must not silently become zero.
 
 ### 20.3 Objective components
 
@@ -1245,11 +1270,20 @@ Examples:
 - water-only;
 - permitted ingredients only.
 
-The engine should generate multiple candidate plans, remove duplicates/operational equivalents, then rank the meaningful alternatives.
+The first optimizer should normally return up to two useful preferred plans
+when meaningfully different supported alternatives exist and should support an
+optionally requested no-dilution best-effort plan. The engine should generate
+candidate plans, remove duplicates/operational equivalents, then rank the
+meaningful alternatives deterministically. It should explain the principal
+tradeoff or binding constraint rather than requiring a consumer to infer it
+from raw objective scores.
 
 ### 20.5 Result exactness language
 
-Results must distinguish:
+Result semantics must distinguish independent dimensions rather than treating
+every mathematically returned answer as an achievable recommendation. At
+minimum, distinguish input/model support, mathematical feasibility, target fit,
+and operational practicality. Within those dimensions, report cases such as:
 
 - exact within declared numerical tolerance;
 - all target ranges satisfied;
@@ -1494,7 +1528,7 @@ The real-report pressure-test phase has served its immediate purpose. Additional
 
 First-class source-report preservation of chlorine/chloramine and related disinfectant reporting is now implemented. The Santa Cruz 2025 fixture pressure-tests an unqualified distribution-system `Chlorine` result as its own reported disinfectant rather than inferring free chlorine or mapping the result to chloride. Treatment/removal modeling remains deliberately out of scope for this representation layer.
 
-Release 0.2 completes the **deterministic forward treatment calculation** boundary. Validated simple treatment-ingredient identities, generic stoichiometric ion contributions, exact derived aqueous chemical states, forward application of one or more additions to a known water volume, explicit source-profile-to-derived-state resolution, fixed source-water blending by volume or fraction, structured target/reference comparison, and end-to-end orchestration across those boundaries are implemented. The forward-calculator result retains every source-resolution result, the normalized fixed-blend result, treatment-application result, explicit blend/final states, and optional source/blend/final target comparisons rather than flattening the workflow into final numbers. Blend and treatment results both preserve structured per-ion resolution outcomes and contribution detail while keeping unknown totals unknown. Target comparison preserves exact/range/bound satisfaction and signed deviation, keeps missing state ions indeterminate, refuses to reinterpret qualified ranges or `ND` as numeric targets, and retains target pH as explicitly not calculated until a validated working-water pH model exists. Boundary classification uses a 1e-9 mg/L absolute tolerance solely to suppress floating-point representation noise from otherwise exact deterministic arithmetic; this tolerance is not a chemical, sensory, or user-facing "close enough" policy. A combined row-per-ion contribution matrix now reshapes the existing blend and treatment audit records for presentation without recalculating chemistry. It preserves each source and treatment as a stable column, distinguishes positive-volume unknown source chemistry from zero-volume sources, distinguishes noncontributing treatment ingredients from unknown data, and retains known partial source/treatment contribution subtotals without presenting them as complete totals when the blend or final concentration is unresolved. Structured preparation instructions now transform those already-calculated blend/treatment results into deterministic human-readable actions while retaining canonical quantities for consumer reformatting. Zero-volume sources and zero-mass treatment rows remain in the calculation/audit results but are omitted from actionable instruction text because they require no physical action. Forward-result notices now surface calculation assumptions and result limitations that consumers should not have to reconstruct from nested audit records: midpoint use, unresolved contributing source results, first-order carbonate-species blending, the complete-dissolution treatment model, unknown final-target actuals, unsupported final-target criteria, and deferred final-target-pH comparison. Source- and blend-stage target comparisons remain available on their own structured results rather than duplicating target notices at every stage. These notices do not change chemistry and preserve structured codes/context alongside deterministic English messages. Release 0.3 adds the reviewed supported consumer facade, complete source-reporting/provenance construction graph, and FermUnits `PHValue` boundary around these proven capabilities. The next implementation focus after the 0.3 release gate is curated profiles and practical treatment materials.
+Release 0.2 completes the **deterministic forward treatment calculation** boundary. Validated simple treatment-ingredient identities, generic stoichiometric ion contributions, exact derived aqueous chemical states, forward application of one or more additions to a known water volume, explicit source-profile-to-derived-state resolution, fixed source-water blending by volume or fraction, structured target/reference comparison, and end-to-end orchestration across those boundaries are implemented. The forward-calculator result retains every source-resolution result, the normalized fixed-blend result, treatment-application result, explicit blend/final states, and optional source/blend/final target comparisons rather than flattening the workflow into final numbers. Blend and treatment results both preserve structured per-ion resolution outcomes and contribution detail while keeping unknown totals unknown. Target comparison preserves exact/range/bound satisfaction and signed deviation, keeps missing state ions indeterminate, refuses to reinterpret qualified ranges or `ND` as numeric targets, and retains target pH as explicitly not calculated until a validated working-water pH model exists. Boundary classification uses a 1e-9 mg/L absolute tolerance solely to suppress floating-point representation noise from otherwise exact deterministic arithmetic; this tolerance is not a chemical, sensory, or user-facing "close enough" policy. A combined row-per-ion contribution matrix now reshapes the existing blend and treatment audit records for presentation without recalculating chemistry. It preserves each source and treatment as a stable column, distinguishes positive-volume unknown source chemistry from zero-volume sources, distinguishes noncontributing treatment ingredients from unknown data, and retains known partial source/treatment contribution subtotals without presenting them as complete totals when the blend or final concentration is unresolved. Structured preparation instructions now transform those already-calculated blend/treatment results into deterministic human-readable actions while retaining canonical quantities for consumer reformatting. Zero-volume sources and zero-mass treatment rows remain in the calculation/audit results but are omitted from actionable instruction text because they require no physical action. Forward-result notices now surface calculation assumptions and result limitations that consumers should not have to reconstruct from nested audit records: midpoint use, unresolved contributing source results, first-order carbonate-species blending, the complete-dissolution treatment model, unknown final-target actuals, unsupported final-target criteria, and deferred final-target-pH comparison. Source- and blend-stage target comparisons remain available on their own structured results rather than duplicating target notices at every stage. These notices do not change chemistry and preserve structured codes/context alongside deterministic English messages. Release 0.3 adds the reviewed supported consumer facade, complete source-reporting/provenance construction graph, and FermUnits `PHValue` boundary around these proven capabilities. After a small FermUnits 1.0 compatibility release, the next implementation focus is the first practical optimizer plus only the treatment-material semantics it requires; broader materials and curated profiles follow without blocking that vertical slice.
 
 ## 27. Development milestones
 
@@ -1551,30 +1585,54 @@ Completed:
 - explicit pre-1.0 request/result evolution policy;
 - application-driven convenience improvements only where they preserve scientific semantics.
 
-### Milestone 4 / release 0.4 — curated profiles and treatment materials
+### Patch release 0.3.1 — FermUnits 1.0 compatibility
 
-- generic target/reference classification and provenance enhancements;
-- brewing/mead/distilling profiles;
-- well-sourced coffee profiles/standards;
-- tea profiles where evidence permits;
-- defensible regional, practitioner, point-of-use, or experimental dough/bread/pizza references;
-- chemical-identity versus treatment-material separation;
-- authoritative anhydrous calcium chloride identity;
-- solid-material purity/assay semantics;
+- verify the published FermUnits 1.0 API and artifacts;
+- update the dependency boundary and lockfile;
+- prove the supported consumer workflow on Python 3.11 through 3.14; and
+- refresh release-workflow actions that rely on forced legacy Node.js
+  execution.
+
+### Milestone 4 / release 0.4 — automatic optimizer and practical plans
+
+- continuous blend/mineral optimization with explicit caller constraints;
+- explicit preserve-blend, proportional-dilution, and source-optimization
+  policies;
+- a bounded initial set of materially distinct ranked strategies, including an
+  optional no-dilution best-effort plan;
+- structured source quantities, measured material doses, active chemical
+  amounts, final chemistry, deviations, audit data, and explanations;
+- separate support, feasibility, target-fit, and operational-practicality
+  outcomes;
+- practical dose rounding followed by full forward recalculation;
+- deterministic candidate selection and ordering;
+- exact-composition, mass-dosed treatment-material semantics sufficient for the
+  supported optimizer inputs; and
+- end-to-end proof that applying an accepted plan through the ordinary forward
+  path reproduces its reported final chemistry.
+
+### Milestone 5 / release 0.5 — materials, profiles, and comparisons
+
+- broader solid-material purity/assay semantics and explicit ranged-assay
+  policy;
 - liquid concentration-basis semantics and mass dosing;
 - volume dosing only where density/reference-temperature data support it;
-- explicit ranged-assay handling and practical-use limits;
+- practical-use limits and broader validated material definitions;
+- generic target/reference classification and provenance enhancements;
+- curated profiles and standards only where evidence supports their stated
+  meaning;
+- richer comparison policies without universal percentage thresholds; and
 - reference-data validation/versioning.
 
-### Milestone 5 / releases 0.5–0.6 — optimization
+### Milestone 6 / release 0.6 — optimizer and contract hardening
 
-- continuous closest-match blend/mineral optimizer;
-- constraints and diagnostics;
-- practical dose rounding/re-evaluation;
-- ranked named policies;
-- mixed-integer support only where concrete policies require it.
+- additional named policies beyond the bounded 0.4 strategy set;
+- stronger saved-plan, serialization, and compatibility contracts;
+- explicit policy, solver, and model version reporting;
+- expanded independent conformance cases and numerical hardening; and
+- mixed-integer support only where a concrete policy requires it.
 
-### Milestone 6 / release 0.7 — reusable working-water pH and diagnostics
+### Milestone 7 / release 0.7 — reusable working-water pH and diagnostics
 
 - scientifically validated `calculate_ph(chemical_state)` capability if ready;
 - explicit insufficient-data results;
@@ -1583,7 +1641,7 @@ Completed:
 
 A weak pH approximation is not a release requirement; unsupported derived pH may remain unknown.
 
-### Milestone 7 / release 0.8 — interchange and 1.0 hardening
+### Milestone 8 / release 0.8 — interchange and 1.0 hardening
 
 - BeerJSON import/export with explicit loss reporting;
 - FermentationJSON adapters when its water schema is ready;
@@ -1591,7 +1649,7 @@ A weak pH approximation is not a release requirement; unsupported derived pH may
 - expanded authoritative reference tests and conformance vectors;
 - chemistry model, package, optimizer, and reference-data versioning.
 
-### Milestone 8 — Version 1.0 release
+### Milestone 9 — Version 1.0 release
 
 - stable end-to-end manual and optimized engine workflow;
 - stable supported consumer API;

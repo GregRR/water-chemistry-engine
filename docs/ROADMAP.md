@@ -48,7 +48,11 @@ for consuming that path. Implemented foundations include:
 Release 0.3 completes the supported consumer boundary. Its package-root facade
 exposes the important consumer operations, source-reporting inputs, and nested
 result graph through an intentional supported surface. The next implementation
-milestone is 0.4 curated profiles and practical treatment materials.
+work is a small 0.3.1 FermUnits 1.0 compatibility release followed by the 0.4
+first practical treatment optimizer. Curated profiles and the broader
+treatment-material model remain important, but no longer precede the optimizer
+except for the minimum material semantics required to recommend safe,
+reproducible doses.
 
 ## 0.2 — Deterministic Forward Calculator
 
@@ -161,12 +165,121 @@ Consumer applications should depend on and pin the 0.3 release rather than
 depending on the engine repository. Pre-release integration may use an exact
 commit or locally built artifact.
 
-## 0.4 — Curated Profiles and Treatment Materials
+## 0.3.1 — FermUnits 1.0 Compatibility
+
+Adopt and verify FermUnits 1.0 without changing the Water Chemistry Engine's
+scientific behavior or supported consumer contract. This patch release should:
+
+- verify the dependency and lockfile against the published FermUnits 1.0
+  artifacts;
+- exercise the complete supported consumer API and representative calculations
+  on Python 3.11 through 3.14;
+- retain FermUnits as the engine's sole public unit boundary;
+- document any compatibility qualification discovered during validation; and
+- update release-workflow actions that otherwise rely on forced legacy Node.js
+  execution.
+
+## 0.4 — Automatic Treatment Optimizer and Practical Plans
+
+Let the engine answer:
+
+> Given my characterized sources, current blend, target, permitted treatments,
+> and practical constraints, what useful treatment plans can I make?
+
+This is a complete first vertical slice, not merely a solver that returns
+unnamed numeric decision variables. It includes the minimum treatment-material
+semantics required before the engine chooses measured doses for a user.
+
+### Initial inputs and blend policies
+
+- Total preparation volume, one or more characterized source waters, current
+  source quantities, and optional target chemistry.
+- Caller-permitted source waters and exact-composition, mass-dosed treatment
+  materials.
+- Source availability and maximum-volume constraints.
+- An explicit blend policy that either preserves the current blend, preserves
+  its source proportions while adding dilution water, or permits source-volume
+  optimization. The engine must never silently change modes.
+- An explicit ideal distilled/deionized-water profile when that documented
+  model is selected. Real RO water should normally be supplied as a
+  characterized source rather than silently assumed to contain zero of every
+  analyte.
+- Practical dose increments or rounding constraints supported by the engine.
+- Existing manual mineral additions are not optimizer inputs in this release.
+
+Unknown or unresolved source chemistry remains unknown. It must not become zero
+merely to make an optimization problem solvable.
+
+### Candidate plans and strategies
+
+- Return up to two meaningfully different preferred plans when the supported
+  problem admits useful alternatives, rather than numerically trivial variants
+  of one recipe.
+- Include a small, documented initial strategy set covering closest practical
+  match and useful tradeoffs such as less dilution, fewer products, or lower
+  total measured addition.
+- Support an optionally requested no-dilution best-effort plan.
+- Deduplicate operationally equivalent candidates and return deterministic
+  results in deterministic order.
+- Explain the principal tradeoff or constraint responsible for each candidate.
+
+Do not require every future ranking policy or mixed-integer formulation before
+this release is useful.
+
+### Structured plan and diagnostics
+
+Each plan should contain, through deliberate public domain types:
+
+- stable strategy identity and result-local plan identity;
+- proposed source-water quantities, including any explicit diluent;
+- measured treatment-material additions and resolved active chemical amounts;
+- calculated blend and final treated-water states;
+- per-analyte target outcomes and signed deviations;
+- contribution/audit data;
+- input-support, feasibility, target-fit, and operational-practicality outcomes
+  without collapsing those distinct concepts into one ambiguous status;
+- explicit compromise and unavoidable-overshoot diagnostics;
+- notices, assumptions, solver status/tolerances, and relevant model/policy
+  versions; and
+- ranking/summary information sufficient for a consumer to explain why the
+  plan was offered.
+
+An optimizer-generated addition must use the same treatment semantics as a
+manual addition. Applying an accepted plan through the ordinary blending and
+forward-treatment APIs after practical rounding must reproduce the plan's
+reported final chemistry. An end-to-end test must enforce that invariant.
+
+### Minimum treatment-material prerequisite
+
+The first optimizer may be deliberately restricted to exact-composition,
+mass-dosed materials whose measured dose resolves deterministically to an
+active chemical amount. It must preserve the distinction between chemical
+identity, including hydration state, and the physical material being dosed.
+
+Ranged or unknown assay, unlabeled concentration percentages, unsupported
+liquid-volume dosing, and materials without adequate composition evidence or
+use-limit policy must be rejected or reported as unsupported rather than
+silently approximated.
+
+### Explicit 0.4 exclusions
+
+- retaining existing manual additions as optimizer inputs;
+- pH or mash-chemistry optimization;
+- ranged-assay uncertainty optimization;
+- arbitrary liquid-volume dosing without sufficient concentration and density
+  information;
+- universal close/far or UI color thresholds;
+- a large built-in target library;
+- arbitrary non-additive treatment operations;
+- product-specific persistence, reports, or UI behavior; and
+- equilibrium-dependent chalk treatment.
+
+## 0.5 — Treatment Materials, Profiles, and Comparison Expansion
 
 Expand the useful profile library and practical treatment-material model
 without requiring complete coffee-, tea-, bread-, or pizza-specific predictive
-engines. This milestone must establish real material dosing semantics before
-the first automatic optimizer chooses amounts for users.
+engines. The first optimizer's exact-composition material slice expands here to
+cover additional practical preparations and evidence-backed policies.
 
 ### Generic profile/data work
 
@@ -246,46 +359,35 @@ real material a user measures and adds.
   process condition.
 
 Full equilibrium, precipitation, and dissolution modeling is not required for
-0.4. Calcium carbonate/chalk must not be added to the ordinary
+0.5. Calcium carbonate/chalk must not be added to the ordinary
 complete-dissolution ingredient set merely by assigning fixed Ca2+ and
 carbonate contributions; its useful dissolved contribution depends on the
 carbonate/CO2 system and remains later chemistry work.
 
-## 0.5 — First Automatic Treatment Optimizer
+### Richer target-comparison semantics
 
-Let the engine answer:
+- Preserve the existing exact/range/bound outcomes and signed deviations.
+- Add scientifically and operationally defined comparison policies only where
+  their meaning and intended use are explicit.
+- Support consumer-facing categories beyond raw difference, such as close/far,
+  only when their thresholds are documented rather than inferred by an
+  application from a universal percentage.
+- Handle zero and very-low targets without percentage-based singularities or
+  misleading classifications.
 
-> What practical blend and supported additions should I use?
+## 0.6 — Optimizer and Contract Hardening
 
-### Initial optimizer scope
+Expand the first useful optimizer without invalidating its plan semantics.
+Candidate work includes:
 
-- Continuous closest-match blending and mineral additions.
-- Source availability and maximum-volume constraints.
-- Caller-permitted water sources, chemical treatment identities, and available
-  treatment materials.
-- Material assay/concentration and validated use limits included in dose
-  calculations.
-- Hard target constraints where supported.
-- Explicit infeasibility and compromise diagnostics.
-- Practical material-dose rounding followed by resolution to active chemical
-  amount and full chemistry recalculation.
-- A structured recommended treatment plan.
-
-Do not require every future ranking policy before the first optimizer is useful.
-
-## 0.6 — Ranked Practical Treatment Strategies
-
-Expand optimization to provide materially distinct plans and explain tradeoffs.
-Candidate policies include:
-
-- closest practical match;
-- water-only blend;
-- no-dilution treatment;
-- least dilution/RO water;
-- lowest total mineral addition;
-- fewest treatment products;
-- caller-selected products only;
-- other policies only after their objectives and constraints are documented.
+- additional named strategies and caller-selected policy combinations beyond
+  the bounded 0.4 set;
+- stronger plan snapshot, serialization, and compatibility contracts;
+- policy, solver, and model version reporting suitable for saved designs;
+- broader practical-material participation as 0.5 semantics permit;
+- performance and numerical-conditioning work supported by measurements and
+  reference problems; and
+- expanded conformance vectors and independent solver/result checks.
 
 Add mixed-integer optimization only when a concrete policy requires it. Continue
 to recalculate chemistry after operational rounding and report whether a plan is

@@ -44,8 +44,14 @@ is ready.
 
 ### Planned after 0.3
 
-- **0.4:** curated target/reference profiles and practical treatment materials;
-- **0.5–0.6:** automatic and ranked treatment optimization;
+- **0.3.1:** FermUnits 1.0 compatibility and release-workflow maintenance;
+- **0.4:** automatic treatment optimization with practical candidate plans,
+  explicit feasibility/deviation diagnostics, and the minimum exact-composition
+  treatment-material semantics needed for safe recommendations;
+- **0.5:** broader practical treatment materials, curated target/reference
+  profiles, and richer comparison semantics;
+- **0.6:** optimizer and public-contract hardening beyond the first useful
+  strategy set;
 - **0.7:** reusable working-water pH if a defensible model is ready;
 - **0.8:** BeerJSON/FermentationJSON interchange, conformance work, and 1.0
   hardening.

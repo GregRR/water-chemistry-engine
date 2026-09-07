@@ -76,9 +76,11 @@ integration expectations, and the pre-1.0 compatibility policy. The facade
 re-exports the selected proven inputs and the complete forward-result audit
 graph rather than introducing a second chemistry implementation. Richer source
 profile provenance/property inputs are also supported through a cohesive
-package-root construction graph. Generalized treatment-material authoring is
-planned for 0.4 after the necessary identity, composition, assay/concentration,
-and practical-use contracts are established.
+package-root construction graph. The minimum exact-composition, mass-dosed
+treatment-material contract needed by the first optimizer is planned for 0.4.
+Broader material authoring—including ranged assays and liquid
+concentration/density semantics—remains subsequent work after those contracts
+are established and validated.
 
 As later milestones add optimization, treatment-plan ranking, richer
 constraints, calculated working-water pH, and serialization/interchange
