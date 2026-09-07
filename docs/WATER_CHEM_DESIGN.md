@@ -129,7 +129,13 @@ The engine never imports a consumer application, database ORM, or product-specif
 
 ### 6.2 Current and planned core libraries
 
-- **FermUnits 0.1.x:** required by `water-chemistry-engine`; resolved from PyPI with the supported `>=0.1.3,<0.2.0` dependency range. FermUnits 0.1.3 is the minimum release because it provides the public quantity typing and semantic `PHValue` boundary consumed by the engine while sharing the Python 3.11 compatibility floor.
+- **FermUnits 0.1.3 through 1.x:** required by
+  `water-chemistry-engine`; resolved from PyPI with the supported
+  `>=0.1.3,<2.0.0` dependency range. FermUnits 0.1.3 remains the minimum
+  because it established the public quantity typing, semantic `PHValue`, and
+  Python 3.11 boundary consumed by the engine. The locked development and
+  release environment uses FermUnits 1.0.0 and its stable 1.x compatibility
+  contract.
 - **Pint:** transitive quantity implementation through FermUnits.
 - **NumPy:** planned for vector/matrix work when the calculation implementation actually requires it.
 - **SciPy:** planned for continuous and mixed-integer optimization when optimization work begins.
@@ -376,7 +382,7 @@ pH = -log10(a_H+)
 
 where `a_H+` is hydrogen-ion activity. A concentration-based `[H+]` treatment is an approximation and must be documented as such when used.
 
-FermUnits 0.1.3 owns the finite semantic `PHValue` and the exact bidirectional
+FermUnits 0.1.3 and later own the finite semantic `PHValue` and exact bidirectional
 activity transform represented by this definition. It does not define `pH` as
 a Pint unit: `Q_(7.0, "pH")` must not be used for chemical pH because Pint can
 interpret that symbol as picohenry. The engine's reported and target pH
@@ -421,7 +427,7 @@ derived_pH = -log10(mean_a)
 8. Any such aggregate is **derived pH**, never `reported_average`.
 9. Measurement temperature and activity-model assumptions should be retained when known and when material to the calculation.
 
-FermUnits 0.1.3 validates the mathematical domain of its semantic pH
+FermUnits 0.1.3 and later validate the mathematical domain of the semantic pH
 representation (finite pH) and activity transform (finite activity greater than
 zero), without imposing a supposedly universal 0-through-14 pH range.
 `ReportedPH` and `TargetWaterProfile` likewise accept any finite `PHValue`.
@@ -1491,11 +1497,13 @@ Portable versioned request/result pairs should allow Swift, Kotlin, Dart, JavaSc
 As of this revision, the engine repository supports Python 3.11 through 3.14,
 with Python 3.11 as the compatibility baseline, plus uv, Ruff, mypy, pytest,
 Hypothesis, GitHub Actions, the installable `water-chemistry-engine`
-distribution, and FermUnits 0.1.3 from PyPI. CI executes the runtime test suite
-across Python 3.11, 3.12, 3.13, and 3.14, while Ruff and mypy are configured
-against Python 3.11 language semantics. The reproducible project gate
-synchronizes the engine and development dependencies before running formatting,
-linting, strict typing, tests, and the engine distribution build.
+distribution, and FermUnits from PyPI. The locked environment uses FermUnits
+1.0.0, while a dedicated compatibility job retains coverage of the supported
+0.1.3 floor. CI executes the runtime test suite across Python 3.11, 3.12, 3.13,
+and 3.14, while Ruff and mypy are configured against Python 3.11 language
+semantics. The reproducible project gate synchronizes the engine and development
+dependencies before running formatting, linting, strict typing, tests, and the
+engine distribution build.
 
 Implemented and tested domain work includes:
 

@@ -416,10 +416,10 @@ It must:
 - retain model/version, assumptions, relevant temperature/reference conditions,
   and warnings.
 
-The semantic representation prerequisite is complete: FermUnits 0.1.3 is in
-the supported dependency range, and reported and target pH use its finite
-`PHValue` rather than an artificial universal 0-through-14 range. Before or as
-part of calculated working-water pH:
+The semantic representation prerequisite is complete: FermUnits 0.1.3 remains
+the supported floor, FermUnits 1.0.0 is the locked release dependency, and
+reported and target pH use their finite `PHValue` rather than an artificial
+universal 0-through-14 range. Before or as part of calculated working-water pH:
 
 - never represent chemical pH as `Q_(value, "pH")`, because FermUnits will not
   redefine Pint's existing interpretation of that symbol as picohenry;
