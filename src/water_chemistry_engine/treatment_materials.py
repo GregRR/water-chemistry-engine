@@ -38,6 +38,10 @@ class ExactMassDosedTreatmentMaterial:
             raise ValueError("Treatment material key cannot be empty.")
         if not self.name.strip():
             raise ValueError("Treatment material name cannot be empty.")
+        if not isinstance(self.ingredient, TreatmentIngredient):
+            raise TypeError(
+                "Treatment material ingredient must be TreatmentIngredient."
+            )
         try:
             increment = self.dose_increment.to("gram")
         except Exception as exc:

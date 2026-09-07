@@ -21,7 +21,13 @@ def test_exact_material_resolves_to_ordinary_treatment_addition() -> None:
 
 
 @pytest.mark.parametrize(
-    "increment", [Q_(0, "gram"), Q_(-1, "gram"), Q_(float("nan"), "gram")]
+    "increment",
+    [
+        Q_(0, "gram"),
+        Q_(-1, "gram"),
+        Q_(float("nan"), "gram"),
+        Q_(float("inf"), "gram"),
+    ],
 )
 def test_exact_material_rejects_nonpositive_or_nonfinite_increment(
     increment: object,
@@ -32,4 +38,24 @@ def test_exact_material_rejects_nonpositive_or_nonfinite_increment(
             name="Pure gypsum",
             ingredient=GYPSUM,
             dose_increment=increment,  # type: ignore[arg-type]
+        )
+
+
+def test_exact_material_rejects_wrong_dimension_increment() -> None:
+    with pytest.raises(ValueError, match="convertible to mass"):
+        ExactMassDosedTreatmentMaterial(
+            key="pure_gypsum",
+            name="Pure gypsum",
+            ingredient=GYPSUM,
+            dose_increment=Q_(0.1, "liter"),
+        )
+
+
+def test_exact_material_rejects_noningredient_identity() -> None:
+    with pytest.raises(TypeError, match="must be TreatmentIngredient"):
+        ExactMassDosedTreatmentMaterial(
+            key="invalid",
+            name="Invalid",
+            ingredient="gypsum",  # type: ignore[arg-type]
+            dose_increment=Q_(0.1, "gram"),
         )

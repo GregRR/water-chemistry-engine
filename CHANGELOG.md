@@ -8,6 +8,10 @@ distribution and its repository milestones.
 ### Changed
 
 - Began 0.4.0 development for the first practical treatment optimizer.
+- Added the internal exact-composition, mass-dosed treatment-material boundary
+  and solver-free optimizer request contract with explicit blend authority,
+  source availability, diluent input, and separate support, feasibility,
+  target-fit, and operational-practicality status vocabularies.
 
 ## 0.3.1 - 2026-09-06
 

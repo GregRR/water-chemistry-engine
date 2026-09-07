@@ -214,6 +214,13 @@ semantics required before the engine chooses measured doses for a user.
 Unknown or unresolved source chemistry remains unknown. It must not become zero
 merely to make an optimization problem solvable.
 
+The initial internal request boundary now encodes all three blend-policy
+identities, source current/maximum volumes, exact mass-dosed materials, and the
+source-resolution policy. Fixed-blend requests require current source volumes
+to equal the requested total. Proportional-dilution requests require an
+explicit zero-current-volume diluent profile; neither ideal-zero chemistry nor
+the identity of real RO water is inferred by the engine.
+
 ### Candidate plans and strategies
 
 - Return up to two meaningfully different preferred plans when the supported

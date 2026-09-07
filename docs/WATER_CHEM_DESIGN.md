@@ -751,6 +751,13 @@ would overstate what the water actually receives. Specific claims about where
 undissolved chalk remains or when it later reacts require direct evidence before
 becoming engine behavior.
 
+The initial 0.4 implementation now provides an internal
+`ExactMassDosedTreatmentMaterial` boundary for the narrow case where one gram
+of measured material is exactly one gram of its identified treatment chemical.
+Its positive mass dose increment records operational resolution without
+performing rounding. Assay variation, liquid preparations, volume dosing, and
+material-specific use limits remain outside this initial type.
+
 ### 9.17 Future TreatmentPlan
 
 A complete plan should contain:
