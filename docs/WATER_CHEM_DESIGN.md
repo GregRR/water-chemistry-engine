@@ -759,8 +759,9 @@ performing rounding. Assay variation, liquid preparations, volume dosing, and
 material-specific use limits remain outside this initial type.
 Each optimizer request separately supplies a positive maximum measured mass for
 every permitted material. That batch-specific value is an explicit operational
-constraint and must not be presented as a sourced universal safety, sensory,
-solubility, or regulatory limit.
+constraint, must permit at least one whole declared dose increment, and must not
+be presented as a sourced universal safety, sensory, solubility, or regulatory
+limit.
 
 ### 9.17 Future TreatmentPlan
 
@@ -783,9 +784,9 @@ A complete plan should contain:
 - chemistry, solver, and reference-data versions.
 
 Optimizer plans must reuse the ordinary blend and treatment domain semantics.
-Applying an accepted plan through the standard forward path after operational
-rounding must reproduce the final chemistry stored in the plan; the optimizer
-must not introduce a parallel chemistry representation for generated
+Applying an accepted plan through the standard forward path with its practical
+measured doses must reproduce the final chemistry stored in the plan; the
+optimizer must not introduce a parallel chemistry representation for generated
 additions.
 
 ### 9.18 Intended water use is calculation context
@@ -1231,10 +1232,13 @@ Industrial support must not be created by simply relabeling the food-oriented op
 
 ## 20. Optimization design
 
-The first continuous optimizer uses SciPy 1.17's
-`scipy.optimize.linprog(method="highs")`. ADR 0006 records the dependency,
-Python-compatibility constraint, and division of responsibility between the
-numerical solver and the engine's scientific validation and result semantics.
+The first optimizer uses SciPy 1.17's HiGHS-backed `scipy.optimize.milp`.
+Material decisions are integer counts of declared dose increments so a
+continuous optimum is not mistaken for a practical measured dose; later blend
+policies may add continuous source-volume variables to the same problem. ADR
+0006 records the dependency, Python-compatibility constraint, and division of
+responsibility between the numerical solver and the engine's validation and
+result semantics.
 
 ### 20.1 Decision variables
 

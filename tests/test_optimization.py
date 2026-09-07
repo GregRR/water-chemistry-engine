@@ -344,6 +344,14 @@ def test_optimizer_material_constraint_rejects_wrong_dimension() -> None:
         OptimizerMaterialConstraint(material, Q_(1, "liter"))
 
 
+def test_optimizer_material_constraint_requires_one_usable_increment() -> None:
+    material = ExactMassDosedTreatmentMaterial(
+        "gypsum", "Gypsum", GYPSUM, Q_(0.1, "gram")
+    )
+    with pytest.raises(ValueError, match="at least one dose increment"):
+        OptimizerMaterialConstraint(material, Q_(0.09, "gram"))
+
+
 def test_optimizer_request_rejects_wrong_diluent_type() -> None:
     with pytest.raises(TypeError, match="diluent_source"):
         OptimizerRequest(

@@ -222,8 +222,18 @@ to equal the requested total. Proportional-dilution requests require an
 explicit zero-current-volume diluent profile; neither ideal-zero chemistry nor
 the identity of real RO water is inferred by the engine.
 Every permitted material also requires a positive caller-declared maximum mass
-for the batch. This is an operational optimization bound, not a universal
-safety, sensory, solubility, or regulatory limit.
+for the batch that permits at least one whole declared dose increment. This is
+an operational optimization bound, not a universal safety, sensory, solubility,
+or regulatory limit.
+
+The first solver slice supports the fixed-blend policy and the versioned
+`closest_absolute_mg_per_liter_v1` strategy. It minimizes the unweighted sum of
+absolute target deviations in canonical mg/L over whole dose-increment counts,
+then uses lower total measured material mass as a tie-breaker. This is an
+explicit mathematical ranking policy, not a sensory or process-equivalence
+claim across ions. Every accepted plan is recalculated through the ordinary
+forward path. The two variable-blend policies remain explicitly unsupported by
+this initial slice rather than being silently approximated.
 
 ### Candidate plans and strategies
 

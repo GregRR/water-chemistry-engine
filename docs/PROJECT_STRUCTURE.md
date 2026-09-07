@@ -67,6 +67,7 @@ including:
 - contribution reporting;
 - preparation instructions;
 - structured notices and validation;
+- bounded treatment optimization and structured candidate plans;
 - calculation audit/provenance data.
 
 Release 0.3 adds an explicit supported facade at the package root.
@@ -76,9 +77,11 @@ integration expectations, and the pre-1.0 compatibility policy. The facade
 re-exports the selected proven inputs and the complete forward-result audit
 graph rather than introducing a second chemistry implementation. Richer source
 profile provenance/property inputs are also supported through a cohesive
-package-root construction graph. The minimum exact-composition, mass-dosed
-treatment-material contract needed by the first optimizer is planned for 0.4.
-Broader material authoring—including ranged assays and liquid
+package-root construction graph. Release 0.4 development now includes the
+internal exact-composition, mass-dosed treatment-material contract and first
+fixed-blend practical-dose solver; these remain outside the supported facade
+until the complete optimizer contract is reviewed. Broader material
+authoring—including ranged assays and liquid
 concentration/density semantics—remains subsequent work after those contracts
 are established and validated.
 
@@ -132,6 +135,9 @@ FermUnits is responsible for:
 - semantic `PHValue` values; and
 - the exact definitional transform between pH and dimensionless hydrogen-ion
   activity.
+
+Water Chemistry Engine supports the published FermUnits API from 0.1.3 through
+the compatible 1.x line.
 
 FermUnits does not define chemical pH as a Pint unit. In particular,
 `Q_(7.0, "pH")` must not be used for chemical pH because Pint can interpret
@@ -208,10 +214,10 @@ One-off scripts must not become hidden sources of production chemistry logic.
 
 ## Dependency direction
 
-    FermUnits
-        ↓
+    FermUnits + SciPy
+            ↓
     water-chemistry-engine
-        ↓
+            ↓
     external consumer applications
 
 The engine never depends on a consumer application.

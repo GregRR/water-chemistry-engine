@@ -5,9 +5,12 @@ authority a caller grants over source volumes and rejects ambiguous material
 inputs before a numerical method can treat unknown chemistry as zero.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import StrEnum
 from math import fsum, isclose, isfinite
+from typing import TYPE_CHECKING
 
 from fermunits import Q_, Quantity
 
@@ -16,6 +19,12 @@ from water_chemistry_engine.quantity_types import ScalarQuantity
 from water_chemistry_engine.reported_values import SourceResolutionPolicy
 from water_chemistry_engine.target_profiles import TargetWaterProfile
 from water_chemistry_engine.treatment_materials import ExactMassDosedTreatmentMaterial
+
+if TYPE_CHECKING:
+    from water_chemistry_engine.forward_calculator import ForwardWaterCalculationResult
+    from water_chemistry_engine.ions import Ion
+    from water_chemistry_engine.target_comparison import TargetProfileComparison
+    from water_chemistry_engine.treatment_application import TreatmentAddition
 
 
 class OptimizerBlendPolicy(StrEnum):
@@ -58,6 +67,24 @@ class OptimizerPracticalityStatus(StrEnum):
     IMPRACTICAL = "impractical"
     NOT_EVALUATED = "not_evaluated"
     INDETERMINATE = "indeterminate"
+
+
+class OptimizerStrategy(StrEnum):
+    """Stable identities for implemented optimization policies."""
+
+    CLOSEST_ABSOLUTE_MG_PER_LITER = "closest_absolute_mg_per_liter_v1"
+
+
+class OptimizerDiagnosticCode(StrEnum):
+    """Machine-readable reasons an optimizer request or plan is limited."""
+
+    BLEND_POLICY_NOT_IMPLEMENTED = "blend_policy_not_implemented"
+    TARGET_PH_UNSUPPORTED = "target_ph_unsupported"
+    TARGET_CRITERION_UNSUPPORTED = "target_criterion_unsupported"
+    REQUIRED_SOURCE_CHEMISTRY_UNKNOWN = "required_source_chemistry_unknown"
+    SOLVER_FAILED = "solver_failed"
+    SOLVER_POSTVALIDATION_FAILED = "solver_postvalidation_failed"
+    TARGET_NOT_MET = "target_not_met"
 
 
 _VOLUME_REL_TOL = 1e-12
@@ -133,10 +160,89 @@ class OptimizerMaterialConstraint:
             raise TypeError(
                 "Optimizer material constraint requires an exact mass-dosed material."
             )
-        _positive_mass(
+        maximum = _positive_mass(
             self.maximum_mass,
             label="Optimizer material maximum mass",
         )
+        if maximum.magnitude < self.material.normalized_dose_increment.magnitude:
+            raise ValueError(
+                "Optimizer material maximum mass must permit at least one dose "
+                "increment."
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class OptimizerDiagnostic:
+    """One structured explanation of request support or plan compromise."""
+
+    code: OptimizerDiagnosticCode
+    message: str
+    ion: Ion | None = None
+    material_key: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class OptimizerSolverReport:
+    """Numerical backend identity and termination details."""
+
+    solver: str
+    method: str
+    success: bool
+    status_code: int
+    message: str
+    primary_objective_mg_per_liter: float | None
+    secondary_objective_grams: float | None
+    primary_objective_tolerance_mg_per_liter: float
+    mip_relative_gap: float | None
+
+
+@dataclass(frozen=True, slots=True)
+class OptimizerSourceVolume:
+    """One source quantity proposed by a plan."""
+
+    source: OptimizerSource
+    volume: Quantity[float]
+
+
+@dataclass(frozen=True, slots=True)
+class OptimizerMaterialAddition:
+    """A practical measured dose resolved to ordinary treatment semantics."""
+
+    constraint: OptimizerMaterialConstraint
+    measured_mass: Quantity[float]
+    active_chemical_mass: Quantity[float]
+    treatment_addition: TreatmentAddition
+
+
+@dataclass(frozen=True, slots=True)
+class OptimizerPlan:
+    """One reproducible plan after practical dosing and forward recalculation."""
+
+    plan_id: str
+    strategy: OptimizerStrategy
+    source_volumes: tuple[OptimizerSourceVolume, ...]
+    material_additions: tuple[OptimizerMaterialAddition, ...]
+    calculation: ForwardWaterCalculationResult
+    target_comparison: TargetProfileComparison | None
+    input_support: OptimizerInputSupportStatus
+    feasibility: OptimizerFeasibilityStatus
+    target_fit: OptimizerTargetFitStatus
+    practicality: OptimizerPracticalityStatus
+    solver_report: OptimizerSolverReport
+    diagnostics: tuple[OptimizerDiagnostic, ...]
+    summary: str
+
+
+@dataclass(frozen=True, slots=True)
+class OptimizerResult:
+    """Structured outcome for one optimizer request."""
+
+    request: OptimizerRequest
+    input_support: OptimizerInputSupportStatus
+    feasibility: OptimizerFeasibilityStatus
+    plans: tuple[OptimizerPlan, ...]
+    diagnostics: tuple[OptimizerDiagnostic, ...]
+    solver_report: OptimizerSolverReport | None
 
 
 @dataclass(frozen=True, slots=True)

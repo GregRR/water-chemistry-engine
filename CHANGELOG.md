@@ -13,8 +13,12 @@ distribution and its repository milestones.
   source availability, bounded material inputs, diluent input, and separate
   support, feasibility, target-fit, and operational-practicality status
   vocabularies.
-- Selected SciPy's HiGHS linear-programming interface for the first continuous
-  optimizer, constrained to the Python 3.11-compatible 1.17 release line.
+- Selected SciPy's HiGHS mixed-integer interface for practical dose-increment
+  decisions, constrained to the Python 3.11-compatible 1.17 release line.
+- Added the first internal fixed-blend optimizer strategy: minimize unweighted
+  absolute target deviation in mg/L over bounded whole dose increments, use
+  total measured material mass as a tie-breaker, and verify the selected plan
+  through the ordinary forward-calculation path.
 
 ## 0.3.1 - 2026-09-06
 
