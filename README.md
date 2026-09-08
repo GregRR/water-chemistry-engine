@@ -10,7 +10,7 @@ package from separate projects.
 
 ## Project status
 
-The **0.3 supported-consumer-API milestone is complete**. The engine can
+The released **0.3 supported-consumer-API milestone is complete**. The engine can
 resolve reported source-water chemistry, blend multiple characterized sources,
 apply supported mineral additions, calculate the resulting water, compare it
 with target/reference criteria, and return auditable contribution, instruction,
@@ -23,7 +23,7 @@ applications exercise the engine.
 Version 0.3 establishes a supported package-root consumer facade covering both
 the deterministic forward-result graph and the complete source-reporting and
 provenance input graph. Its compatibility expectations are documented in
-the [consumer API guide](https://github.com/GregRR/water-chemistry-engine/blob/v0.3.1/docs/CONSUMER_API.md).
+the [consumer API guide](https://github.com/GregRR/water-chemistry-engine/blob/v0.4.0/docs/CONSUMER_API.md).
 Reported and target pH use FermUnits' semantic `PHValue`; calculated
 working-water pH remains explicitly deferred until a validated reusable model
 is ready.
@@ -31,6 +31,15 @@ is ready.
 Version 0.3.1 expands the supported FermUnits dependency range to include the
 stable 1.x series while retaining the compatible 0.1.3 floor; the Engine
 continues to import unit functionality only through FermUnits.
+
+Version 0.4 development now implements the first bounded automatic treatment
+optimizer. It supports fixed blends, proportional dilution with an explicitly
+characterized diluent, and bounded source-volume selection; chooses whole
+caller-declared material dose increments; returns structured forward-replayed
+plans; offers an equally close fewest-products alternative when materially
+different; and can return an independently solved no-dilution best-effort plan.
+The optimizer contract remains pre-release until the 0.4 review and release
+gates are complete.
 
 ### Forward-calculator capabilities established in 0.2
 
@@ -102,7 +111,7 @@ python -m pip install water-chemistry-engine==0.3.1
 ```
 
 Version 0.3 exposes a supported package-root facade. APIs remain pre-1.0 and may
-evolve under the [consumer API compatibility policy](https://github.com/GregRR/water-chemistry-engine/blob/v0.3.1/docs/CONSUMER_API.md).
+evolve under the [consumer API compatibility policy](https://github.com/GregRR/water-chemistry-engine/blob/v0.4.0/docs/CONSUMER_API.md).
 
 ## Quickstart
 
@@ -151,7 +160,7 @@ Expected output:
 
 The explicit source-resolution policy prevents the example from silently
 choosing representative values for ranges. See the
-[consumer API guide](https://github.com/GregRR/water-chemistry-engine/blob/v0.3.1/docs/CONSUMER_API.md)
+[consumer API guide](https://github.com/GregRR/water-chemistry-engine/blob/v0.4.0/docs/CONSUMER_API.md)
 for the complete supported workflow, including treatments, targets, notices,
 and audit results.
 
@@ -187,7 +196,7 @@ Primary project documents are stored under `docs/`:
 - `WATER_CHEM_REFERENCES.md` — source and reference register;
 - `ROADMAP.md` — active engine release path;
 - `PROJECT_STRUCTURE.md` — repository/package boundaries;
-- `CONSUMER_API.md` — supported 0.3 package-root facade and integration guide;
+- `CONSUMER_API.md` — supported 0.4 package-root facade and integration guide;
 - `reviews/` — point-in-time external review records.
 
 Release history is summarized in `CHANGELOG.md`.

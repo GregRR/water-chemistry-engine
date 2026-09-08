@@ -2,8 +2,8 @@
 
 The package root is the compatibility boundary for ordinary consumers.  More
 specialized modules remain importable during the pre-1.0 development period,
-but applications should prefer the names exported here for the deterministic
-forward-calculation workflow.
+but applications should prefer the names exported here for deterministic
+forward calculation and bounded treatment optimization.
 """
 
 from water_chemistry_engine.blending import (
@@ -54,6 +54,25 @@ from water_chemistry_engine.forward_notices import (
     ForwardNoticeLevel,
 )
 from water_chemistry_engine.ions import Ion
+from water_chemistry_engine.optimization import (
+    OptimizerBlendPolicy,
+    OptimizerDiagnostic,
+    OptimizerDiagnosticCode,
+    OptimizerFeasibilityStatus,
+    OptimizerInputSupportStatus,
+    OptimizerMaterialAddition,
+    OptimizerMaterialConstraint,
+    OptimizerPlan,
+    OptimizerPracticalityStatus,
+    OptimizerRequest,
+    OptimizerResult,
+    OptimizerSolverReport,
+    OptimizerSource,
+    OptimizerSourceVolume,
+    OptimizerStrategy,
+    OptimizerTargetFitStatus,
+)
+from water_chemistry_engine.optimizer_solver import optimize_treatment
 from water_chemistry_engine.preparation_instructions import (
     BlendPreparationInstruction,
     SourceVolumeInstruction,
@@ -123,6 +142,7 @@ from water_chemistry_engine.treatment_ingredients import (
     SODIUM_BICARBONATE,
     SODIUM_CHLORIDE,
 )
+from water_chemistry_engine.treatment_materials import ExactMassDosedTreatmentMaterial
 from water_chemistry_engine.treatment_stoichiometry import IonContribution
 from water_chemistry_engine.water_identity import (
     PhysicalSourceType,
@@ -153,6 +173,7 @@ __all__ = [
     "DerivedIonConcentration",
     "DisinfectantKind",
     "ExactConcentrationEndpoint",
+    "ExactMassDosedTreatmentMaterial",
     "ForwardCalculationNotice",
     "ForwardNoticeCode",
     "ForwardNoticeLevel",
@@ -171,6 +192,22 @@ __all__ = [
     "LowerBoundConcentrationEndpoint",
     "NotDetectedConcentrationEndpoint",
     "ObservationPeriod",
+    "OptimizerBlendPolicy",
+    "OptimizerDiagnostic",
+    "OptimizerDiagnosticCode",
+    "OptimizerFeasibilityStatus",
+    "OptimizerInputSupportStatus",
+    "OptimizerMaterialAddition",
+    "OptimizerMaterialConstraint",
+    "OptimizerPlan",
+    "OptimizerPracticalityStatus",
+    "OptimizerRequest",
+    "OptimizerResult",
+    "OptimizerSolverReport",
+    "OptimizerSource",
+    "OptimizerSourceVolume",
+    "OptimizerStrategy",
+    "OptimizerTargetFitStatus",
     "PhysicalSourceType",
     "PhysicalWaterSource",
     "ReportedDisinfectant",
@@ -227,4 +264,5 @@ __all__ = [
     "WaterType",
     "__version__",
     "calculate_forward_water",
+    "optimize_treatment",
 ]

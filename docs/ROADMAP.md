@@ -214,7 +214,7 @@ semantics required before the engine chooses measured doses for a user.
 Unknown or unresolved source chemistry remains unknown. It must not become zero
 merely to make an optimization problem solvable.
 
-The initial internal request boundary now encodes all three blend-policy
+The initial request boundary now encodes all three blend-policy
 identities, nonnegative current and positive maximum source volumes,
 exact mass-dosed materials, and the source-resolution policy. Fixed-blend
 requests require current source volumes
@@ -226,20 +226,21 @@ for the batch that permits at least one whole declared dose increment. This is
 an operational optimization bound, not a universal safety, sensory, solubility,
 or regulatory limit.
 
-The solver supports the fixed-blend and proportional-dilution policies with the
-versioned `closest_absolute_mg_per_liter_v1` strategy. It minimizes the
+The solver supports all three blend policies with the versioned
+`closest_absolute_mg_per_liter_v1` strategy. It minimizes the
 unweighted sum of absolute target deviations in canonical mg/L over whole
 dose-increment counts and, for proportional dilution, one continuous diluent
-volume while preserving the current non-diluent source proportions. It then
+volume while preserving the current non-diluent source proportions.
+Source-volume optimization instead uses one bounded continuous decision per
+caller-permitted source. The solver then
 uses lower total measured material mass as a tie-breaker. This is an explicit
 mathematical ranking policy, not a sensory or process-equivalence claim across
 ions. Every accepted plan is recalculated through the ordinary forward path.
 An optionally requested no-dilution best-effort plan is independently solved
 and returned only when operationally distinct; source limits that make it
-impossible are reported explicitly. Freely optimized source volumes remain the
-third implemented blend policy: each source is a bounded continuous decision,
-all selected volumes sum exactly to the requested total, and every target ion
-must be resolved independently for every candidate source. Sources remain
+impossible are reported explicitly. For source-volume optimization, all
+selected volumes sum exactly to the requested total and every target ion must
+be resolved independently for every candidate source. Sources remain
 positionally distinct even when display names match.
 
 The initial SciPy/HiGHS integration accepts at most 1,000,000 dose increments

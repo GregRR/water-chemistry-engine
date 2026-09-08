@@ -2,16 +2,16 @@
 
 ## Status
 
-This document defines the supported package-root facade for Water Chemistry
-Engine 0.3.x. Ordinary 0.3 consumers should prefer imports from
-`water_chemistry_engine` as documented here. Consumers remaining on 0.2.x
-should continue using their tested module-level imports and pinned version
+This document defines the supported package-root facade for the upcoming Water
+Chemistry Engine 0.4.0 release. Ordinary consumers should prefer imports from
+`water_chemistry_engine` as documented here. Consumers remaining on an earlier
+minor release should continue using their tested imports and pinned version
 until they deliberately migrate.
 
 ## Supported boundary
 
-The package root exposes the supported deterministic forward-calculation
-surface through its explicit `__all__`. It includes:
+The package root exposes the supported deterministic forward-calculation and
+bounded-optimization surface through its explicit `__all__`. It includes:
 
 - `calculate_forward_water`, `ForwardWaterSource`, and the structured forward
   result and audit types needed to interpret source resolution, blending,
@@ -23,7 +23,9 @@ surface through its explicit `__all__`. It includes:
 - `Ion`, `TreatmentAddition`, and the supported simple mineral ingredients;
 - target-comparison status/result types; and
 - `ForwardCalculationNotice`, `ForwardNoticeCode`, and `ForwardNoticeLevel`
-  for machine-readable assumptions and limitations.
+  for machine-readable assumptions and limitations; and
+- `optimize_treatment` plus the complete optimizer request, material, status,
+  diagnostic, solver-report, plan, and result graph.
 
 More specialized modules remain importable during pre-1.0 development, but
 their complete contents are not automatically part of the supported facade.
@@ -42,8 +44,10 @@ deliberately not root exports. Their present structure models ideal chemical
 identity only and does not yet cover the composition/specification evidence,
 material assay or concentration basis, density/reference temperature for
 volume dosing, practical-use limits, and other requirements of the planned
-reusable treatment-material contract. That broader authoring boundary is
-planned after the 0.3 facade rather than being improvised into this release.
+reusable treatment-material contract. Release 0.4 instead exposes the narrow
+`ExactMassDosedTreatmentMaterial` boundary for caller-named physical materials
+that map exactly, mass for mass, to one of the supported built-in chemical
+identities. Broader authoring remains planned work.
 
 The facade also supports the complete source-report construction graph retained
 by `SourceWaterProfile`: reported pH and disinfectants, source-document
@@ -82,6 +86,16 @@ The exact initial facade is:
   `TreatmentPreparationInstruction`;
 - source and target inputs: `SourceWaterProfile`, `SourceResolutionPolicy`,
   and `TargetWaterProfile`;
+- optimizer entry point and request: `optimize_treatment`, `OptimizerRequest`,
+  `OptimizerSource`, `OptimizerMaterialConstraint`,
+  `ExactMassDosedTreatmentMaterial`, and `OptimizerBlendPolicy`;
+- optimizer results: `OptimizerResult`, `OptimizerPlan`,
+  `OptimizerSourceVolume`, `OptimizerMaterialAddition`,
+  `OptimizerSolverReport`, `OptimizerDiagnostic`, and
+  `OptimizerDiagnosticCode`;
+- optimizer interpretation: `OptimizerStrategy`,
+  `OptimizerInputSupportStatus`, `OptimizerFeasibilityStatus`,
+  `OptimizerTargetFitStatus`, and `OptimizerPracticalityStatus`;
 - source reporting and provenance: `SourceDocumentMetadata`, `WaterIdentity`,
   `WaterType`, `PhysicalWaterSource`, `PhysicalSourceType`,
   `ObservationPeriod`, `ReportedResultContext`, `ResultCoverage`, `WaterStage`,
@@ -299,6 +313,103 @@ defining modules. The corresponding reason and method enums are also root
 exports. Contribution-cell status enums provide the same explicit
 interpretation boundary for presentation code.
 
+## Automatic treatment optimizer example
+
+This fixed-blend example asks the engine to select a practical gypsum dose in
+whole 0.1 g increments. The batch-specific 2 g maximum is caller policy, not a
+universal use or safety limit:
+
+```python
+from fermunits import Q_
+
+from water_chemistry_engine import (
+    GYPSUM,
+    ExactMassDosedTreatmentMaterial,
+    Ion,
+    IonConcentration,
+    IonConcentrationRange,
+    OptimizerBlendPolicy,
+    OptimizerMaterialConstraint,
+    OptimizerRequest,
+    OptimizerSource,
+    SourceResolutionPolicy,
+    SourceWaterProfile,
+    TargetWaterProfile,
+    optimize_treatment,
+)
+
+source = SourceWaterProfile(
+    name="Source water",
+    concentrations=(
+        IonConcentration.mg_per_liter(Ion.CALCIUM, 0.0),
+        IonConcentration.mg_per_liter(Ion.SULFATE, 0.0),
+    ),
+)
+target = TargetWaterProfile(
+    name="Calcium target",
+    concentrations=(
+        IonConcentrationRange.mg_per_liter(
+            Ion.CALCIUM,
+            minimum=23.27,
+            maximum=23.29,
+        ),
+    ),
+)
+gypsum = ExactMassDosedTreatmentMaterial(
+    key="gypsum",
+    name="Gypsum",
+    ingredient=GYPSUM,
+    dose_increment=Q_(0.1, "gram"),
+)
+request = OptimizerRequest(
+    total_volume=Q_(10, "liter"),
+    sources=(
+        OptimizerSource(
+            source_profile=source,
+            current_volume=Q_(10, "liter"),
+            maximum_volume=Q_(10, "liter"),
+        ),
+    ),
+    material_constraints=(
+        OptimizerMaterialConstraint(
+            material=gypsum,
+            maximum_mass=Q_(2, "gram"),
+        ),
+    ),
+    source_resolution_policy=SourceResolutionPolicy(
+        allow_exact_range_midpoints=False,
+    ),
+    blend_policy=OptimizerBlendPolicy.FIXED,
+    target_profile=target,
+)
+
+result = optimize_treatment(request)
+plan = result.plans[0]
+
+print(plan.material_additions[0].measured_mass)
+print(plan.target_fit)
+print(plan.calculation.final_state.concentration_for(Ion.CALCIUM))
+```
+
+The selected dose is `1.0 gram`. Every accepted plan contains ordinary source
+volumes and treatment additions, and its nested forward calculation contains
+the final water, signed target deviations, contribution matrix, preparation
+instructions, and notices.
+
+`FIXED` preserves the supplied source volumes. `PROPORTIONAL_DILUTION`
+preserves the current ordinary-source proportions while optimizing the volume
+of a separately supplied, characterized diluent. `SOURCE_VOLUMES` may vary each
+permitted source from zero through its declared maximum while enforcing the
+requested total volume. The optional no-dilution comparison is valid only for
+`PROPORTIONAL_DILUTION`.
+
+The first returned plan is the closest absolute mg/L solution with lower total
+measured material mass as its tie-breaker. A second preferred plan appears only
+when an equally close solution uses fewer treatment products. A requested,
+operationally distinct no-dilution best-effort plan follows those candidates.
+Consumers should use the structured strategy and diagnostic enums, not plan
+position or English summaries alone, when implementing behavior.
+
 ## Validation, unknowns, and notices
 
 Invalid request objects fail at their construction or calculation boundary
@@ -369,10 +480,10 @@ display or interchange adaptation at the application edge.
 
 ## Pre-1.0 compatibility expectations
 
-The 0.3 package-root facade is the preferred consumer boundary, but the project
+The 0.4 package-root facade is the preferred consumer boundary, but the project
 remains pre-1.0:
 
-- patch releases in the 0.3 line will not intentionally remove or rename the
+- patch releases in the 0.4 line will not intentionally remove or rename the
   documented root imports;
 - correctness fixes may change scientifically incorrect output and will be
   documented;

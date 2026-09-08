@@ -15,7 +15,7 @@ distribution and its repository milestones.
   vocabularies.
 - Selected SciPy's HiGHS mixed-integer interface for practical dose-increment
   decisions, constrained to the Python 3.11-compatible 1.17 release line.
-- Added the first internal fixed-blend optimizer strategy: minimize unweighted
+- Added the first fixed-blend optimizer strategy: minimize unweighted
   absolute target deviation in mg/L over bounded whole dose increments, use
   total measured material mass as a tie-breaker, and verify the selected plan
   through the ordinary forward-calculation path.
@@ -38,6 +38,15 @@ distribution and its repository milestones.
   lower-mass tertiary ranking, operational deduplication, and explicit tradeoff
   explanations. No-dilution plans now identify unavoidable starting-water
   overshoots and their signed deviations.
+- Extended the supported package-root consumer facade with the complete
+  optimizer request/result graph and the narrow exact-composition, mass-dosed
+  material boundary, backed by an end-to-end package-root integration test.
+
+### Documentation
+
+- Added a complete optimizer consumer example, documented blend-policy and
+  candidate-ordering semantics, and aligned the active design and project
+  boundary documents with the implemented SciPy-backed optimizer.
 
 ## 0.3.1 - 2026-09-06
 

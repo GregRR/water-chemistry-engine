@@ -137,8 +137,9 @@ The engine never imports a consumer application, database ORM, or product-specif
   release environment uses FermUnits 1.0.0 and its stable 1.x compatibility
   contract.
 - **Pint:** transitive quantity implementation through FermUnits.
-- **NumPy:** planned for vector/matrix work when the calculation implementation actually requires it.
-- **SciPy:** planned for continuous and mixed-integer optimization when optimization work begins.
+- **NumPy:** transitive numerical-array implementation through SciPy.
+- **SciPy 1.17:** direct, bounded dependency for the implemented HiGHS-backed
+  mixed-integer treatment optimizer.
 - **Pydantic:** planned for validation/serialization at engine API and interchange boundaries where justified.
 - **Frozen dataclasses / simple immutable domain objects:** preferred for internal scientific models where serialization behavior is unnecessary.
 
@@ -751,12 +752,15 @@ would overstate what the water actually receives. Specific claims about where
 undissolved chalk remains or when it later reacts require direct evidence before
 becoming engine behavior.
 
-The initial 0.4 implementation now provides an internal
+The initial 0.4 implementation provides the public
 `ExactMassDosedTreatmentMaterial` boundary for the narrow case where one gram
 of measured material is exactly one gram of its identified treatment chemical.
 Its positive mass dose increment records operational resolution without
-performing rounding. Assay variation, liquid preparations, volume dosing, and
-material-specific use limits remain outside this initial type.
+performing rounding. The supported facade supplies the reviewed built-in
+chemical identities for constructing these materials; general chemical-
+identity authoring remains outside that facade. Assay variation, liquid
+preparations, volume dosing, and material-specific use limits remain outside
+this initial type.
 Each optimizer request separately supplies a positive maximum measured mass for
 every permitted material. That batch-specific value is an explicit operational
 constraint, must permit at least one whole declared dose increment, and must not

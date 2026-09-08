@@ -24,8 +24,9 @@ class ExactMassDosedTreatmentMaterial:
     One gram of this material is one gram of its ``ingredient``.  This narrow
     contract intentionally excludes commercial assay variation, retained
     moisture, liquid solutions, and volume dosing.  ``dose_increment`` is the
-    smallest operationally permitted measured increment; rounding policy is
-    owned by the future optimizer rather than silently applied here.
+    smallest operationally permitted measured increment. The optimizer chooses
+    whole counts of that increment; this material type never silently rounds a
+    caller-supplied mass on its own.
     """
 
     key: str

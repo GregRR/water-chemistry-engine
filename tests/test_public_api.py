@@ -29,6 +29,7 @@ EXPECTED_PUBLIC_API = {
     "DerivedIonConcentration",
     "DisinfectantKind",
     "ExactConcentrationEndpoint",
+    "ExactMassDosedTreatmentMaterial",
     "ForwardCalculationNotice",
     "ForwardNoticeCode",
     "ForwardNoticeLevel",
@@ -47,6 +48,22 @@ EXPECTED_PUBLIC_API = {
     "LowerBoundConcentrationEndpoint",
     "NotDetectedConcentrationEndpoint",
     "ObservationPeriod",
+    "OptimizerBlendPolicy",
+    "OptimizerDiagnostic",
+    "OptimizerDiagnosticCode",
+    "OptimizerFeasibilityStatus",
+    "OptimizerInputSupportStatus",
+    "OptimizerMaterialAddition",
+    "OptimizerMaterialConstraint",
+    "OptimizerPlan",
+    "OptimizerPracticalityStatus",
+    "OptimizerRequest",
+    "OptimizerResult",
+    "OptimizerSolverReport",
+    "OptimizerSource",
+    "OptimizerSourceVolume",
+    "OptimizerStrategy",
+    "OptimizerTargetFitStatus",
     "PhysicalSourceType",
     "PhysicalWaterSource",
     "ReportedDisinfectant",
@@ -103,6 +120,7 @@ EXPECTED_PUBLIC_API = {
     "ScalarQuantity",
     "__version__",
     "calculate_forward_water",
+    "optimize_treatment",
 }
 
 _PUBLIC_API_DOC = Path(__file__).parents[1] / "docs" / "CONSUMER_API.md"
@@ -257,6 +275,107 @@ def test_complete_forward_workflow_uses_only_package_root_imports() -> None:
     assert result.preparation_instructions.lines == (
         "Combine 10 L of Source A + 10 L of Source B to make 20 L of blended water.",
         "Add 0.5 g of Gypsum (CaSO4·2H2O).",
+    )
+
+
+def test_complete_optimizer_workflow_uses_only_package_root_imports() -> None:
+    """A consumer can construct and interpret a practical plan via the facade."""
+    gypsum_calcium_mg_per_liter = 40.078 / 172.164 * 50.0
+    gypsum_sulfate_mg_per_liter = 96.056 / 172.164 * 50.0
+    source = wce.SourceWaterProfile(
+        name="Source water",
+        concentrations=(
+            wce.IonConcentration.mg_per_liter(wce.Ion.CALCIUM, 100.0),
+            wce.IonConcentration.mg_per_liter(wce.Ion.SULFATE, 0.0),
+        ),
+    )
+    diluent = wce.SourceWaterProfile(
+        name="Characterized RO",
+        concentrations=(
+            wce.IonConcentration.mg_per_liter(wce.Ion.CALCIUM, 0.0),
+            wce.IonConcentration.mg_per_liter(wce.Ion.SULFATE, 0.0),
+        ),
+    )
+    target = wce.TargetWaterProfile(
+        name="Calcium and sulfate target",
+        concentrations=(
+            wce.IonConcentration.mg_per_liter(
+                wce.Ion.CALCIUM,
+                50.0 + gypsum_calcium_mg_per_liter,
+            ),
+            wce.IonConcentration.mg_per_liter(
+                wce.Ion.SULFATE,
+                gypsum_sulfate_mg_per_liter,
+            ),
+        ),
+    )
+    material = wce.ExactMassDosedTreatmentMaterial(
+        key="gypsum",
+        name="Gypsum",
+        ingredient=wce.GYPSUM,
+        dose_increment=Q_(0.1, "gram"),
+    )
+    request = wce.OptimizerRequest(
+        total_volume=Q_(20, "liter"),
+        sources=(
+            wce.OptimizerSource(
+                source_profile=source,
+                current_volume=Q_(20, "liter"),
+                maximum_volume=Q_(20, "liter"),
+            ),
+        ),
+        diluent_source=wce.OptimizerSource(
+            source_profile=diluent,
+            current_volume=Q_(0, "liter"),
+            maximum_volume=Q_(20, "liter"),
+        ),
+        material_constraints=(
+            wce.OptimizerMaterialConstraint(
+                material=material,
+                maximum_mass=Q_(2, "gram"),
+            ),
+        ),
+        source_resolution_policy=wce.SourceResolutionPolicy(
+            allow_exact_range_midpoints=False,
+        ),
+        blend_policy=wce.OptimizerBlendPolicy.PROPORTIONAL_DILUTION,
+        target_profile=target,
+        request_no_dilution_plan=True,
+    )
+
+    result = wce.optimize_treatment(request)
+
+    assert isinstance(result, wce.OptimizerResult)
+    assert result.input_support is wce.OptimizerInputSupportStatus.SUPPORTED
+    assert result.feasibility is wce.OptimizerFeasibilityStatus.FEASIBLE
+    assert len(result.plans) == 2
+    preferred = result.plans[0]
+    assert isinstance(preferred, wce.OptimizerPlan)
+    assert preferred.strategy is wce.OptimizerStrategy.CLOSEST_ABSOLUTE_MG_PER_LITER
+    assert preferred.target_fit is wce.OptimizerTargetFitStatus.WITHIN_TARGET
+    assert preferred.practicality is wce.OptimizerPracticalityStatus.PRACTICAL
+    assert all(
+        isinstance(entry, wce.OptimizerSourceVolume)
+        for entry in preferred.source_volumes
+    )
+    assert tuple(
+        float(entry.volume.magnitude) for entry in preferred.source_volumes
+    ) == (
+        pytest.approx(10.0),
+        pytest.approx(10.0),
+    )
+    assert len(preferred.material_additions) == 1
+    assert isinstance(preferred.material_additions[0], wce.OptimizerMaterialAddition)
+    assert float(preferred.material_additions[0].measured_mass.magnitude) == (
+        pytest.approx(1.0)
+    )
+    assert isinstance(preferred.solver_report, wce.OptimizerSolverReport)
+    assert (
+        preferred.calculation.final_state
+        is preferred.calculation.treatment_result.final_state
+    )
+    assert result.plans[1].strategy is (
+        wce.OptimizerStrategy.NO_DILUTION_CLOSEST_ABSOLUTE_MG_PER_LITER
     )
 
 

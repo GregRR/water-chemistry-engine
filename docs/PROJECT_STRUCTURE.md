@@ -77,15 +77,13 @@ integration expectations, and the pre-1.0 compatibility policy. The facade
 re-exports the selected proven inputs and the complete forward-result audit
 graph rather than introducing a second chemistry implementation. Richer source
 profile provenance/property inputs are also supported through a cohesive
-package-root construction graph. Release 0.4 development now includes the
-internal exact-composition, mass-dosed treatment-material contract and practical
-dose solver for fixed blends, proportional dilution, and bounded source-volume
-selection, including an optional no-dilution comparison plan; these remain
-outside the supported facade until the complete optimizer contract is reviewed.
-Broader material
-authoring—including ranged assays and liquid
-concentration/density semantics—remains subsequent work after those contracts
-are established and validated.
+package-root construction graph. Release 0.4 development extends that facade
+with the reviewed exact-composition, mass-dosed treatment-material contract and
+practical dose solver for fixed blends, proportional dilution, and bounded
+source-volume selection, including ranked alternatives and an optional
+no-dilution comparison plan. Broader material authoring—including ranged
+assays and liquid concentration/density semantics—remains subsequent work
+after those contracts are established and validated.
 
 As later milestones add optimization, treatment-plan ranking, richer
 constraints, calculated working-water pH, and serialization/interchange
