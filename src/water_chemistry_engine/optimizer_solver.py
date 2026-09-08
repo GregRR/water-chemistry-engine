@@ -61,7 +61,7 @@ _METHOD = "highs"
 _PRIMARY_OBJECTIVE_TOLERANCE_MG_PER_LITER = 1e-9
 _POSTVALIDATION_ABS_TOLERANCE_MG_PER_LITER = 1e-7
 _POSTVALIDATION_REL_TOLERANCE = 1e-12
-_INTEGER_ABS_TOLERANCE = 1e-7
+_INTEGER_ABS_TOLERANCE = 1e-6
 _MIP_RELATIVE_GAP = 0.0
 _MAXIMUM_INCREMENT_COUNT = 1_000_000
 _SMALLEST_SOLVER_MATRIX_VALUE = 1e-9
@@ -300,11 +300,12 @@ def _validated_increment_counts(
     result: _MilpResult,
     *,
     material_count: int,
+    variable_count: int,
     maximum_counts: Sequence[int],
 ) -> tuple[int, ...] | None:
     if result.x is None:
         return None
-    if len(result.x) < material_count:
+    if len(result.x) != variable_count:
         return None
 
     counts: list[int] = []
@@ -453,6 +454,7 @@ def _solve_increment_counts(
     primary_counts = _validated_increment_counts(
         primary,
         material_count=material_count,
+        variable_count=variable_count,
         maximum_counts=maximum_counts,
     )
     if primary_counts is None:
@@ -513,6 +515,7 @@ def _solve_increment_counts(
     secondary_counts = _validated_increment_counts(
         secondary,
         material_count=material_count,
+        variable_count=variable_count,
         maximum_counts=maximum_counts,
     )
     if secondary_counts is None:

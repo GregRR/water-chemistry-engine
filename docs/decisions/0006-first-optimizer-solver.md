@@ -63,8 +63,11 @@ operational constraint.
   thresholds, and constraint bounds at or beyond its documented infinite-bound
   threshold, are rejected as unsupported before solving.
 - The raw solver objective is audit data, not the postvalidation reference. The
-  engine validates the returned integer counts and bounds, rejects a negative
-  raw deviation objective, reconstructs the primary objective from the counts,
-  and compares that value with the ordinary forward-calculation result.
+  engine requires the complete solver decision vector, validates returned
+  integer counts within HiGHS's documented MIP feasibility tolerance and the
+  declared bounds, rejects a negative raw deviation objective, reconstructs the
+  primary objective from the counts, and compares that value with the ordinary
+  forward-calculation result. The reconstructed value is authoritative; the raw
+  value is retained for audit and may differ within backend tolerances.
 - Independent analytical cases and post-solver forward recalculation remain
   required; tests must not merely reproduce SciPy's returned arrays.

@@ -185,7 +185,14 @@ class OptimizerDiagnostic:
 
 @dataclass(frozen=True, slots=True)
 class OptimizerSolverReport:
-    """Numerical backend identity and independently checked objective details."""
+    """Numerical backend identity and independently checked objective details.
+
+    ``primary_objective_mg_per_liter`` is the authoritative plan score rebuilt
+    by the engine from validated integer decisions.  The separately named
+    ``solver_reported_primary_objective_mg_per_liter`` is retained only as raw
+    backend audit data and may differ within the backend's feasibility
+    tolerances.
+    """
 
     solver: str
     method: str

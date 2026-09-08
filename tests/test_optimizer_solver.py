@@ -502,6 +502,116 @@ def test_impossible_negative_solver_objective_is_rejected(
     assert "negative primary objective" in result.solver_report.message
 
 
+def test_solver_integer_noise_within_backend_tolerance_is_accepted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    responses = iter(
+        (
+            SimpleNamespace(
+                success=True,
+                status=0,
+                message="primary optimal",
+                fun=0.0,
+                x=(1.0000005, 0.0, 0.0),
+                mip_gap=0.0,
+            ),
+            SimpleNamespace(
+                success=True,
+                status=0,
+                message="secondary optimal",
+                fun=0.1,
+                x=(1.0000005, 0.0, 0.0),
+                mip_gap=0.0,
+            ),
+        )
+    )
+
+    def staged_milp(**_kwargs: object) -> SimpleNamespace:
+        return next(responses)
+
+    monkeypatch.setattr(optimizer_solver, "milp", staged_milp)
+    request = _fixed_request(
+        source=_source(calcium=0.0, sulfate=0.0),
+        target=_target(0.1 * _CALCIUM_MG_PER_LITER_PER_GYPSUM_GRAM_IN_TEN_LITERS),
+        constraints=(_gypsum_constraint(),),
+    )
+
+    result = optimize_treatment(request)
+
+    assert result.feasibility is OptimizerFeasibilityStatus.FEASIBLE
+    assert len(result.plans) == 1
+    assert float(
+        result.plans[0].material_additions[0].measured_mass.to("gram").magnitude
+    ) == pytest.approx(0.1)
+
+
+def test_solver_integer_noise_above_backend_tolerance_is_rejected(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def invalid_milp(**_kwargs: object) -> SimpleNamespace:
+        return SimpleNamespace(
+            success=True,
+            status=0,
+            message="claimed success",
+            fun=0.0,
+            x=(1.0000011, 0.0, 0.0),
+            mip_gap=0.0,
+        )
+
+    monkeypatch.setattr(optimizer_solver, "milp", invalid_milp)
+    request = _fixed_request(
+        source=_source(calcium=0.0, sulfate=0.0),
+        target=_target(10.0),
+        constraints=(_gypsum_constraint(),),
+    )
+
+    result = optimize_treatment(request)
+
+    assert result.feasibility is OptimizerFeasibilityStatus.INDETERMINATE
+    assert result.plans == ()
+    assert result.solver_report is not None
+    assert result.solver_report.success is False
+    assert "invalid material increment counts" in result.solver_report.message
+
+
+@pytest.mark.parametrize(
+    "invalid_x",
+    [
+        (1.0, 0.0),
+        (1.0, 0.0, 0.0, 0.0),
+    ],
+    ids=("truncated", "overlong"),
+)
+def test_solver_requires_complete_decision_vector(
+    monkeypatch: pytest.MonkeyPatch,
+    invalid_x: tuple[float, ...],
+) -> None:
+    def invalid_milp(**_kwargs: object) -> SimpleNamespace:
+        return SimpleNamespace(
+            success=True,
+            status=0,
+            message="claimed success",
+            fun=0.0,
+            x=invalid_x,
+            mip_gap=0.0,
+        )
+
+    monkeypatch.setattr(optimizer_solver, "milp", invalid_milp)
+    request = _fixed_request(
+        source=_source(calcium=0.0, sulfate=0.0),
+        target=_target(10.0),
+        constraints=(_gypsum_constraint(),),
+    )
+
+    result = optimize_treatment(request)
+
+    assert result.feasibility is OptimizerFeasibilityStatus.INDETERMINATE
+    assert result.plans == ()
+    assert result.solver_report is not None
+    assert result.solver_report.success is False
+    assert "invalid material increment counts" in result.solver_report.message
+
+
 def test_secondary_solver_failure_does_not_silently_drop_mass_policy(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

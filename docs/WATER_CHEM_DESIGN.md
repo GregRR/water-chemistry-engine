@@ -1249,9 +1249,13 @@ documented matrix-coefficient and bound ranges are also treated as explicit
 support boundaries rather than relying on the backend to reinterpret small
 values as zero or large values as infinite. Solver success and its reported
 objective are retained as audit data but are not accepted as the engine result:
-the engine validates integer counts and bounds, rejects a non-finite or negative
-raw deviation objective, reconstructs the objective from the returned counts,
-and verifies that reconstruction against the ordinary forward calculation.
+the engine requires the complete decision vector, validates integer counts
+within the backend's documented MIP feasibility tolerance and declared bounds,
+rejects a non-finite or negative raw deviation objective, reconstructs the
+objective from the returned counts, and verifies that reconstruction against
+the ordinary forward calculation. The reconstructed value is the authoritative
+plan score; the raw objective remains diagnostic audit data and is not required
+to equal it more closely than the numerical backend guarantees.
 
 ### 20.1 Decision variables
 

@@ -24,6 +24,9 @@ distribution and its repository milestones.
   selected objective from returned increment counts, preserve the raw solver
   objective separately, and compare the reconstructed objective with the
   ordinary forward result.
+- Aligned integer-result validation with the backend's documented MIP
+  feasibility tolerance, require the solver's complete decision-vector shape,
+  and document the engine-reconstructed objective as the authoritative score.
 
 ## 0.3.1 - 2026-09-06
 
