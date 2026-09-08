@@ -1234,11 +1234,12 @@ Industrial support must not be created by simply relabeling the food-oriented op
 
 The first optimizer uses SciPy 1.17's HiGHS-backed `scipy.optimize.milp`.
 Material decisions are integer counts of declared dose increments so a
-continuous optimum is not mistaken for a practical measured dose; later blend
-policies may add continuous source-volume variables to the same problem. ADR
-0006 records the dependency, Python-compatibility constraint, and division of
-responsibility between the numerical solver and the engine's validation and
-result semantics.
+continuous optimum is not mistaken for a practical measured dose.
+Proportional-dilution requests additionally use one continuous diluent-volume
+variable while deriving all ordinary source volumes from their preserved
+current proportions. ADR 0006 records the dependency, Python-compatibility
+constraint, and division of responsibility between the numerical solver and
+the engine's validation and result semantics.
 
 The initial integration deliberately limits each material variable to
 1,000,000 dose increments. Requests above that project-tested numerical range
@@ -1273,6 +1274,16 @@ proportions to scale down to admit a diluent, or permit source volumes to vary
 within supplied bounds. The optimizer must not silently change source
 quantities or move between these policies. Existing manual treatment additions
 are deliberately not decision-variable inputs for the first release.
+
+For proportional dilution, current ordinary-source volumes define proportions,
+not required minimum volumes. The selected non-diluent volume is distributed in
+exactly those proportions, subject to each source's maximum, and the remainder
+comes from the separately supplied diluent within its maximum. Every target ion
+must be numerically resolved in the diluent before it can be a decision
+variable; an omitted or unresolved result remains unknown rather than becoming
+ideal-zero water. The optional no-dilution plan is meaningful only for this
+policy, is solved independently under a zero-diluent constraint, and is omitted
+when operationally equivalent to the preferred plan.
 
 ### 20.2 Constraints
 

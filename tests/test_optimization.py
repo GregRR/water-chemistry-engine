@@ -274,6 +274,28 @@ def test_source_volume_policy_rejects_separate_diluent() -> None:
         )
 
 
+@pytest.mark.parametrize(
+    "blend_policy, message",
+    [
+        (OptimizerBlendPolicy.FIXED, "already a no-dilution request"),
+        (OptimizerBlendPolicy.SOURCE_VOLUMES, "no separately identified diluent"),
+    ],
+)
+def test_no_dilution_plan_request_requires_proportional_dilution_policy(
+    blend_policy: OptimizerBlendPolicy,
+    message: str,
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        OptimizerRequest(
+            Q_(1, "liter"),
+            (_source(),),
+            (),
+            SourceResolutionPolicy(False),
+            blend_policy,
+            request_no_dilution_plan=True,
+        )
+
+
 def test_optimizer_request_rejects_wrong_boundary_types() -> None:
     with pytest.raises(TypeError, match="target_profile"):
         OptimizerRequest(

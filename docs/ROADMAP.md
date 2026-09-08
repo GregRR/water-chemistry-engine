@@ -226,14 +226,18 @@ for the batch that permits at least one whole declared dose increment. This is
 an operational optimization bound, not a universal safety, sensory, solubility,
 or regulatory limit.
 
-The first solver slice supports the fixed-blend policy and the versioned
-`closest_absolute_mg_per_liter_v1` strategy. It minimizes the unweighted sum of
-absolute target deviations in canonical mg/L over whole dose-increment counts,
-then uses lower total measured material mass as a tie-breaker. This is an
-explicit mathematical ranking policy, not a sensory or process-equivalence
-claim across ions. Every accepted plan is recalculated through the ordinary
-forward path. The two variable-blend policies remain explicitly unsupported by
-this initial slice rather than being silently approximated.
+The solver supports the fixed-blend and proportional-dilution policies with the
+versioned `closest_absolute_mg_per_liter_v1` strategy. It minimizes the
+unweighted sum of absolute target deviations in canonical mg/L over whole
+dose-increment counts and, for proportional dilution, one continuous diluent
+volume while preserving the current non-diluent source proportions. It then
+uses lower total measured material mass as a tie-breaker. This is an explicit
+mathematical ranking policy, not a sensory or process-equivalence claim across
+ions. Every accepted plan is recalculated through the ordinary forward path.
+An optionally requested no-dilution best-effort plan is independently solved
+and returned only when operationally distinct; source limits that make it
+impossible are reported explicitly. Freely optimized source volumes remain the
+one unsupported blend policy in this implementation stage.
 
 The initial SciPy/HiGHS integration accepts at most 1,000,000 dose increments
 per permitted material. Larger integer ranges are reported as unsupported and

@@ -73,6 +73,9 @@ class OptimizerStrategy(StrEnum):
     """Stable identities for implemented optimization policies."""
 
     CLOSEST_ABSOLUTE_MG_PER_LITER = "closest_absolute_mg_per_liter_v1"
+    NO_DILUTION_CLOSEST_ABSOLUTE_MG_PER_LITER = (
+        "no_dilution_closest_absolute_mg_per_liter_v1"
+    )
 
 
 class OptimizerDiagnosticCode(StrEnum):
@@ -82,6 +85,9 @@ class OptimizerDiagnosticCode(StrEnum):
     TARGET_PH_UNSUPPORTED = "target_ph_unsupported"
     TARGET_CRITERION_UNSUPPORTED = "target_criterion_unsupported"
     REQUIRED_SOURCE_CHEMISTRY_UNKNOWN = "required_source_chemistry_unknown"
+    REQUIRED_DILUENT_CHEMISTRY_UNKNOWN = "required_diluent_chemistry_unknown"
+    SOURCE_VOLUME_CONSTRAINTS_INFEASIBLE = "source_volume_constraints_infeasible"
+    NO_DILUTION_PLAN_INFEASIBLE = "no_dilution_plan_infeasible"
     MATERIAL_INCREMENT_RANGE_UNSUPPORTED = "material_increment_range_unsupported"
     NUMERICAL_MODEL_RANGE_UNSUPPORTED = "numerical_model_range_unsupported"
     SOLVER_FAILED = "solver_failed"
@@ -181,6 +187,8 @@ class OptimizerDiagnostic:
     message: str
     ion: Ion | None = None
     material_key: str | None = None
+    source_index: int | None = None
+    source_name: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -318,6 +326,10 @@ class OptimizerRequest:
             for source in self.sources
         )
         if self.blend_policy is OptimizerBlendPolicy.FIXED:
+            if self.request_no_dilution_plan:
+                raise ValueError(
+                    "A fixed-blend request is already a no-dilution request."
+                )
             if self.diluent_source is not None:
                 raise ValueError(
                     "A fixed-blend request cannot specify a diluent source."
@@ -348,7 +360,13 @@ class OptimizerRequest:
                 raise ValueError(
                     "A proportional-dilution request requires a positive current blend."
                 )
-        elif self.diluent_source is not None:
-            raise ValueError(
-                "A source-volume request includes diluent water among ordinary sources."
-            )
+        else:
+            if self.request_no_dilution_plan:
+                raise ValueError(
+                    "A source-volume request has no separately identified diluent."
+                )
+            if self.diluent_source is not None:
+                raise ValueError(
+                    "A source-volume request includes diluent water among ordinary "
+                    "sources."
+                )

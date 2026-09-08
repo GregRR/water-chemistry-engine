@@ -27,6 +27,9 @@ distribution and its repository milestones.
 - Aligned integer-result validation with the backend's documented MIP
   feasibility tolerance, require the solver's complete decision-vector shape,
   and document the engine-reconstructed objective as the authoritative score.
+- Added proportional-dilution optimization with an explicitly characterized
+  diluent, preserved source proportions, source/diluent availability limits,
+  and an optional deduplicated no-dilution best-effort plan.
 
 ## 0.3.1 - 2026-09-06
 

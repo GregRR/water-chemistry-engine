@@ -352,8 +352,94 @@ def test_empty_target_profile_is_not_mislabeled_indeterminate() -> None:
     assert plan.material_additions == ()
 
 
-def test_nonfixed_blend_policy_is_explicitly_unsupported_by_first_slice() -> None:
-    source = _source(volume_liters=10.0, calcium=0.0)
+def test_source_volume_policy_remains_explicitly_unsupported() -> None:
+    source = OptimizerSource(
+        SourceWaterProfile(
+            "Source",
+            (IonConcentration.mg_per_liter(Ion.CALCIUM, 0.0),),
+        ),
+        Q_(10, "liter"),
+        Q_(20, "liter"),
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(20, "liter"),
+        sources=(source,),
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.SOURCE_VOLUMES,
+        target_profile=_target(10.0),
+    )
+
+    result = optimize_treatment(request)
+
+    assert result.input_support is OptimizerInputSupportStatus.UNSUPPORTED
+    assert result.plans == ()
+    assert tuple(diagnostic.code for diagnostic in result.diagnostics) == (
+        OptimizerDiagnosticCode.BLEND_POLICY_NOT_IMPLEMENTED,
+    )
+
+
+def test_proportional_dilution_finds_exact_target_and_preserves_proportions() -> None:
+    sources = (
+        OptimizerSource(
+            SourceWaterProfile(
+                "Source A",
+                (IonConcentration.mg_per_liter(Ion.CALCIUM, 100.0),),
+            ),
+            Q_(1, "liter"),
+            Q_(10, "liter"),
+        ),
+        OptimizerSource(
+            SourceWaterProfile(
+                "Source B",
+                (IonConcentration.mg_per_liter(Ion.CALCIUM, 100.0),),
+            ),
+            Q_(3, "liter"),
+            Q_(30, "liter"),
+        ),
+    )
+    diluent = OptimizerSource(
+        SourceWaterProfile(
+            "Characterized RO",
+            (IonConcentration.mg_per_liter(Ion.CALCIUM, 0.0),),
+        ),
+        Q_(0, "liter"),
+        Q_(20, "liter"),
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(20, "liter"),
+        sources=sources,
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.PROPORTIONAL_DILUTION,
+        target_profile=_target(50.0),
+        diluent_source=diluent,
+    )
+
+    result = optimize_treatment(request)
+
+    assert result.feasibility is OptimizerFeasibilityStatus.FEASIBLE
+    assert len(result.plans) == 1
+    plan = result.plans[0]
+    assert plan.target_fit is OptimizerTargetFitStatus.WITHIN_TARGET
+    assert tuple(
+        float(entry.volume.to("liter").magnitude) for entry in plan.source_volumes
+    ) == pytest.approx((2.5, 7.5, 10.0))
+    assert float(
+        plan.source_volumes[1].volume.to("liter").magnitude
+        / plan.source_volumes[0].volume.to("liter").magnitude
+    ) == pytest.approx(3.0)
+
+
+def test_proportional_dilution_honors_source_availability() -> None:
+    source = OptimizerSource(
+        SourceWaterProfile(
+            "Limited source",
+            (IonConcentration.mg_per_liter(Ion.CALCIUM, 100.0),),
+        ),
+        Q_(1, "liter"),
+        Q_(5, "liter"),
+    )
     diluent = OptimizerSource(
         SourceWaterProfile(
             "Characterized RO",
@@ -363,21 +449,208 @@ def test_nonfixed_blend_policy_is_explicitly_unsupported_by_first_slice() -> Non
         Q_(10, "liter"),
     )
     request = OptimizerRequest(
-        total_volume=Q_(20, "liter"),
+        total_volume=Q_(10, "liter"),
         sources=(source,),
         material_constraints=(),
         source_resolution_policy=_POLICY,
         blend_policy=OptimizerBlendPolicy.PROPORTIONAL_DILUTION,
-        target_profile=_target(10.0),
+        target_profile=_target(100.0),
+        diluent_source=diluent,
+    )
+
+    plan = optimize_treatment(request).plans[0]
+
+    assert tuple(
+        float(entry.volume.to("liter").magnitude) for entry in plan.source_volumes
+    ) == pytest.approx((5.0, 5.0))
+    assert plan.target_fit is OptimizerTargetFitStatus.OUTSIDE_TARGET
+
+
+def test_proportional_dilution_reports_infeasible_volume_limits() -> None:
+    source = OptimizerSource(
+        SourceWaterProfile(
+            "Limited source",
+            (IonConcentration.mg_per_liter(Ion.CALCIUM, 100.0),),
+        ),
+        Q_(1, "liter"),
+        Q_(4, "liter"),
+    )
+    diluent = OptimizerSource(
+        SourceWaterProfile(
+            "Limited diluent",
+            (IonConcentration.mg_per_liter(Ion.CALCIUM, 0.0),),
+        ),
+        Q_(0, "liter"),
+        Q_(5, "liter"),
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(10, "liter"),
+        sources=(source,),
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.PROPORTIONAL_DILUTION,
+        target_profile=_target(50.0),
         diluent_source=diluent,
     )
 
     result = optimize_treatment(request)
 
-    assert result.input_support is OptimizerInputSupportStatus.UNSUPPORTED
+    assert result.feasibility is OptimizerFeasibilityStatus.INFEASIBLE
     assert result.plans == ()
     assert tuple(diagnostic.code for diagnostic in result.diagnostics) == (
-        OptimizerDiagnosticCode.BLEND_POLICY_NOT_IMPLEMENTED,
+        OptimizerDiagnosticCode.SOURCE_VOLUME_CONSTRAINTS_INFEASIBLE,
+    )
+
+
+def test_proportional_dilution_does_not_treat_unknown_diluent_as_zero() -> None:
+    source = OptimizerSource(
+        SourceWaterProfile(
+            "Source",
+            (IonConcentration.mg_per_liter(Ion.CALCIUM, 100.0),),
+        ),
+        Q_(10, "liter"),
+        Q_(20, "liter"),
+    )
+    diluent = OptimizerSource(
+        SourceWaterProfile("Uncharacterized RO", ()),
+        Q_(0, "liter"),
+        Q_(20, "liter"),
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(20, "liter"),
+        sources=(source,),
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.PROPORTIONAL_DILUTION,
+        target_profile=_target(50.0),
+        diluent_source=diluent,
+    )
+
+    result = optimize_treatment(request)
+
+    assert result.input_support is OptimizerInputSupportStatus.INDETERMINATE
+    assert result.plans == ()
+    assert tuple(diagnostic.code for diagnostic in result.diagnostics) == (
+        OptimizerDiagnosticCode.REQUIRED_DILUENT_CHEMISTRY_UNKNOWN,
+    )
+    assert result.diagnostics[0].source_name == "Uncharacterized RO"
+
+
+def test_requested_no_dilution_plan_is_returned_when_materially_different() -> None:
+    source = OptimizerSource(
+        SourceWaterProfile(
+            "Source",
+            (IonConcentration.mg_per_liter(Ion.CALCIUM, 100.0),),
+        ),
+        Q_(20, "liter"),
+        Q_(20, "liter"),
+    )
+    diluent = OptimizerSource(
+        SourceWaterProfile(
+            "Characterized RO",
+            (IonConcentration.mg_per_liter(Ion.CALCIUM, 0.0),),
+        ),
+        Q_(0, "liter"),
+        Q_(20, "liter"),
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(20, "liter"),
+        sources=(source,),
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.PROPORTIONAL_DILUTION,
+        target_profile=_target(50.0),
+        request_no_dilution_plan=True,
+        diluent_source=diluent,
+    )
+
+    result = optimize_treatment(request)
+
+    assert len(result.plans) == 2
+    closest, no_dilution = result.plans
+    assert closest.target_fit is OptimizerTargetFitStatus.WITHIN_TARGET
+    assert float(closest.source_volumes[-1].volume.magnitude) == pytest.approx(10.0)
+    assert no_dilution.strategy is (
+        OptimizerStrategy.NO_DILUTION_CLOSEST_ABSOLUTE_MG_PER_LITER
+    )
+    assert no_dilution.target_fit is OptimizerTargetFitStatus.OUTSIDE_TARGET
+    assert float(no_dilution.source_volumes[-1].volume.magnitude) == pytest.approx(0.0)
+    comparison = no_dilution.target_comparison
+    assert comparison is not None
+    calcium = comparison.comparison_for(Ion.CALCIUM)
+    assert calcium is not None
+    assert float(calcium.deviation.magnitude) == pytest.approx(50.0)
+
+
+def test_requested_no_dilution_plan_is_deduplicated() -> None:
+    source = OptimizerSource(
+        SourceWaterProfile(
+            "Source",
+            (IonConcentration.mg_per_liter(Ion.CALCIUM, 100.0),),
+        ),
+        Q_(20, "liter"),
+        Q_(20, "liter"),
+    )
+    diluent = OptimizerSource(
+        SourceWaterProfile(
+            "Characterized RO",
+            (IonConcentration.mg_per_liter(Ion.CALCIUM, 0.0),),
+        ),
+        Q_(0, "liter"),
+        Q_(20, "liter"),
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(20, "liter"),
+        sources=(source,),
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.PROPORTIONAL_DILUTION,
+        target_profile=_target(100.0),
+        request_no_dilution_plan=True,
+        diluent_source=diluent,
+    )
+
+    result = optimize_treatment(request)
+
+    assert len(result.plans) == 1
+    assert float(result.plans[0].source_volumes[-1].volume.magnitude) == pytest.approx(
+        0.0
+    )
+
+
+def test_requested_no_dilution_plan_reports_source_limit_infeasibility() -> None:
+    source = OptimizerSource(
+        SourceWaterProfile(
+            "Limited source",
+            (IonConcentration.mg_per_liter(Ion.CALCIUM, 100.0),),
+        ),
+        Q_(1, "liter"),
+        Q_(5, "liter"),
+    )
+    diluent = OptimizerSource(
+        SourceWaterProfile(
+            "Characterized RO",
+            (IonConcentration.mg_per_liter(Ion.CALCIUM, 0.0),),
+        ),
+        Q_(0, "liter"),
+        Q_(10, "liter"),
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(10, "liter"),
+        sources=(source,),
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.PROPORTIONAL_DILUTION,
+        target_profile=_target(50.0),
+        request_no_dilution_plan=True,
+        diluent_source=diluent,
+    )
+
+    result = optimize_treatment(request)
+
+    assert len(result.plans) == 1
+    assert tuple(diagnostic.code for diagnostic in result.diagnostics) == (
+        OptimizerDiagnosticCode.NO_DILUTION_PLAN_INFEASIBLE,
     )
 
 
