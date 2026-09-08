@@ -313,6 +313,7 @@ def _validated_decisions(
     maximum_counts: Sequence[int],
     continuous_lower_bounds: Sequence[float],
     continuous_upper_bounds: Sequence[float],
+    continuous_sum_target: float | None,
 ) -> _ValidatedDecisions | None:
     if result.x is None:
         return None
@@ -355,6 +356,22 @@ def _validated_decisions(
             return None
         continuous_values.append(min(max(value, lower), upper))
 
+    if continuous_sum_target is not None:
+        if not continuous_values:
+            return None
+        difference = continuous_sum_target - fsum(continuous_values)
+        if fabs(difference) > _CONTINUOUS_ABS_TOLERANCE:
+            return None
+        adjusted = continuous_values[-1] + difference
+        final_lower = continuous_lower_bounds[-1]
+        final_upper = continuous_upper_bounds[-1]
+        if (
+            adjusted < final_lower - _CONTINUOUS_ABS_TOLERANCE
+            or adjusted > final_upper + _CONTINUOUS_ABS_TOLERANCE
+        ):
+            return None
+        continuous_values[-1] = min(max(adjusted, final_lower), final_upper)
+
     return _ValidatedDecisions(tuple(counts), tuple(continuous_values))
 
 
@@ -395,6 +412,7 @@ def _solve_increment_counts(
     continuous_coefficients: tuple[tuple[float, ...], ...] = (),
     continuous_lower_bounds: tuple[float, ...] = (),
     continuous_upper_bounds: tuple[float, ...] = (),
+    continuous_sum_target: float | None = None,
 ) -> tuple[_ValidatedDecisions | None, OptimizerSolverReport]:
     material_count = len(request.material_constraints)
     comparison_count = len(comparisons)
@@ -404,10 +422,15 @@ def _solve_increment_counts(
     ):
         raise ValueError("Continuous solver inputs must have matching lengths.")
     if comparison_count == 0:
+        continuous_values = (
+            (0.0,) * continuous_count
+            if continuous_sum_target is not None
+            else continuous_lower_bounds
+        )
         return (
             _ValidatedDecisions(
                 material_counts=(0,) * material_count,
-                continuous_values=continuous_lower_bounds,
+                continuous_values=continuous_values,
             ),
             OptimizerSolverReport(
                 solver="engine",
@@ -445,6 +468,7 @@ def _solve_increment_counts(
     )
     integrality = [1] * material_count + [0] * (continuous_count + 2 * comparison_count)
     rows: list[list[float]] = []
+    row_lower_bounds: list[float] = []
     row_upper_bounds: list[float] = []
 
     for comparison_index, comparison in enumerate(comparisons):
@@ -467,6 +491,7 @@ def _solve_increment_counts(
             row = [-term for term in decision_terms] + [0.0] * (2 * comparison_count)
             row[lower_slack_index] = -1.0
             rows.append(row)
+            row_lower_bounds.append(-inf)
             row_upper_bounds.append(actual - minimum)
         else:
             upper_bounds[lower_slack_index] = 0.0
@@ -476,9 +501,18 @@ def _solve_increment_counts(
             row = decision_terms + [0.0] * (2 * comparison_count)
             row[upper_slack_index] = -1.0
             rows.append(row)
+            row_lower_bounds.append(-inf)
             row_upper_bounds.append(maximum - actual)
         else:
             upper_bounds[upper_slack_index] = 0.0
+
+    if continuous_sum_target is not None:
+        equality_row = [0.0] * variable_count
+        for continuous_index in range(continuous_count):
+            equality_row[material_count + continuous_index] = 1.0
+        rows.append(equality_row)
+        row_lower_bounds.append(continuous_sum_target)
+        row_upper_bounds.append(continuous_sum_target)
 
     primary = cast(
         _MilpResult,
@@ -488,7 +522,7 @@ def _solve_increment_counts(
             bounds=Bounds(lower_bounds, upper_bounds),
             constraints=LinearConstraint(
                 rows,
-                [-inf] * len(rows),
+                row_lower_bounds,
                 row_upper_bounds,
             ),
             options={"mip_rel_gap": _MIP_RELATIVE_GAP},
@@ -517,11 +551,12 @@ def _solve_increment_counts(
         maximum_counts=maximum_counts,
         continuous_lower_bounds=continuous_lower_bounds,
         continuous_upper_bounds=continuous_upper_bounds,
+        continuous_sum_target=continuous_sum_target,
     )
     if primary_decisions is None:
         return None, _rejected_solver_report(
             primary,
-            message="Solver returned invalid material increment counts.",
+            message="Solver returned invalid decision values.",
             solver_reported_primary_objective=raw_primary_objective,
         )
     primary_recomputed_objective = _objective_from_decisions(
@@ -545,7 +580,7 @@ def _solve_increment_counts(
             constraints=(
                 LinearConstraint(
                     rows,
-                    [-inf] * len(rows),
+                    row_lower_bounds,
                     row_upper_bounds,
                 ),
                 LinearConstraint(
@@ -582,11 +617,12 @@ def _solve_increment_counts(
         maximum_counts=maximum_counts,
         continuous_lower_bounds=continuous_lower_bounds,
         continuous_upper_bounds=continuous_upper_bounds,
+        continuous_sum_target=continuous_sum_target,
     )
     if secondary_decisions is None:
         return None, _rejected_solver_report(
             secondary,
-            message="Solver returned invalid secondary material increment counts.",
+            message="Solver returned invalid secondary decision values.",
             solver_reported_primary_objective=raw_primary_objective,
             primary_objective=primary_recomputed_objective,
         )
@@ -865,6 +901,122 @@ def _dilution_coefficients(
     return tuple(coefficients), ()
 
 
+def _source_volume_reference(request: OptimizerRequest) -> tuple[float, ...] | None:
+    total_liters = float(request.total_volume.to("liter").magnitude)
+    current = [
+        float(source.current_volume.to("liter").magnitude) for source in request.sources
+    ]
+    maximum = [
+        min(total_liters, float(source.maximum_volume.to("liter").magnitude))
+        for source in request.sources
+    ]
+    if fsum(maximum) < total_liters - _CONTINUOUS_ABS_TOLERANCE:
+        return None
+
+    current_total = fsum(current)
+    if current_total >= total_liters:
+        scale = total_liters / current_total
+        return tuple(value * scale for value in current)
+
+    reference = current
+    remaining = total_liters - current_total
+    for index, upper in enumerate(maximum):
+        addition = min(remaining, upper - reference[index])
+        reference[index] += addition
+        remaining -= addition
+        if remaining <= _CONTINUOUS_ABS_TOLERANCE:
+            break
+    if remaining > _CONTINUOUS_ABS_TOLERANCE:
+        return None
+    reference[-1] += total_liters - fsum(reference)
+    return tuple(reference)
+
+
+def _source_volume_coefficients(
+    request: OptimizerRequest,
+    comparisons: tuple[TargetIonComparison, ...],
+) -> tuple[tuple[tuple[float, ...], ...] | None, tuple[OptimizerDiagnostic, ...]]:
+    total_liters = float(request.total_volume.to("liter").magnitude)
+    coefficients: list[tuple[float, ...]] = []
+    diagnostics: list[OptimizerDiagnostic] = []
+    for source_index, source in enumerate(request.sources):
+        resolution = resolve_source_profile(
+            source.source_profile,
+            policy=request.source_resolution_policy,
+        )
+        source_coefficients: list[float] = []
+        for comparison in comparisons:
+            if comparison.status is TargetIonComparisonStatus.TARGET_UNSUPPORTED:
+                continue
+            concentration = resolution.state.concentration_for(comparison.ion)
+            if concentration is None:
+                diagnostics.append(
+                    OptimizerDiagnostic(
+                        code=(
+                            OptimizerDiagnosticCode.REQUIRED_SOURCE_CHEMISTRY_UNKNOWN
+                        ),
+                        message=(
+                            f"Source {source.source_profile.name} has unknown "
+                            f"{comparison.ion.value} concentration; source-volume "
+                            "optimization cannot assume zero."
+                        ),
+                        ion=comparison.ion,
+                        source_index=source_index,
+                        source_name=source.source_profile.name,
+                    )
+                )
+                continue
+            coefficient = (
+                float(concentration.to("milligram / liter").magnitude) / total_liters
+            )
+            magnitude = fabs(coefficient)
+            if magnitude != 0.0 and (
+                magnitude <= _SMALLEST_SOLVER_MATRIX_VALUE
+                or magnitude >= _LARGEST_SOLVER_MATRIX_VALUE
+            ):
+                diagnostics.append(
+                    OptimizerDiagnostic(
+                        code=(
+                            OptimizerDiagnosticCode.NUMERICAL_MODEL_RANGE_UNSUPPORTED
+                        ),
+                        message=(
+                            f"The {source.source_profile.name} source-volume effect "
+                            f"on {comparison.ion.value} is outside this solver's "
+                            "supported numerical coefficient range."
+                        ),
+                        ion=comparison.ion,
+                        source_index=source_index,
+                        source_name=source.source_profile.name,
+                    )
+                )
+                continue
+            source_coefficients.append(coefficient)
+        coefficients.append(tuple(source_coefficients))
+
+    if diagnostics:
+        return None, tuple(diagnostics)
+    return tuple(coefficients), ()
+
+
+def _optimized_source_volumes(
+    request: OptimizerRequest,
+    reference: tuple[float, ...],
+    deltas: tuple[float, ...],
+) -> tuple[OptimizerSourceVolume, ...]:
+    return tuple(
+        OptimizerSourceVolume(
+            source=source,
+            volume=Q_(reference_volume + delta, "liter"),
+        )
+        for source, reference_volume, delta in zip(
+            request.sources,
+            reference,
+            deltas,
+            strict=True,
+        )
+    )
+
+
 def _plans_operationally_equivalent(
     left: OptimizerPlan,
     right: OptimizerPlan,
@@ -1100,24 +1252,151 @@ def _optimize_proportional_dilution(request: OptimizerRequest) -> OptimizerResul
     )
 
 
-def optimize_treatment(request: OptimizerRequest) -> OptimizerResult:
-    """Return one bounded practical plan for the implemented fixed-blend policy."""
-    if request.blend_policy is OptimizerBlendPolicy.PROPORTIONAL_DILUTION:
-        return _optimize_proportional_dilution(request)
-    if request.blend_policy is not OptimizerBlendPolicy.FIXED:
+def _optimize_source_volumes(request: OptimizerRequest) -> OptimizerResult:
+    total_liters = float(request.total_volume.to("liter").magnitude)
+    if total_liters >= _LARGEST_SOLVER_BOUND:
         return _unsupported_result(
             request,
             support=OptimizerInputSupportStatus.UNSUPPORTED,
             diagnostics=(
                 OptimizerDiagnostic(
-                    code=OptimizerDiagnosticCode.BLEND_POLICY_NOT_IMPLEMENTED,
+                    code=(OptimizerDiagnosticCode.NUMERICAL_MODEL_RANGE_UNSUPPORTED),
                     message=(
-                        f"Blend policy {request.blend_policy.value} is not implemented "
-                        "by the first solver slice."
+                        "The requested total volume is outside this solver's "
+                        "supported numerical range."
                     ),
                 ),
             ),
         )
+    reference = _source_volume_reference(request)
+    if reference is None:
+        diagnostic = OptimizerDiagnostic(
+            code=OptimizerDiagnosticCode.SOURCE_VOLUME_CONSTRAINTS_INFEASIBLE,
+            message=(
+                "The permitted source volumes cannot supply the requested total volume."
+            ),
+        )
+        return OptimizerResult(
+            request=request,
+            input_support=OptimizerInputSupportStatus.SUPPORTED,
+            feasibility=OptimizerFeasibilityStatus.INFEASIBLE,
+            plans=(),
+            diagnostics=(diagnostic,),
+            solver_report=None,
+        )
+
+    reference_source_volumes = tuple(
+        OptimizerSourceVolume(source=source, volume=Q_(volume, "liter"))
+        for source, volume in zip(request.sources, reference, strict=True)
+    )
+    initial = calculate_forward_water(
+        tuple(
+            ForwardWaterSource(entry.source.source_profile, entry.volume)
+            for entry in reference_source_volumes
+        ),
+        source_resolution_policy=request.source_resolution_policy,
+        target_profile=request.target_profile,
+    )
+    comparison = initial.final_target_comparison
+    comparisons = () if comparison is None else comparison.ion_comparisons
+    support, diagnostics = _input_diagnostics(request, comparisons)
+    if support is OptimizerInputSupportStatus.UNSUPPORTED:
+        return _unsupported_result(
+            request,
+            support=support,
+            diagnostics=diagnostics,
+        )
+
+    source_coefficients, source_diagnostics = _source_volume_coefficients(
+        request,
+        comparisons,
+    )
+    if source_coefficients is None:
+        source_support = (
+            OptimizerInputSupportStatus.INDETERMINATE
+            if all(
+                diagnostic.code
+                is OptimizerDiagnosticCode.REQUIRED_SOURCE_CHEMISTRY_UNKNOWN
+                for diagnostic in source_diagnostics
+            )
+            else OptimizerInputSupportStatus.UNSUPPORTED
+        )
+        return _unsupported_result(
+            request,
+            support=source_support,
+            diagnostics=source_diagnostics,
+        )
+    if support is OptimizerInputSupportStatus.INDETERMINATE:
+        return _unsupported_result(
+            request,
+            support=support,
+            diagnostics=diagnostics,
+        )
+
+    material_diagnostics = _numerical_model_diagnostics(request, comparisons)
+    if material_diagnostics:
+        return _unsupported_result(
+            request,
+            support=OptimizerInputSupportStatus.UNSUPPORTED,
+            diagnostics=material_diagnostics,
+        )
+
+    effective_maximum = tuple(
+        min(total_liters, float(source.maximum_volume.to("liter").magnitude))
+        for source in request.sources
+    )
+    lower_bounds = tuple(-volume for volume in reference)
+    upper_bounds = tuple(
+        maximum - volume
+        for maximum, volume in zip(effective_maximum, reference, strict=True)
+    )
+    decisions, solver_report = _solve_increment_counts(
+        request,
+        comparisons,
+        continuous_coefficients=source_coefficients,
+        continuous_lower_bounds=lower_bounds,
+        continuous_upper_bounds=upper_bounds,
+        continuous_sum_target=0.0,
+    )
+    if decisions is None:
+        return _solver_failure_result(request, solver_report)
+
+    plan, postvalidation_diagnostic = _build_plan(
+        request,
+        source_volumes=_optimized_source_volumes(
+            request,
+            reference,
+            decisions.continuous_values,
+        ),
+        material_counts=decisions.material_counts,
+        solver_report=solver_report,
+        plan_id="closest_absolute_mg_per_liter_v1:1",
+        strategy=OptimizerStrategy.CLOSEST_ABSOLUTE_MG_PER_LITER,
+        summary_label="Closest absolute mg/L source-volume plan",
+    )
+    if plan is None:
+        assert postvalidation_diagnostic is not None
+        return _postvalidation_failure_result(
+            request,
+            solver_report,
+            postvalidation_diagnostic,
+        )
+    return OptimizerResult(
+        request=request,
+        input_support=OptimizerInputSupportStatus.SUPPORTED,
+        feasibility=OptimizerFeasibilityStatus.FEASIBLE,
+        plans=(plan,),
+        diagnostics=(),
+        solver_report=solver_report,
+    )
+
+
+def optimize_treatment(request: OptimizerRequest) -> OptimizerResult:
+    """Return bounded practical plans under the caller's explicit blend policy."""
+    if request.blend_policy is OptimizerBlendPolicy.PROPORTIONAL_DILUTION:
+        return _optimize_proportional_dilution(request)
+    if request.blend_policy is OptimizerBlendPolicy.SOURCE_VOLUMES:
+        return _optimize_source_volumes(request)
 
     sources = tuple(
         ForwardWaterSource(source.source_profile, source.current_volume)

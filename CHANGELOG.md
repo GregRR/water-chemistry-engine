@@ -30,6 +30,9 @@ distribution and its repository milestones.
 - Added proportional-dilution optimization with an explicitly characterized
   diluent, preserved source proportions, source/diluent availability limits,
   and an optional deduplicated no-dilution best-effort plan.
+- Added bounded source-volume optimization across caller-permitted waters,
+  including exact total-volume enforcement, independent chemistry resolution,
+  positional source identity, and structured insufficient-availability results.
 
 ## 0.3.1 - 2026-09-06
 

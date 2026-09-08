@@ -1237,9 +1237,11 @@ Material decisions are integer counts of declared dose increments so a
 continuous optimum is not mistaken for a practical measured dose.
 Proportional-dilution requests additionally use one continuous diluent-volume
 variable while deriving all ordinary source volumes from their preserved
-current proportions. ADR 0006 records the dependency, Python-compatibility
-constraint, and division of responsibility between the numerical solver and
-the engine's validation and result semantics.
+current proportions. Source-volume requests use one continuous bounded volume
+variable per caller-permitted source and an exact total-volume equality
+constraint. ADR 0006 records the dependency, Python-compatibility constraint,
+and division of responsibility between the numerical solver and the engine's
+validation and result semantics.
 
 The initial integration deliberately limits each material variable to
 1,000,000 dose increments. Requests above that project-tested numerical range
@@ -1284,6 +1286,18 @@ variable; an omitted or unresolved result remains unknown rather than becoming
 ideal-zero water. The optional no-dilution plan is meaningful only for this
 policy, is solved independently under a zero-diluent constraint, and is omitted
 when operationally equivalent to the preferred plan.
+
+For source-volume optimization, `current_volume` provides a deterministic
+reference point for the linear model but is not a minimum or a required blend.
+Every selected source volume may vary from zero through its caller-declared
+maximum, and selected volumes must sum to the requested total. The engine
+constructs an internal feasible reference blend before solving and expresses
+source decisions as volume changes around that reference; this algebraic
+reference does not represent reported zero chemistry or alter the final plan.
+Because any permitted source may receive positive volume, every target ion must
+be numerically resolved for every source. A missing or unresolved result makes
+the request indeterminate instead of silently excluding that source or treating
+its concentration as zero.
 
 ### 20.2 Constraints
 

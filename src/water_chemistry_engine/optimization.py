@@ -81,7 +81,6 @@ class OptimizerStrategy(StrEnum):
 class OptimizerDiagnosticCode(StrEnum):
     """Machine-readable reasons an optimizer request or plan is limited."""
 
-    BLEND_POLICY_NOT_IMPLEMENTED = "blend_policy_not_implemented"
     TARGET_PH_UNSUPPORTED = "target_ph_unsupported"
     TARGET_CRITERION_UNSUPPORTED = "target_criterion_unsupported"
     REQUIRED_SOURCE_CHEMISTRY_UNKNOWN = "required_source_chemistry_unknown"

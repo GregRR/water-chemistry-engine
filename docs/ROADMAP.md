@@ -237,7 +237,10 @@ ions. Every accepted plan is recalculated through the ordinary forward path.
 An optionally requested no-dilution best-effort plan is independently solved
 and returned only when operationally distinct; source limits that make it
 impossible are reported explicitly. Freely optimized source volumes remain the
-one unsupported blend policy in this implementation stage.
+third implemented blend policy: each source is a bounded continuous decision,
+all selected volumes sum exactly to the requested total, and every target ion
+must be resolved independently for every candidate source. Sources remain
+positionally distinct even when display names match.
 
 The initial SciPy/HiGHS integration accepts at most 1,000,000 dose increments
 per permitted material. Larger integer ranges are reported as unsupported and

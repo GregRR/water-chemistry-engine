@@ -44,8 +44,12 @@ from water_chemistry_engine.treatment_materials import ExactMassDosedTreatmentMa
 _POLICY = SourceResolutionPolicy(allow_exact_range_midpoints=False)
 _GYPSUM_MOLAR_MASS_G_PER_MOL = 172.164
 _CALCIUM_MOLAR_MASS_G_PER_MOL = 40.078
+_SULFATE_MOLAR_MASS_G_PER_MOL = 96.056
 _CALCIUM_MG_PER_LITER_PER_GYPSUM_GRAM_IN_TEN_LITERS = (
     _CALCIUM_MOLAR_MASS_G_PER_MOL / _GYPSUM_MOLAR_MASS_G_PER_MOL * 100.0
+)
+_SULFATE_MG_PER_LITER_PER_GYPSUM_GRAM_IN_TWENTY_LITERS = (
+    _SULFATE_MOLAR_MASS_G_PER_MOL / _GYPSUM_MOLAR_MASS_G_PER_MOL * 50.0
 )
 
 
@@ -61,6 +65,26 @@ def _source(*, volume_liters: float = 10.0, **values: float) -> OptimizerSource:
         profile,
         Q_(volume_liters, "liter"),
         Q_(volume_liters, "liter"),
+    )
+
+
+def _available_source(
+    name: str,
+    *,
+    current_liters: float,
+    maximum_liters: float,
+    **values: float,
+) -> OptimizerSource:
+    return OptimizerSource(
+        SourceWaterProfile(
+            name=name,
+            concentrations=tuple(
+                IonConcentration.mg_per_liter(Ion(ion), value)
+                for ion, value in values.items()
+            ),
+        ),
+        Q_(current_liters, "liter"),
+        Q_(maximum_liters, "liter"),
     )
 
 
@@ -352,31 +376,291 @@ def test_empty_target_profile_is_not_mislabeled_indeterminate() -> None:
     assert plan.material_additions == ()
 
 
-def test_source_volume_policy_remains_explicitly_unsupported() -> None:
-    source = OptimizerSource(
-        SourceWaterProfile(
-            "Source",
-            (IonConcentration.mg_per_liter(Ion.CALCIUM, 0.0),),
-        ),
-        Q_(10, "liter"),
-        Q_(20, "liter"),
+def test_source_volume_policy_finds_exact_bounded_blend() -> None:
+    high_calcium = _available_source(
+        "High calcium",
+        current_liters=10.0,
+        maximum_liters=20.0,
+        calcium=100.0,
+    )
+    zero_calcium = _available_source(
+        "Zero calcium",
+        current_liters=10.0,
+        maximum_liters=20.0,
+        calcium=0.0,
     )
     request = OptimizerRequest(
         total_volume=Q_(20, "liter"),
-        sources=(source,),
+        sources=(high_calcium, zero_calcium),
         material_constraints=(),
         source_resolution_policy=_POLICY,
         blend_policy=OptimizerBlendPolicy.SOURCE_VOLUMES,
-        target_profile=_target(10.0),
+        target_profile=_target(25.0),
     )
 
     result = optimize_treatment(request)
 
-    assert result.input_support is OptimizerInputSupportStatus.UNSUPPORTED
+    assert result.feasibility is OptimizerFeasibilityStatus.FEASIBLE
+    assert len(result.plans) == 1
+    plan = result.plans[0]
+    assert plan.target_fit is OptimizerTargetFitStatus.WITHIN_TARGET
+    assert tuple(
+        float(entry.volume.to("liter").magnitude) for entry in plan.source_volumes
+    ) == pytest.approx((5.0, 15.0))
+
+
+def test_source_volume_policy_honors_source_maximums() -> None:
+    high_calcium = _available_source(
+        "Limited high calcium",
+        current_liters=0.0,
+        maximum_liters=4.0,
+        calcium=100.0,
+    )
+    zero_calcium = _available_source(
+        "Zero calcium",
+        current_liters=0.0,
+        maximum_liters=20.0,
+        calcium=0.0,
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(20, "liter"),
+        sources=(high_calcium, zero_calcium),
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.SOURCE_VOLUMES,
+        target_profile=_target(50.0),
+    )
+
+    plan = optimize_treatment(request).plans[0]
+
+    assert tuple(
+        float(entry.volume.to("liter").magnitude) for entry in plan.source_volumes
+    ) == pytest.approx((4.0, 16.0))
+    assert plan.target_fit is OptimizerTargetFitStatus.OUTSIDE_TARGET
+
+
+def test_source_volume_and_material_decisions_solve_together() -> None:
+    high_calcium = _available_source(
+        "High calcium",
+        current_liters=10.0,
+        maximum_liters=20.0,
+        calcium=100.0,
+        sulfate=0.0,
+    )
+    zero_water = _available_source(
+        "Zero water",
+        current_liters=10.0,
+        maximum_liters=20.0,
+        calcium=0.0,
+        sulfate=0.0,
+    )
+    gypsum_grams = 0.2
+    target = TargetWaterProfile(
+        "Blend and treatment target",
+        (
+            IonConcentration.mg_per_liter(
+                Ion.CALCIUM,
+                25.0
+                + gypsum_grams
+                * _CALCIUM_MG_PER_LITER_PER_GYPSUM_GRAM_IN_TEN_LITERS
+                / 2.0,
+            ),
+            IonConcentration.mg_per_liter(
+                Ion.SULFATE,
+                gypsum_grams * _SULFATE_MG_PER_LITER_PER_GYPSUM_GRAM_IN_TWENTY_LITERS,
+            ),
+        ),
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(20, "liter"),
+        sources=(high_calcium, zero_water),
+        material_constraints=(_gypsum_constraint(maximum_grams=1.0),),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.SOURCE_VOLUMES,
+        target_profile=target,
+    )
+
+    plan = optimize_treatment(request).plans[0]
+
+    assert plan.target_fit is OptimizerTargetFitStatus.WITHIN_TARGET
+    assert tuple(float(entry.volume.magnitude) for entry in plan.source_volumes) == (
+        pytest.approx(5.0),
+        pytest.approx(15.0),
+    )
+    assert len(plan.material_additions) == 1
+    assert float(plan.material_additions[0].measured_mass.magnitude) == pytest.approx(
+        gypsum_grams
+    )
+
+
+def test_source_volume_policy_reports_insufficient_total_availability() -> None:
+    sources = (
+        _available_source(
+            "Source A",
+            current_liters=0.0,
+            maximum_liters=4.0,
+            calcium=100.0,
+        ),
+        _available_source(
+            "Source B",
+            current_liters=0.0,
+            maximum_liters=5.0,
+            calcium=0.0,
+        ),
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(10, "liter"),
+        sources=sources,
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.SOURCE_VOLUMES,
+        target_profile=_target(50.0),
+    )
+
+    result = optimize_treatment(request)
+
+    assert result.feasibility is OptimizerFeasibilityStatus.INFEASIBLE
     assert result.plans == ()
     assert tuple(diagnostic.code for diagnostic in result.diagnostics) == (
-        OptimizerDiagnosticCode.BLEND_POLICY_NOT_IMPLEMENTED,
+        OptimizerDiagnosticCode.SOURCE_VOLUME_CONSTRAINTS_INFEASIBLE,
     )
+
+
+def test_source_volume_policy_does_not_use_unknown_source_chemistry() -> None:
+    known = _available_source(
+        "Known",
+        current_liters=20.0,
+        maximum_liters=20.0,
+        calcium=100.0,
+    )
+    unknown = OptimizerSource(
+        SourceWaterProfile("Unknown candidate", ()),
+        Q_(0, "liter"),
+        Q_(20, "liter"),
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(20, "liter"),
+        sources=(known, unknown),
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.SOURCE_VOLUMES,
+        target_profile=_target(50.0),
+    )
+
+    result = optimize_treatment(request)
+
+    assert result.input_support is OptimizerInputSupportStatus.INDETERMINATE
+    assert result.plans == ()
+    assert tuple(diagnostic.code for diagnostic in result.diagnostics) == (
+        OptimizerDiagnosticCode.REQUIRED_SOURCE_CHEMISTRY_UNKNOWN,
+    )
+    assert result.diagnostics[0].source_index == 1
+    assert result.diagnostics[0].source_name == "Unknown candidate"
+
+
+def test_source_volume_policy_preserves_duplicate_display_names_by_position() -> None:
+    sources = (
+        _available_source(
+            "Well",
+            current_liters=0.0,
+            maximum_liters=20.0,
+            calcium=100.0,
+        ),
+        _available_source(
+            "Well",
+            current_liters=0.0,
+            maximum_liters=20.0,
+            calcium=0.0,
+        ),
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(20, "liter"),
+        sources=sources,
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.SOURCE_VOLUMES,
+        target_profile=_target(25.0),
+    )
+
+    plan = optimize_treatment(request).plans[0]
+
+    assert tuple(entry.source for entry in plan.source_volumes) == sources
+    assert tuple(float(entry.volume.magnitude) for entry in plan.source_volumes) == (
+        pytest.approx(5.0),
+        pytest.approx(15.0),
+    )
+
+
+def test_source_volume_policy_is_deterministic_for_same_request() -> None:
+    sources = (
+        _available_source(
+            "Source A",
+            current_liters=0.0,
+            maximum_liters=20.0,
+            calcium=100.0,
+        ),
+        _available_source(
+            "Source B",
+            current_liters=0.0,
+            maximum_liters=20.0,
+            calcium=0.0,
+        ),
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(20, "liter"),
+        sources=sources,
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.SOURCE_VOLUMES,
+        target_profile=_target(25.0),
+    )
+
+    assert optimize_treatment(request) == optimize_treatment(request)
+
+
+def test_source_volume_policy_rejects_solver_volume_sum_violation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def invalid_milp(**_kwargs: object) -> SimpleNamespace:
+        return SimpleNamespace(
+            success=True,
+            status=0,
+            message="claimed success",
+            fun=0.0,
+            x=(0.1, 0.1, 0.0, 0.0),
+            mip_gap=0.0,
+        )
+
+    monkeypatch.setattr(optimizer_solver, "milp", invalid_milp)
+    sources = (
+        _available_source(
+            "Source A",
+            current_liters=10.0,
+            maximum_liters=20.0,
+            calcium=100.0,
+        ),
+        _available_source(
+            "Source B",
+            current_liters=10.0,
+            maximum_liters=20.0,
+            calcium=0.0,
+        ),
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(20, "liter"),
+        sources=sources,
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.SOURCE_VOLUMES,
+        target_profile=_target(50.0),
+    )
+
+    result = optimize_treatment(request)
+
+    assert result.feasibility is OptimizerFeasibilityStatus.INDETERMINATE
+    assert result.plans == ()
+    assert result.solver_report is not None
+    assert "invalid decision values" in result.solver_report.message
 
 
 def test_proportional_dilution_finds_exact_target_and_preserves_proportions() -> None:
@@ -844,7 +1128,7 @@ def test_solver_integer_noise_above_backend_tolerance_is_rejected(
     assert result.plans == ()
     assert result.solver_report is not None
     assert result.solver_report.success is False
-    assert "invalid material increment counts" in result.solver_report.message
+    assert "invalid decision values" in result.solver_report.message
 
 
 @pytest.mark.parametrize(
@@ -882,7 +1166,7 @@ def test_solver_requires_complete_decision_vector(
     assert result.plans == ()
     assert result.solver_report is not None
     assert result.solver_report.success is False
-    assert "invalid material increment counts" in result.solver_report.message
+    assert "invalid decision values" in result.solver_report.message
 
 
 def test_secondary_solver_failure_does_not_silently_drop_mass_policy(

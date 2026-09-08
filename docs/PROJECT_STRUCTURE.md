@@ -79,9 +79,10 @@ graph rather than introducing a second chemistry implementation. Richer source
 profile provenance/property inputs are also supported through a cohesive
 package-root construction graph. Release 0.4 development now includes the
 internal exact-composition, mass-dosed treatment-material contract and practical
-dose solver for fixed blends and proportional dilution, including an optional
-no-dilution comparison plan; these remain outside the supported facade until
-the complete optimizer contract is reviewed. Broader material
+dose solver for fixed blends, proportional dilution, and bounded source-volume
+selection, including an optional no-dilution comparison plan; these remain
+outside the supported facade until the complete optimizer contract is reviewed.
+Broader material
 authoring—including ranged assays and liquid
 concentration/density semantics—remains subsequent work after those contracts
 are established and validated.

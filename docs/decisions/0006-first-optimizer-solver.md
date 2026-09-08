@@ -35,8 +35,9 @@ The first optimizer uses `scipy.optimize.milp`, backed by HiGHS, and declares
 `scipy>=1.17,<1.18`. Material variables are integer counts of their positive
 dose increments. Proportional dilution combines those integer material
 variables with one continuous diluent-volume variable while preserving the
-ordinary sources' declared proportions. Freely optimized source volumes may
-add multiple continuous variables in the remaining blend-policy slice.
+ordinary sources' declared proportions. Source-volume optimization adds one
+bounded continuous variable per permitted source and constrains their sum to
+the requested total volume.
 
 The engine owns construction of the optimization problem, policy semantics,
 post-solver validation, practical dose construction, full forward recalculation,
