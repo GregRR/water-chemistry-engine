@@ -268,6 +268,19 @@ its reconstruction with the ordinary forward result before returning a plan.
 Do not require every future ranking policy or mixed-integer formulation before
 this release is useful.
 
+The implemented bounded strategy set returns the lower-total-mass member of the
+closest absolute mg/L solutions first. When a second solution with the same
+primary target-deviation optimum uses fewer treatment products, the engine
+returns that operationally distinct candidate second and reports the product
+count and measured-mass tradeoff. Binary product-use decisions are linked to
+whole dose-increment counts, followed by a lower-mass tertiary solve; candidates
+that do not actually reduce product count are discarded. An independently
+requested no-dilution plan follows those preferred candidates and can therefore
+make the result contain up to three plans. If its untreated blend already
+exceeds a target maximum, structured diagnostics identify each unavoidable
+overshoot and its deviation because the supported treatments are additive and
+cannot reduce that starting concentration.
+
 ### Structured plan and diagnostics
 
 Each plan should contain, through deliberate public domain types:

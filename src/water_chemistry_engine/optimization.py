@@ -73,6 +73,9 @@ class OptimizerStrategy(StrEnum):
     """Stable identities for implemented optimization policies."""
 
     CLOSEST_ABSOLUTE_MG_PER_LITER = "closest_absolute_mg_per_liter_v1"
+    FEWEST_MATERIALS_CLOSEST_ABSOLUTE_MG_PER_LITER = (
+        "fewest_materials_closest_absolute_mg_per_liter_v1"
+    )
     NO_DILUTION_CLOSEST_ABSOLUTE_MG_PER_LITER = (
         "no_dilution_closest_absolute_mg_per_liter_v1"
     )
@@ -87,6 +90,8 @@ class OptimizerDiagnosticCode(StrEnum):
     REQUIRED_DILUENT_CHEMISTRY_UNKNOWN = "required_diluent_chemistry_unknown"
     SOURCE_VOLUME_CONSTRAINTS_INFEASIBLE = "source_volume_constraints_infeasible"
     NO_DILUTION_PLAN_INFEASIBLE = "no_dilution_plan_infeasible"
+    UNAVOIDABLE_TARGET_OVERSHOOT = "unavoidable_target_overshoot"
+    FEWEST_MATERIALS_TRADEOFF = "fewest_materials_tradeoff"
     MATERIAL_INCREMENT_RANGE_UNSUPPORTED = "material_increment_range_unsupported"
     NUMERICAL_MODEL_RANGE_UNSUPPORTED = "numerical_model_range_unsupported"
     SOLVER_FAILED = "solver_failed"
@@ -188,6 +193,7 @@ class OptimizerDiagnostic:
     material_key: str | None = None
     source_index: int | None = None
     source_name: str | None = None
+    deviation: Quantity[float] | None = None
 
 
 @dataclass(frozen=True, slots=True)

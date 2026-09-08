@@ -1346,6 +1346,19 @@ meaningful alternatives deterministically. It should explain the principal
 tradeoff or binding constraint rather than requiring a consumer to infer it
 from raw objective scores.
 
+The bounded 0.4 strategy set implements that rule lexicographically. The first
+plan minimizes absolute target deviation, then total measured material mass. A
+second preferred plan is returned only when it preserves the same primary
+target-deviation optimum while reducing the number of treatment products; it
+minimizes binary product-use decisions before using measured mass as a tertiary
+criterion. The plan reports the product-count and mass tradeoff. This is not a
+claim that fewer products are chemically superior. A requested no-dilution
+best-effort plan is solved independently and follows the preferred candidates,
+so a result may contain two preferred plans plus that requested comparison.
+When the no-dilution starting blend already exceeds an ion's target maximum,
+the result identifies the ion and unavoidable starting deviation explicitly;
+the supported additive treatments cannot reduce that concentration.
+
 ### 20.5 Result exactness language
 
 Result semantics must distinguish independent dimensions rather than treating

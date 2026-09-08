@@ -46,9 +46,12 @@ solver status is never accepted as proof of chemically or operationally valid
 output without those engine checks.
 
 Integrality is used only where the existing material contract requires a whole
-number of dose increments. Fewest-product and other binary-selection policies
-remain separate design decisions; they must not be smuggled into this
-operational constraint.
+number of dose increments. The fewest-products candidate adds a separate binary
+variable per permitted material, linked in both directions to its integer dose
+count. It first preserves the optimal target-deviation objective, then minimizes
+the number of used products, then minimizes total measured mass. These binary
+variables express an explicit named ranking policy and do not alter the dose
+increment's operational meaning.
 
 ## Consequences
 

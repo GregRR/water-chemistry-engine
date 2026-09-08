@@ -13,8 +13,8 @@ plan is returned.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from dataclasses import dataclass
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass, replace
 from decimal import ROUND_FLOOR, Decimal
 from math import fabs, fsum, inf, isclose, isfinite
 from typing import Protocol, cast
@@ -85,6 +85,7 @@ class _MilpResult(Protocol):
 class _ValidatedDecisions:
     material_counts: tuple[int, ...]
     continuous_values: tuple[float, ...]
+    material_usage: tuple[int, ...]
 
 
 def _solver_report(
@@ -314,6 +315,7 @@ def _validated_decisions(
     continuous_lower_bounds: Sequence[float],
     continuous_upper_bounds: Sequence[float],
     continuous_sum_target: float | None,
+    includes_material_usage: bool,
 ) -> _ValidatedDecisions | None:
     if result.x is None:
         return None
@@ -372,7 +374,33 @@ def _validated_decisions(
             return None
         continuous_values[-1] = min(max(adjusted, final_lower), final_upper)
 
-    return _ValidatedDecisions(tuple(counts), tuple(continuous_values))
+    if includes_material_usage:
+        usage_start = continuous_stop
+        usage_values: list[int] = []
+        for raw_usage, count in zip(
+            result.x[usage_start : usage_start + material_count],
+            counts,
+            strict=True,
+        ):
+            value = float(raw_usage)
+            rounded = round(value)
+            if (
+                not isfinite(value)
+                or fabs(value - rounded) > _INTEGER_ABS_TOLERANCE
+                or rounded not in (0, 1)
+                or rounded != int(count > 0)
+            ):
+                return None
+            usage_values.append(rounded)
+        material_usage = tuple(usage_values)
+    else:
+        material_usage = tuple(int(count > 0) for count in counts)
+
+    return _ValidatedDecisions(
+        tuple(counts),
+        tuple(continuous_values),
+        material_usage,
+    )
 
 
 def _objective_from_decisions(
@@ -413,6 +441,7 @@ def _solve_increment_counts(
     continuous_lower_bounds: tuple[float, ...] = (),
     continuous_upper_bounds: tuple[float, ...] = (),
     continuous_sum_target: float | None = None,
+    prefer_fewest_materials: bool = False,
 ) -> tuple[_ValidatedDecisions | None, OptimizerSolverReport]:
     material_count = len(request.material_constraints)
     comparison_count = len(comparisons)
@@ -431,6 +460,7 @@ def _solve_increment_counts(
             _ValidatedDecisions(
                 material_counts=(0,) * material_count,
                 continuous_values=continuous_values,
+                material_usage=(0,) * material_count,
             ),
             OptimizerSolverReport(
                 solver="engine",
@@ -449,12 +479,14 @@ def _solve_increment_counts(
         )
 
     material_coefficients = _increment_coefficients(request, comparisons)
-    decision_count = material_count + continuous_count
+    usage_count = material_count if prefer_fewest_materials else 0
+    decision_count = material_count + continuous_count + usage_count
     variable_count = decision_count + 2 * comparison_count
     primary_objective = [0.0] * decision_count + [1.0] * (2 * comparison_count)
     lower_bounds = (
         [0.0] * material_count
         + list(continuous_lower_bounds)
+        + [0.0] * usage_count
         + [0.0] * (2 * comparison_count)
     )
     maximum_counts = tuple(
@@ -464,9 +496,15 @@ def _solve_increment_counts(
     upper_bounds = (
         [float(count) for count in maximum_counts]
         + list(continuous_upper_bounds)
+        + [1.0] * usage_count
         + [inf] * (2 * comparison_count)
     )
-    integrality = [1] * material_count + [0] * (continuous_count + 2 * comparison_count)
+    integrality = (
+        [1] * material_count
+        + [0] * continuous_count
+        + [1] * usage_count
+        + [0] * (2 * comparison_count)
+    )
     rows: list[list[float]] = []
     row_lower_bounds: list[float] = []
     row_upper_bounds: list[float] = []
@@ -478,13 +516,17 @@ def _solve_increment_counts(
         actual = float(
             comparison.actual_concentration.to("milligram / liter").magnitude
         )
-        decision_terms = [
-            material_coefficients[material_index][comparison_index]
-            for material_index in range(material_count)
-        ] + [
-            continuous_coefficients[continuous_index][comparison_index]
-            for continuous_index in range(continuous_count)
-        ]
+        decision_terms = (
+            [
+                material_coefficients[material_index][comparison_index]
+                for material_index in range(material_count)
+            ]
+            + [
+                continuous_coefficients[continuous_index][comparison_index]
+                for continuous_index in range(continuous_count)
+            ]
+            + [0.0] * usage_count
+        )
 
         if comparison.target_minimum is not None:
             minimum = float(comparison.target_minimum.magnitude)
@@ -513,6 +555,23 @@ def _solve_increment_counts(
         rows.append(equality_row)
         row_lower_bounds.append(continuous_sum_target)
         row_upper_bounds.append(continuous_sum_target)
+
+    if prefer_fewest_materials:
+        usage_start = material_count + continuous_count
+        for material_index, maximum_count in enumerate(maximum_counts):
+            upper_link = [0.0] * variable_count
+            upper_link[material_index] = 1.0
+            upper_link[usage_start + material_index] = -float(maximum_count)
+            rows.append(upper_link)
+            row_lower_bounds.append(-inf)
+            row_upper_bounds.append(0.0)
+
+            lower_link = [0.0] * variable_count
+            lower_link[usage_start + material_index] = 1.0
+            lower_link[material_index] = -1.0
+            rows.append(lower_link)
+            row_lower_bounds.append(-inf)
+            row_upper_bounds.append(0.0)
 
     primary = cast(
         _MilpResult,
@@ -552,6 +611,7 @@ def _solve_increment_counts(
         continuous_lower_bounds=continuous_lower_bounds,
         continuous_upper_bounds=continuous_upper_bounds,
         continuous_sum_target=continuous_sum_target,
+        includes_material_usage=prefer_fewest_materials,
     )
     if primary_decisions is None:
         return None, _rejected_solver_report(
@@ -567,10 +627,18 @@ def _solve_increment_counts(
         primary_decisions.continuous_values,
     )
 
-    secondary_objective = [
+    material_mass_objective = [
         float(constraint.material.normalized_dose_increment.magnitude)
         for constraint in request.material_constraints
-    ] + [0.0] * (continuous_count + 2 * comparison_count)
+    ] + [0.0] * (continuous_count + usage_count + 2 * comparison_count)
+    if prefer_fewest_materials:
+        secondary_objective = (
+            [0.0] * (material_count + continuous_count)
+            + [1.0] * usage_count
+            + [0.0] * (2 * comparison_count)
+        )
+    else:
+        secondary_objective = material_mass_objective
     secondary = cast(
         _MilpResult,
         milp(
@@ -618,6 +686,7 @@ def _solve_increment_counts(
         continuous_lower_bounds=continuous_lower_bounds,
         continuous_upper_bounds=continuous_upper_bounds,
         continuous_sum_target=continuous_sum_target,
+        includes_material_usage=prefer_fewest_materials,
     )
     if secondary_decisions is None:
         return None, _rejected_solver_report(
@@ -643,19 +712,108 @@ def _solve_increment_counts(
             primary_objective=secondary_recomputed_objective,
         )
 
-    selected_secondary = sum(
+    selected_mass = sum(
         count * increment
         for count, increment in zip(
             secondary_decisions.material_counts,
-            secondary_objective[:material_count],
+            material_mass_objective[:material_count],
             strict=True,
         )
     )
+    if prefer_fewest_materials:
+        selected_usage = float(sum(secondary_decisions.material_usage))
+        tertiary = cast(
+            _MilpResult,
+            milp(
+                c=material_mass_objective,
+                integrality=integrality,
+                bounds=Bounds(lower_bounds, upper_bounds),
+                constraints=(
+                    LinearConstraint(rows, row_lower_bounds, row_upper_bounds),
+                    LinearConstraint(
+                        [primary_objective],
+                        [-inf],
+                        [
+                            primary_recomputed_objective
+                            + _PRIMARY_OBJECTIVE_TOLERANCE_MG_PER_LITER
+                        ],
+                    ),
+                    LinearConstraint(
+                        [secondary_objective],
+                        [-inf],
+                        [selected_usage],
+                    ),
+                ),
+                options={"mip_rel_gap": _MIP_RELATIVE_GAP},
+            ),
+        )
+        if not tertiary.success or tertiary.fun is None or tertiary.x is None:
+            return None, _solver_report(
+                tertiary,
+                solver_reported_primary_objective=raw_primary_objective,
+                primary_objective=primary_recomputed_objective,
+                secondary_objective=None,
+            )
+        tertiary_fun = float(tertiary.fun)
+        if not isfinite(tertiary_fun) or tertiary_fun < 0:
+            return None, _rejected_solver_report(
+                tertiary,
+                message="Solver returned a non-finite or negative tertiary objective.",
+                solver_reported_primary_objective=raw_primary_objective,
+                primary_objective=primary_recomputed_objective,
+            )
+        tertiary_decisions = _validated_decisions(
+            tertiary,
+            material_count=material_count,
+            variable_count=variable_count,
+            maximum_counts=maximum_counts,
+            continuous_lower_bounds=continuous_lower_bounds,
+            continuous_upper_bounds=continuous_upper_bounds,
+            continuous_sum_target=continuous_sum_target,
+            includes_material_usage=True,
+        )
+        if tertiary_decisions is None:
+            return None, _rejected_solver_report(
+                tertiary,
+                message="Solver returned invalid tertiary decision values.",
+                solver_reported_primary_objective=raw_primary_objective,
+                primary_objective=primary_recomputed_objective,
+            )
+        tertiary_recomputed_objective = _objective_from_decisions(
+            comparisons,
+            material_coefficients,
+            tertiary_decisions.material_counts,
+            continuous_coefficients,
+            tertiary_decisions.continuous_values,
+        )
+        if (
+            tertiary_recomputed_objective
+            > (primary_recomputed_objective + _PRIMARY_OBJECTIVE_TOLERANCE_MG_PER_LITER)
+            or sum(tertiary_decisions.material_usage) > selected_usage
+        ):
+            return None, _rejected_solver_report(
+                tertiary,
+                message="Tertiary solve violated an earlier ranking objective.",
+                solver_reported_primary_objective=raw_primary_objective,
+                primary_objective=tertiary_recomputed_objective,
+            )
+        secondary_decisions = tertiary_decisions
+        secondary_recomputed_objective = tertiary_recomputed_objective
+        selected_mass = sum(
+            count * increment
+            for count, increment in zip(
+                tertiary_decisions.material_counts,
+                material_mass_objective[:material_count],
+                strict=True,
+            )
+        )
+        secondary = tertiary
+
     return secondary_decisions, _solver_report(
         secondary,
         solver_reported_primary_objective=raw_primary_objective,
         primary_objective=secondary_recomputed_objective,
-        secondary_objective=selected_secondary,
+        secondary_objective=selected_mass,
     )
 
 
@@ -704,6 +862,7 @@ def _build_plan(
     plan_id: str,
     strategy: OptimizerStrategy,
     summary_label: str,
+    explain_unavoidable_overshoot: bool = False,
 ) -> tuple[OptimizerPlan | None, OptimizerDiagnostic | None]:
     additions = _material_additions(request, material_counts)
     sources = tuple(
@@ -758,6 +917,28 @@ def _build_plan(
                 ),
             )
         )
+    if explain_unavoidable_overshoot:
+        blend_comparison = calculation.blend_target_comparison
+        if blend_comparison is not None:
+            for ion_comparison in blend_comparison.ion_comparisons:
+                if (
+                    ion_comparison.status is TargetIonComparisonStatus.ABOVE_TARGET
+                    and ion_comparison.deviation is not None
+                ):
+                    deviation = ion_comparison.deviation.to("milligram / liter")
+                    plan_diagnostics.append(
+                        OptimizerDiagnostic(
+                            code=(OptimizerDiagnosticCode.UNAVOIDABLE_TARGET_OVERSHOOT),
+                            message=(
+                                f"Without dilution, the starting "
+                                f"{ion_comparison.ion.value} concentration exceeds "
+                                f"the target by {float(deviation.magnitude):g} mg/L; "
+                                "the permitted additive treatments cannot reduce it."
+                            ),
+                            ion=ion_comparison.ion,
+                            deviation=deviation,
+                        )
+                    )
 
     if target_fit is OptimizerTargetFitStatus.NOT_EVALUATED:
         summary = f"{summary_label}: no numeric ion targets were supplied."
@@ -1056,6 +1237,40 @@ def _plans_operationally_equivalent(
     return volumes_equal and additions_equal
 
 
+def _explain_fewest_material_tradeoff(
+    preferred: OptimizerPlan,
+    candidate: OptimizerPlan,
+) -> OptimizerPlan | None:
+    preferred_count = len(preferred.material_additions)
+    candidate_count = len(candidate.material_additions)
+    if candidate_count >= preferred_count:
+        return None
+    preferred_mass = fsum(
+        float(addition.measured_mass.to("gram").magnitude)
+        for addition in preferred.material_additions
+    )
+    candidate_mass = fsum(
+        float(addition.measured_mass.to("gram").magnitude)
+        for addition in candidate.material_additions
+    )
+    diagnostic = OptimizerDiagnostic(
+        code=OptimizerDiagnosticCode.FEWEST_MATERIALS_TRADEOFF,
+        message=(
+            f"This equally close plan uses {candidate_count} treatment product(s) "
+            f"instead of {preferred_count}, with {candidate_mass:g} g total measured "
+            f"material instead of {preferred_mass:g} g."
+        ),
+    )
+    return replace(
+        candidate,
+        diagnostics=candidate.diagnostics + (diagnostic,),
+        summary=(
+            f"Equally close plan using {candidate_count} treatment product(s) "
+            f"instead of {preferred_count}."
+        ),
+    )
+
+
 def _solver_failure_result(
     request: OptimizerRequest,
     solver_report: OptimizerSolverReport,
@@ -1092,6 +1307,54 @@ def _postvalidation_failure_result(
         diagnostics=(diagnostic,),
         solver_report=solver_report,
     )
+
+
+def _fewest_material_candidate(
+    request: OptimizerRequest,
+    comparisons: tuple[TargetIonComparison, ...],
+    *,
+    source_volumes_for: Callable[
+        [_ValidatedDecisions], tuple[OptimizerSourceVolume, ...]
+    ],
+    continuous_coefficients: tuple[tuple[float, ...], ...] = (),
+    continuous_lower_bounds: tuple[float, ...] = (),
+    continuous_upper_bounds: tuple[float, ...] = (),
+    continuous_sum_target: float | None = None,
+) -> tuple[
+    OptimizerPlan | None,
+    OptimizerSolverReport | None,
+    OptimizerDiagnostic | None,
+]:
+    if len(request.material_constraints) < 2 or not comparisons:
+        return None, None, None
+    decisions, solver_report = _solve_increment_counts(
+        request,
+        comparisons,
+        continuous_coefficients=continuous_coefficients,
+        continuous_lower_bounds=continuous_lower_bounds,
+        continuous_upper_bounds=continuous_upper_bounds,
+        continuous_sum_target=continuous_sum_target,
+        prefer_fewest_materials=True,
+    )
+    if decisions is None:
+        return (
+            None,
+            solver_report,
+            OptimizerDiagnostic(
+                code=OptimizerDiagnosticCode.SOLVER_FAILED,
+                message=solver_report.message,
+            ),
+        )
+    plan, diagnostic = _build_plan(
+        request,
+        source_volumes=source_volumes_for(decisions),
+        material_counts=decisions.material_counts,
+        solver_report=solver_report,
+        plan_id="fewest_materials_closest_absolute_mg_per_liter_v1:2",
+        strategy=(OptimizerStrategy.FEWEST_MATERIALS_CLOSEST_ABSOLUTE_MG_PER_LITER),
+        summary_label="Fewest-materials closest absolute mg/L plan",
+    )
+    return plan, solver_report, diagnostic
 
 
 def _optimize_proportional_dilution(request: OptimizerRequest) -> OptimizerResult:
@@ -1202,6 +1465,42 @@ def _optimize_proportional_dilution(request: OptimizerRequest) -> OptimizerResul
 
     plans = [primary_plan]
     result_diagnostics: list[OptimizerDiagnostic] = []
+    alternative, alternative_report, alternative_diagnostic = (
+        _fewest_material_candidate(
+            request,
+            comparisons,
+            source_volumes_for=lambda candidate: _proportional_source_volumes(
+                request,
+                candidate.continuous_values[0],
+            ),
+            continuous_coefficients=(dilution_coefficients,),
+            continuous_lower_bounds=(diluent_minimum,),
+            continuous_upper_bounds=(diluent_maximum,),
+        )
+    )
+    if alternative_diagnostic is not None:
+        assert alternative_report is not None
+        if (
+            alternative_diagnostic.code
+            is OptimizerDiagnosticCode.SOLVER_POSTVALIDATION_FAILED
+        ):
+            return _postvalidation_failure_result(
+                request,
+                alternative_report,
+                alternative_diagnostic,
+            )
+        return _solver_failure_result(request, alternative_report)
+    if alternative is not None and not _plans_operationally_equivalent(
+        primary_plan,
+        alternative,
+    ):
+        explained_alternative = _explain_fewest_material_tradeoff(
+            primary_plan,
+            alternative,
+        )
+        if explained_alternative is not None:
+            plans.append(explained_alternative)
+
     if request.request_no_dilution_plan:
         if diluent_minimum > _CONTINUOUS_ABS_TOLERANCE:
             result_diagnostics.append(
@@ -1228,9 +1527,12 @@ def _optimize_proportional_dilution(request: OptimizerRequest) -> OptimizerResul
                 source_volumes=_proportional_source_volumes(request, 0.0),
                 material_counts=no_dilution_decisions.material_counts,
                 solver_report=no_dilution_report,
-                plan_id="no_dilution_closest_absolute_mg_per_liter_v1:2",
+                plan_id=(
+                    f"no_dilution_closest_absolute_mg_per_liter_v1:{len(plans) + 1}"
+                ),
                 strategy=(OptimizerStrategy.NO_DILUTION_CLOSEST_ABSOLUTE_MG_PER_LITER),
                 summary_label="Best-effort no-dilution plan",
+                explain_unavoidable_overshoot=True,
             )
             if no_dilution_plan is None:
                 assert postvalidation_diagnostic is not None
@@ -1381,11 +1683,46 @@ def _optimize_source_volumes(request: OptimizerRequest) -> OptimizerResult:
             solver_report,
             postvalidation_diagnostic,
         )
+    plans = [plan]
+    alternative, alternative_report, alternative_diagnostic = (
+        _fewest_material_candidate(
+            request,
+            comparisons,
+            source_volumes_for=lambda candidate: _optimized_source_volumes(
+                request,
+                reference,
+                candidate.continuous_values,
+            ),
+            continuous_coefficients=source_coefficients,
+            continuous_lower_bounds=lower_bounds,
+            continuous_upper_bounds=upper_bounds,
+            continuous_sum_target=0.0,
+        )
+    )
+    if alternative_diagnostic is not None:
+        assert alternative_report is not None
+        if (
+            alternative_diagnostic.code
+            is OptimizerDiagnosticCode.SOLVER_POSTVALIDATION_FAILED
+        ):
+            return _postvalidation_failure_result(
+                request,
+                alternative_report,
+                alternative_diagnostic,
+            )
+        return _solver_failure_result(request, alternative_report)
+    if alternative is not None and not _plans_operationally_equivalent(
+        plan,
+        alternative,
+    ):
+        explained_alternative = _explain_fewest_material_tradeoff(plan, alternative)
+        if explained_alternative is not None:
+            plans.append(explained_alternative)
     return OptimizerResult(
         request=request,
         input_support=OptimizerInputSupportStatus.SUPPORTED,
         feasibility=OptimizerFeasibilityStatus.FEASIBLE,
-        plans=(plan,),
+        plans=tuple(plans),
         diagnostics=(),
         solver_report=solver_report,
     )
@@ -1454,11 +1791,38 @@ def optimize_treatment(request: OptimizerRequest) -> OptimizerResult:
             solver_report,
             postvalidation_diagnostic,
         )
+    plans = [plan]
+    alternative, alternative_report, alternative_diagnostic = (
+        _fewest_material_candidate(
+            request,
+            comparisons,
+            source_volumes_for=lambda _candidate: source_volumes,
+        )
+    )
+    if alternative_diagnostic is not None:
+        assert alternative_report is not None
+        if (
+            alternative_diagnostic.code
+            is OptimizerDiagnosticCode.SOLVER_POSTVALIDATION_FAILED
+        ):
+            return _postvalidation_failure_result(
+                request,
+                alternative_report,
+                alternative_diagnostic,
+            )
+        return _solver_failure_result(request, alternative_report)
+    if alternative is not None and not _plans_operationally_equivalent(
+        plan,
+        alternative,
+    ):
+        explained_alternative = _explain_fewest_material_tradeoff(plan, alternative)
+        if explained_alternative is not None:
+            plans.append(explained_alternative)
     return OptimizerResult(
         request=request,
         input_support=OptimizerInputSupportStatus.SUPPORTED,
         feasibility=OptimizerFeasibilityStatus.FEASIBLE,
-        plans=(plan,),
+        plans=tuple(plans),
         diagnostics=(),
         solver_report=solver_report,
     )

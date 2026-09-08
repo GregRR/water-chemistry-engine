@@ -33,6 +33,11 @@ distribution and its repository milestones.
 - Added bounded source-volume optimization across caller-permitted waters,
   including exact total-volume enforcement, independent chemistry resolution,
   positional source identity, and structured insufficient-availability results.
+- Added deterministic candidate generation for an equally close
+  fewest-treatment-products strategy, with binary product-use decisions,
+  lower-mass tertiary ranking, operational deduplication, and explicit tradeoff
+  explanations. No-dilution plans now identify unavoidable starting-water
+  overshoots and their signed deviations.
 
 ## 0.3.1 - 2026-09-06
 
