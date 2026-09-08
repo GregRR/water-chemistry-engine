@@ -1541,7 +1541,10 @@ def _optimize_proportional_dilution(request: OptimizerRequest) -> OptimizerResul
                     no_dilution_report,
                     postvalidation_diagnostic,
                 )
-            if not _plans_operationally_equivalent(primary_plan, no_dilution_plan):
+            if not any(
+                _plans_operationally_equivalent(existing, no_dilution_plan)
+                for existing in plans
+            ):
                 plans.append(no_dilution_plan)
 
     return OptimizerResult(

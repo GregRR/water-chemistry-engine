@@ -986,6 +986,93 @@ def test_requested_no_dilution_plan_is_deduplicated() -> None:
     )
 
 
+def test_no_dilution_plan_is_deduplicated_against_fewest_materials_plan() -> None:
+    coarse = ExactMassDosedTreatmentMaterial(
+        "coarse_gypsum",
+        "Coarse gypsum measure",
+        GYPSUM,
+        Q_(1.0, "gram"),
+    )
+    split_a = ExactMassDosedTreatmentMaterial(
+        "split_gypsum_a",
+        "First small gypsum measure",
+        GYPSUM,
+        Q_(0.4, "gram"),
+    )
+    split_b = ExactMassDosedTreatmentMaterial(
+        "split_gypsum_b",
+        "Second small gypsum measure",
+        GYPSUM,
+        Q_(0.4, "gram"),
+    )
+    source = OptimizerSource(
+        SourceWaterProfile(
+            "Source",
+            (
+                IonConcentration.mg_per_liter(Ion.CALCIUM, 0.0),
+                IonConcentration.mg_per_liter(Ion.SULFATE, 0.0),
+            ),
+        ),
+        Q_(10, "liter"),
+        Q_(10, "liter"),
+    )
+    diluent = OptimizerSource(
+        SourceWaterProfile(
+            "Characterized supplementary water",
+            (
+                IonConcentration.mg_per_liter(Ion.CALCIUM, 100.0),
+                IonConcentration.mg_per_liter(Ion.SULFATE, 0.0),
+            ),
+        ),
+        Q_(0, "liter"),
+        Q_(10, "liter"),
+    )
+    target = TargetWaterProfile(
+        "Gypsum-equivalent target",
+        (
+            IonConcentration.mg_per_liter(
+                Ion.CALCIUM,
+                _CALCIUM_MG_PER_LITER_PER_GYPSUM_GRAM_IN_TEN_LITERS,
+            ),
+            IonConcentrationRange.mg_per_liter(
+                Ion.SULFATE,
+                minimum=(0.8 * _SULFATE_MG_PER_LITER_PER_GYPSUM_GRAM_IN_TEN_LITERS),
+                maximum=_SULFATE_MG_PER_LITER_PER_GYPSUM_GRAM_IN_TEN_LITERS,
+            ),
+        ),
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(10, "liter"),
+        sources=(source,),
+        material_constraints=(
+            OptimizerMaterialConstraint(coarse, Q_(1.0, "gram")),
+            OptimizerMaterialConstraint(split_a, Q_(0.4, "gram")),
+            OptimizerMaterialConstraint(split_b, Q_(0.4, "gram")),
+        ),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.PROPORTIONAL_DILUTION,
+        target_profile=target,
+        request_no_dilution_plan=True,
+        diluent_source=diluent,
+    )
+
+    result = optimize_treatment(request)
+
+    assert len(result.plans) == 2
+    closest, fewest = result.plans
+    assert tuple(
+        addition.constraint.material.key for addition in closest.material_additions
+    ) == ("split_gypsum_a", "split_gypsum_b")
+    assert float(closest.source_volumes[-1].volume.magnitude) > 0.0
+    assert fewest.strategy is (
+        OptimizerStrategy.FEWEST_MATERIALS_CLOSEST_ABSOLUTE_MG_PER_LITER
+    )
+    assert tuple(
+        addition.constraint.material.key for addition in fewest.material_additions
+    ) == ("coarse_gypsum",)
+    assert float(fewest.source_volumes[-1].volume.magnitude) == pytest.approx(0.0)
+
+
 def test_requested_no_dilution_plan_reports_source_limit_infeasibility() -> None:
     source = OptimizerSource(
         SourceWaterProfile(
