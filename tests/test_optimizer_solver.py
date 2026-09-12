@@ -19,12 +19,14 @@ from water_chemistry_engine.forward_calculator import (
 from water_chemistry_engine.ions import Ion
 from water_chemistry_engine.optimization import (
     OptimizerBlendPolicy,
+    OptimizerDiagnostic,
     OptimizerDiagnosticCode,
     OptimizerFeasibilityStatus,
     OptimizerInputSupportStatus,
     OptimizerMaterialConstraint,
     OptimizerPracticalityStatus,
     OptimizerRequest,
+    OptimizerSolverReport,
     OptimizerSource,
     OptimizerStrategy,
     OptimizerTargetFitStatus,
@@ -123,6 +125,21 @@ def _fixed_request(
         source_resolution_policy=_POLICY,
         blend_policy=OptimizerBlendPolicy.FIXED,
         target_profile=target,
+    )
+
+
+def _failed_solver_report(message: str) -> OptimizerSolverReport:
+    return OptimizerSolverReport(
+        solver="scipy.optimize.milp",
+        method="highs",
+        success=False,
+        status_code=4,
+        message=message,
+        solver_reported_primary_objective_mg_per_liter=None,
+        primary_objective_mg_per_liter=None,
+        secondary_objective_grams=None,
+        primary_objective_tolerance_mg_per_liter=1e-6,
+        mip_relative_gap=None,
     )
 
 
@@ -274,6 +291,161 @@ def test_returns_distinct_fewest_materials_candidate_with_equal_target_fit() -> 
     )
 
 
+@pytest.mark.parametrize(
+    "blend_policy",
+    [
+        OptimizerBlendPolicy.FIXED,
+        OptimizerBlendPolicy.PROPORTIONAL_DILUTION,
+        OptimizerBlendPolicy.SOURCE_VOLUMES,
+    ],
+)
+def test_optional_candidate_failure_preserves_primary_plan(
+    monkeypatch: pytest.MonkeyPatch,
+    blend_policy: OptimizerBlendPolicy,
+) -> None:
+    potassium_chloride = ExactMassDosedTreatmentMaterial(
+        "potassium_chloride",
+        "Potassium chloride",
+        POTASSIUM_CHLORIDE,
+        Q_(0.1, "gram"),
+    )
+    constraints = (
+        _gypsum_constraint(),
+        OptimizerMaterialConstraint(potassium_chloride, Q_(1.0, "gram")),
+    )
+    if blend_policy is OptimizerBlendPolicy.FIXED:
+        request = _fixed_request(
+            source=_source(calcium=0.0),
+            target=_target(50.0),
+            constraints=constraints,
+        )
+    elif blend_policy is OptimizerBlendPolicy.PROPORTIONAL_DILUTION:
+        source = _available_source(
+            "Source",
+            current_liters=10.0,
+            maximum_liters=10.0,
+            calcium=100.0,
+        )
+        diluent = _available_source(
+            "Diluent",
+            current_liters=0.0,
+            maximum_liters=10.0,
+            calcium=0.0,
+        )
+        request = OptimizerRequest(
+            total_volume=Q_(10, "liter"),
+            sources=(source,),
+            material_constraints=constraints,
+            source_resolution_policy=_POLICY,
+            blend_policy=blend_policy,
+            target_profile=_target(50.0),
+            diluent_source=diluent,
+        )
+    else:
+        request = OptimizerRequest(
+            total_volume=Q_(10, "liter"),
+            sources=(
+                _available_source(
+                    "High calcium",
+                    current_liters=5.0,
+                    maximum_liters=10.0,
+                    calcium=100.0,
+                ),
+                _available_source(
+                    "Zero calcium",
+                    current_liters=5.0,
+                    maximum_liters=10.0,
+                    calcium=0.0,
+                ),
+            ),
+            material_constraints=constraints,
+            source_resolution_policy=_POLICY,
+            blend_policy=blend_policy,
+            target_profile=_target(50.0),
+        )
+
+    failure_report = _failed_solver_report("optional solve failed")
+    failure_diagnostic = OptimizerDiagnostic(
+        code=OptimizerDiagnosticCode.SOLVER_FAILED,
+        message=failure_report.message,
+    )
+
+    def unavailable_candidate(
+        *_args: object,
+        **_kwargs: object,
+    ) -> tuple[None, OptimizerSolverReport, OptimizerDiagnostic]:
+        return None, failure_report, failure_diagnostic
+
+    monkeypatch.setattr(
+        optimizer_solver,
+        "_fewest_material_candidate",
+        unavailable_candidate,
+    )
+
+    result = optimize_treatment(request)
+
+    assert result.feasibility is OptimizerFeasibilityStatus.FEASIBLE
+    assert len(result.plans) == 1
+    assert result.solver_report is result.plans[0].solver_report
+    assert tuple(diagnostic.code for diagnostic in result.diagnostics) == (
+        OptimizerDiagnosticCode.SOLVER_FAILED,
+    )
+    assert "optional fewest-materials candidate" in result.diagnostics[0].message
+
+
+def test_optional_no_dilution_failure_preserves_primary_plan(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = _available_source(
+        "Source",
+        current_liters=10.0,
+        maximum_liters=10.0,
+        calcium=100.0,
+    )
+    diluent = _available_source(
+        "Diluent",
+        current_liters=0.0,
+        maximum_liters=10.0,
+        calcium=0.0,
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(10, "liter"),
+        sources=(source,),
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.PROPORTIONAL_DILUTION,
+        target_profile=_target(50.0),
+        request_no_dilution_plan=True,
+        diluent_source=diluent,
+    )
+    original_solve = optimizer_solver._solve_increment_counts
+    calls = 0
+
+    def staged_solve(
+        candidate_request: OptimizerRequest,
+        comparisons: tuple[object, ...],
+        **kwargs: object,
+    ) -> object:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return original_solve(candidate_request, comparisons, **kwargs)
+        return None, _failed_solver_report("no-dilution solve failed")
+
+    monkeypatch.setattr(optimizer_solver, "_solve_increment_counts", staged_solve)
+
+    result = optimize_treatment(request)
+
+    assert calls == 2
+    assert result.feasibility is OptimizerFeasibilityStatus.FEASIBLE
+    assert len(result.plans) == 1
+    assert result.solver_report is result.plans[0].solver_report
+    assert tuple(diagnostic.code for diagnostic in result.diagnostics) == (
+        OptimizerDiagnosticCode.SOLVER_FAILED,
+    )
+    assert "optional no-dilution candidate" in result.diagnostics[0].message
+
+
 def test_material_maximum_limits_best_effort_plan() -> None:
     request = _fixed_request(
         source=_source(calcium=0.0, sulfate=0.0),
@@ -422,6 +594,57 @@ def test_unsupported_target_forms_return_structured_diagnostics() -> None:
     assert ph_result.input_support is OptimizerInputSupportStatus.UNSUPPORTED
     assert tuple(diagnostic.code for diagnostic in ph_result.diagnostics) == (
         OptimizerDiagnosticCode.TARGET_PH_UNSUPPORTED,
+    )
+
+
+def test_coefficient_builders_fail_closed_for_unsupported_targets() -> None:
+    source = _available_source(
+        "Source",
+        current_liters=10.0,
+        maximum_liters=10.0,
+        calcium=0.0,
+    )
+    diluent = _available_source(
+        "Diluent",
+        current_liters=0.0,
+        maximum_liters=10.0,
+        calcium=0.0,
+    )
+    target = TargetWaterProfile(
+        "ND target",
+        (IonConcentrationNotDetected(ion=Ion.CALCIUM),),
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(10, "liter"),
+        sources=(source,),
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.PROPORTIONAL_DILUTION,
+        target_profile=target,
+        diluent_source=diluent,
+    )
+    initial = calculate_forward_water(
+        (ForwardWaterSource(source.source_profile, Q_(10, "liter")),),
+        source_resolution_policy=_POLICY,
+        target_profile=target,
+    )
+    assert initial.final_target_comparison is not None
+    comparisons = initial.final_target_comparison.ion_comparisons
+
+    dilution_coefficients, dilution_diagnostics = (
+        optimizer_solver._dilution_coefficients(request, comparisons)
+    )
+    source_coefficients, source_diagnostics = (
+        optimizer_solver._source_volume_coefficients(request, comparisons)
+    )
+
+    assert dilution_coefficients is None
+    assert source_coefficients is None
+    assert tuple(diagnostic.code for diagnostic in dilution_diagnostics) == (
+        OptimizerDiagnosticCode.TARGET_CRITERION_UNSUPPORTED,
+    )
+    assert tuple(diagnostic.code for diagnostic in source_diagnostics) == (
+        OptimizerDiagnosticCode.TARGET_CRITERION_UNSUPPORTED,
     )
 
 
@@ -1373,6 +1596,161 @@ def test_solver_integer_noise_above_backend_tolerance_is_rejected(
     assert result.solver_report is not None
     assert result.solver_report.success is False
     assert "invalid decision values" in result.solver_report.message
+
+
+def test_secondary_objective_noise_within_backend_tolerance_is_accepted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    responses = iter(
+        (
+            SimpleNamespace(
+                success=True,
+                status=0,
+                message="primary optimal",
+                fun=50.0,
+                x=(0.0, 50.0, 0.0),
+                mip_gap=0.0,
+            ),
+            SimpleNamespace(
+                success=True,
+                status=0,
+                message="secondary optimal",
+                fun=0.0,
+                x=(-5e-7, 50.0000005, 0.0),
+                mip_gap=0.0,
+            ),
+        )
+    )
+
+    def staged_milp(**_kwargs: object) -> SimpleNamespace:
+        return next(responses)
+
+    monkeypatch.setattr(optimizer_solver, "milp", staged_milp)
+    request = _fixed_request(
+        source=_source(calcium=0.0),
+        target=_target(50.0),
+        constraints=(),
+    )
+    initial = calculate_forward_water(
+        (ForwardWaterSource(request.sources[0].source_profile, Q_(10, "liter")),),
+        source_resolution_policy=_POLICY,
+        target_profile=request.target_profile,
+    )
+    assert initial.final_target_comparison is not None
+
+    decisions, report = optimizer_solver._solve_increment_counts(
+        request,
+        initial.final_target_comparison.ion_comparisons,
+        continuous_coefficients=((1.0,),),
+        continuous_lower_bounds=(-1.0,),
+        continuous_upper_bounds=(1.0,),
+    )
+
+    assert decisions is not None
+    assert decisions.continuous_values == pytest.approx((-5e-7,))
+    assert report.success is True
+    assert report.primary_objective_mg_per_liter == pytest.approx(50.0000005)
+
+
+def test_secondary_objective_noise_above_backend_tolerance_is_rejected(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    responses = iter(
+        (
+            SimpleNamespace(
+                success=True,
+                status=0,
+                message="primary optimal",
+                fun=50.0,
+                x=(0.0, 50.0, 0.0),
+                mip_gap=0.0,
+            ),
+            SimpleNamespace(
+                success=True,
+                status=0,
+                message="secondary optimal",
+                fun=0.0,
+                x=(-1.1e-6, 50.0000011, 0.0),
+                mip_gap=0.0,
+            ),
+        )
+    )
+
+    def staged_milp(**_kwargs: object) -> SimpleNamespace:
+        return next(responses)
+
+    monkeypatch.setattr(optimizer_solver, "milp", staged_milp)
+    request = _fixed_request(
+        source=_source(calcium=0.0),
+        target=_target(50.0),
+        constraints=(),
+    )
+    initial = calculate_forward_water(
+        (ForwardWaterSource(request.sources[0].source_profile, Q_(10, "liter")),),
+        source_resolution_policy=_POLICY,
+        target_profile=request.target_profile,
+    )
+    assert initial.final_target_comparison is not None
+
+    decisions, report = optimizer_solver._solve_increment_counts(
+        request,
+        initial.final_target_comparison.ion_comparisons,
+        continuous_coefficients=((1.0,),),
+        continuous_lower_bounds=(-1.0,),
+        continuous_upper_bounds=(1.0,),
+    )
+
+    assert decisions is None
+    assert report.success is False
+    assert "violated the primary-objective tolerance" in report.message
+
+
+@pytest.mark.parametrize("invalid_usage", [float("nan"), float("inf"), -float("inf")])
+def test_nonfinite_material_usage_is_rejected_without_crashing(
+    invalid_usage: float,
+) -> None:
+    result = SimpleNamespace(x=(0.0, invalid_usage))
+
+    decisions = optimizer_solver._validated_decisions(
+        result,
+        material_count=1,
+        variable_count=2,
+        maximum_counts=(10,),
+        continuous_lower_bounds=(),
+        continuous_upper_bounds=(),
+        continuous_sum_target=None,
+        includes_material_usage=True,
+    )
+
+    assert decisions is None
+
+
+def test_solver_explicitly_disables_console_output(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured_options: list[object] = []
+
+    def failed_milp(**kwargs: object) -> SimpleNamespace:
+        captured_options.append(kwargs.get("options"))
+        return SimpleNamespace(
+            success=False,
+            status=4,
+            message="stopped after options capture",
+            fun=None,
+            x=None,
+            mip_gap=None,
+        )
+
+    monkeypatch.setattr(optimizer_solver, "milp", failed_milp)
+    request = _fixed_request(
+        source=_source(calcium=0.0),
+        target=_target(50.0),
+        constraints=(),
+    )
+
+    optimize_treatment(request)
+
+    assert captured_options == [{"disp": False, "mip_rel_gap": 0.0}]
 
 
 @pytest.mark.parametrize(

@@ -60,7 +60,10 @@ from water_chemistry_engine.treatment_stoichiometry import (
 
 _SOLVER = "scipy.optimize.milp"
 _METHOD = "highs"
-_PRIMARY_OBJECTIVE_TOLERANCE_MG_PER_LITER = 1e-9
+# HiGHS uses a 1e-6 MIP feasibility tolerance. Ranking constraints and
+# validation checks must not reject a backend-feasible solution for smaller
+# floating-point noise.
+_PRIMARY_OBJECTIVE_TOLERANCE_MG_PER_LITER = 1e-6
 _POSTVALIDATION_ABS_TOLERANCE_MG_PER_LITER = 1e-7
 _POSTVALIDATION_REL_TOLERANCE = 1e-12
 _INTEGER_ABS_TOLERANCE = 1e-6
@@ -383,10 +386,11 @@ def _validated_decisions(
             strict=True,
         ):
             value = float(raw_usage)
+            if not isfinite(value):
+                return None
             rounded = round(value)
             if (
-                not isfinite(value)
-                or fabs(value - rounded) > _INTEGER_ABS_TOLERANCE
+                fabs(value - rounded) > _INTEGER_ABS_TOLERANCE
                 or rounded not in (0, 1)
                 or rounded != int(count > 0)
             ):
@@ -584,7 +588,7 @@ def _solve_increment_counts(
                 row_lower_bounds,
                 row_upper_bounds,
             ),
-            options={"mip_rel_gap": _MIP_RELATIVE_GAP},
+            options={"disp": False, "mip_rel_gap": _MIP_RELATIVE_GAP},
         ),
     )
     if not primary.success or primary.fun is None or primary.x is None:
@@ -660,7 +664,7 @@ def _solve_increment_counts(
                     ],
                 ),
             ),
-            options={"mip_rel_gap": _MIP_RELATIVE_GAP},
+            options={"disp": False, "mip_rel_gap": _MIP_RELATIVE_GAP},
         ),
     )
     secondary_fun = secondary.fun
@@ -744,7 +748,7 @@ def _solve_increment_counts(
                         [selected_usage],
                     ),
                 ),
-                options={"mip_rel_gap": _MIP_RELATIVE_GAP},
+                options={"disp": False, "mip_rel_gap": _MIP_RELATIVE_GAP},
             ),
         )
         if not tertiary.success or tertiary.fun is None or tertiary.x is None:
@@ -1025,6 +1029,17 @@ def _dilution_coefficients(
     comparisons: tuple[TargetIonComparison, ...],
 ) -> tuple[tuple[float, ...] | None, tuple[OptimizerDiagnostic, ...]]:
     assert request.diluent_source is not None
+    unsupported = tuple(
+        OptimizerDiagnostic(
+            code=OptimizerDiagnosticCode.TARGET_CRITERION_UNSUPPORTED,
+            message=f"The target criterion for {comparison.ion.value} is unsupported.",
+            ion=comparison.ion,
+        )
+        for comparison in comparisons
+        if comparison.status is TargetIonComparisonStatus.TARGET_UNSUPPORTED
+    )
+    if unsupported:
+        return None, unsupported
     resolution = resolve_source_profile(
         request.diluent_source.source_profile,
         policy=request.source_resolution_policy,
@@ -1033,8 +1048,6 @@ def _dilution_coefficients(
     coefficients: list[float] = []
     diagnostics: list[OptimizerDiagnostic] = []
     for comparison in comparisons:
-        if comparison.status is TargetIonComparisonStatus.TARGET_UNSUPPORTED:
-            continue
         assert comparison.actual_concentration is not None
         diluent_concentration = resolution.state.concentration_for(comparison.ion)
         if diluent_concentration is None:
@@ -1125,6 +1138,17 @@ def _source_volume_coefficients(
     request: OptimizerRequest,
     comparisons: tuple[TargetIonComparison, ...],
 ) -> tuple[tuple[tuple[float, ...], ...] | None, tuple[OptimizerDiagnostic, ...]]:
+    unsupported = tuple(
+        OptimizerDiagnostic(
+            code=OptimizerDiagnosticCode.TARGET_CRITERION_UNSUPPORTED,
+            message=f"The target criterion for {comparison.ion.value} is unsupported.",
+            ion=comparison.ion,
+        )
+        for comparison in comparisons
+        if comparison.status is TargetIonComparisonStatus.TARGET_UNSUPPORTED
+    )
+    if unsupported:
+        return None, unsupported
     total_liters = float(request.total_volume.to("liter").magnitude)
     coefficients: list[tuple[float, ...]] = []
     diagnostics: list[OptimizerDiagnostic] = []
@@ -1135,8 +1159,6 @@ def _source_volume_coefficients(
         )
         source_coefficients: list[float] = []
         for comparison in comparisons:
-            if comparison.status is TargetIonComparisonStatus.TARGET_UNSUPPORTED:
-                continue
             concentration = resolution.state.concentration_for(comparison.ion)
             if concentration is None:
                 diagnostics.append(
@@ -1317,6 +1339,19 @@ def _postvalidation_failure_result(
     )
 
 
+def _optional_candidate_failure(
+    diagnostic: OptimizerDiagnostic,
+    *,
+    label: str,
+) -> OptimizerDiagnostic:
+    return replace(
+        diagnostic,
+        message=(
+            f"The optional {label} candidate was unavailable: {diagnostic.message}"
+        ),
+    )
+
+
 def _fewest_material_candidate(
     request: OptimizerRequest,
     comparisons: tuple[TargetIonComparison, ...],
@@ -1473,7 +1508,7 @@ def _optimize_proportional_dilution(request: OptimizerRequest) -> OptimizerResul
 
     plans = [primary_plan]
     result_diagnostics: list[OptimizerDiagnostic] = []
-    alternative, alternative_report, alternative_diagnostic = (
+    alternative, _alternative_report, alternative_diagnostic = (
         _fewest_material_candidate(
             request,
             comparisons,
@@ -1487,18 +1522,13 @@ def _optimize_proportional_dilution(request: OptimizerRequest) -> OptimizerResul
         )
     )
     if alternative_diagnostic is not None:
-        assert alternative_report is not None
-        if (
-            alternative_diagnostic.code
-            is OptimizerDiagnosticCode.SOLVER_POSTVALIDATION_FAILED
-        ):
-            return _postvalidation_failure_result(
-                request,
-                alternative_report,
+        result_diagnostics.append(
+            _optional_candidate_failure(
                 alternative_diagnostic,
+                label="fewest-materials",
             )
-        return _solver_failure_result(request, alternative_report)
-    if alternative is not None and not _plans_operationally_equivalent(
+        )
+    elif alternative is not None and not _plans_operationally_equivalent(
         primary_plan,
         alternative,
     ):
@@ -1529,31 +1559,43 @@ def _optimize_proportional_dilution(request: OptimizerRequest) -> OptimizerResul
                 continuous_upper_bounds=(0.0,),
             )
             if no_dilution_decisions is None:
-                return _solver_failure_result(request, no_dilution_report)
-            no_dilution_plan, postvalidation_diagnostic = _build_plan(
-                request,
-                source_volumes=_proportional_source_volumes(request, 0.0),
-                material_counts=no_dilution_decisions.material_counts,
-                solver_report=no_dilution_report,
-                plan_id=(
-                    f"no_dilution_closest_absolute_mg_per_liter_v1:{len(plans) + 1}"
-                ),
-                strategy=(OptimizerStrategy.NO_DILUTION_CLOSEST_ABSOLUTE_MG_PER_LITER),
-                summary_label="Best-effort no-dilution plan",
-                explain_unavoidable_overshoot=True,
-            )
-            if no_dilution_plan is None:
-                assert postvalidation_diagnostic is not None
-                return _postvalidation_failure_result(
-                    request,
-                    no_dilution_report,
-                    postvalidation_diagnostic,
+                result_diagnostics.append(
+                    _optional_candidate_failure(
+                        OptimizerDiagnostic(
+                            code=OptimizerDiagnosticCode.SOLVER_FAILED,
+                            message=no_dilution_report.message,
+                        ),
+                        label="no-dilution",
+                    )
                 )
-            if not any(
-                _plans_operationally_equivalent(existing, no_dilution_plan)
-                for existing in plans
-            ):
-                plans.append(no_dilution_plan)
+            else:
+                no_dilution_plan, postvalidation_diagnostic = _build_plan(
+                    request,
+                    source_volumes=_proportional_source_volumes(request, 0.0),
+                    material_counts=no_dilution_decisions.material_counts,
+                    solver_report=no_dilution_report,
+                    plan_id=(
+                        f"no_dilution_closest_absolute_mg_per_liter_v1:{len(plans) + 1}"
+                    ),
+                    strategy=(
+                        OptimizerStrategy.NO_DILUTION_CLOSEST_ABSOLUTE_MG_PER_LITER
+                    ),
+                    summary_label="Best-effort no-dilution plan",
+                    explain_unavoidable_overshoot=True,
+                )
+                if no_dilution_plan is None:
+                    assert postvalidation_diagnostic is not None
+                    result_diagnostics.append(
+                        _optional_candidate_failure(
+                            postvalidation_diagnostic,
+                            label="no-dilution",
+                        )
+                    )
+                elif not any(
+                    _plans_operationally_equivalent(existing, no_dilution_plan)
+                    for existing in plans
+                ):
+                    plans.append(no_dilution_plan)
 
     return OptimizerResult(
         request=request,
@@ -1695,7 +1737,8 @@ def _optimize_source_volumes(request: OptimizerRequest) -> OptimizerResult:
             postvalidation_diagnostic,
         )
     plans = [plan]
-    alternative, alternative_report, alternative_diagnostic = (
+    result_diagnostics: list[OptimizerDiagnostic] = []
+    alternative, _alternative_report, alternative_diagnostic = (
         _fewest_material_candidate(
             request,
             comparisons,
@@ -1711,18 +1754,13 @@ def _optimize_source_volumes(request: OptimizerRequest) -> OptimizerResult:
         )
     )
     if alternative_diagnostic is not None:
-        assert alternative_report is not None
-        if (
-            alternative_diagnostic.code
-            is OptimizerDiagnosticCode.SOLVER_POSTVALIDATION_FAILED
-        ):
-            return _postvalidation_failure_result(
-                request,
-                alternative_report,
+        result_diagnostics.append(
+            _optional_candidate_failure(
                 alternative_diagnostic,
+                label="fewest-materials",
             )
-        return _solver_failure_result(request, alternative_report)
-    if alternative is not None and not _plans_operationally_equivalent(
+        )
+    elif alternative is not None and not _plans_operationally_equivalent(
         plan,
         alternative,
     ):
@@ -1734,7 +1772,7 @@ def _optimize_source_volumes(request: OptimizerRequest) -> OptimizerResult:
         input_support=OptimizerInputSupportStatus.SUPPORTED,
         feasibility=OptimizerFeasibilityStatus.FEASIBLE,
         plans=tuple(plans),
-        diagnostics=(),
+        diagnostics=tuple(result_diagnostics),
         solver_report=solver_report,
     )
 
@@ -1803,7 +1841,8 @@ def optimize_treatment(request: OptimizerRequest) -> OptimizerResult:
             postvalidation_diagnostic,
         )
     plans = [plan]
-    alternative, alternative_report, alternative_diagnostic = (
+    result_diagnostics: list[OptimizerDiagnostic] = []
+    alternative, _alternative_report, alternative_diagnostic = (
         _fewest_material_candidate(
             request,
             comparisons,
@@ -1811,18 +1850,13 @@ def optimize_treatment(request: OptimizerRequest) -> OptimizerResult:
         )
     )
     if alternative_diagnostic is not None:
-        assert alternative_report is not None
-        if (
-            alternative_diagnostic.code
-            is OptimizerDiagnosticCode.SOLVER_POSTVALIDATION_FAILED
-        ):
-            return _postvalidation_failure_result(
-                request,
-                alternative_report,
+        result_diagnostics.append(
+            _optional_candidate_failure(
                 alternative_diagnostic,
+                label="fewest-materials",
             )
-        return _solver_failure_result(request, alternative_report)
-    if alternative is not None and not _plans_operationally_equivalent(
+        )
+    elif alternative is not None and not _plans_operationally_equivalent(
         plan,
         alternative,
     ):
@@ -1834,6 +1868,6 @@ def optimize_treatment(request: OptimizerRequest) -> OptimizerResult:
         input_support=OptimizerInputSupportStatus.SUPPORTED,
         feasibility=OptimizerFeasibilityStatus.FEASIBLE,
         plans=tuple(plans),
-        diagnostics=(),
+        diagnostics=tuple(result_diagnostics),
         solver_report=solver_report,
     )

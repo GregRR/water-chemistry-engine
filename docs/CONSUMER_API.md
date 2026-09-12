@@ -410,6 +410,13 @@ operationally distinct no-dilution best-effort plan follows those candidates.
 Consumers should use the structured strategy and diagnostic enums, not plan
 position or English summaries alone, when implementing behavior.
 
+A failure limited to an optional fewest-materials or requested no-dilution
+candidate does not invalidate an already postvalidated primary plan. Such a
+result remains feasible, retains its primary plans and primary solver report,
+and includes a result-level `SOLVER_FAILED` or
+`SOLVER_POSTVALIDATION_FAILED` diagnostic identifying the unavailable optional
+candidate.
+
 ## Validation, unknowns, and notices
 
 Invalid request objects fail at their construction or calculation boundary

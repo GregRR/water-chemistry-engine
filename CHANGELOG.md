@@ -41,6 +41,9 @@ distribution and its repository milestones.
 - Kept numerical solver feasibility tolerances separate from caller-declared
   physical source availability, so a near-boundary solve cannot create volume
   beyond a source or diluent maximum.
+- Aligned candidate-ranking comparisons with HiGHS's MIP feasibility tolerance,
+  preserved an already-validated primary plan when an optional candidate solve
+  fails, and hardened non-finite solver-output handling.
 - Extended the supported package-root consumer facade with the complete
   optimizer request/result graph and the narrow exact-composition, mass-dosed
   material boundary, backed by an end-to-end package-root integration test.
