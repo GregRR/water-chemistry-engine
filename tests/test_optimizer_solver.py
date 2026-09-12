@@ -604,6 +604,41 @@ def test_source_volume_policy_reports_insufficient_total_availability() -> None:
     )
 
 
+def test_source_volume_policy_does_not_broaden_availability_by_solver_tolerance() -> (
+    None
+):
+    sources = (
+        _available_source(
+            "Source A",
+            current_liters=0.0,
+            maximum_liters=5.0,
+            calcium=100.0,
+        ),
+        _available_source(
+            "Source B",
+            current_liters=0.0,
+            maximum_liters=4.9999995,
+            calcium=0.0,
+        ),
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(10, "liter"),
+        sources=sources,
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.SOURCE_VOLUMES,
+        target_profile=_target(50.0),
+    )
+
+    result = optimize_treatment(request)
+
+    assert result.feasibility is OptimizerFeasibilityStatus.INFEASIBLE
+    assert result.plans == ()
+    assert tuple(diagnostic.code for diagnostic in result.diagnostics) == (
+        OptimizerDiagnosticCode.SOURCE_VOLUME_CONSTRAINTS_INFEASIBLE,
+    )
+
+
 def test_source_volume_policy_does_not_use_unknown_source_chemistry() -> None:
     known = _available_source(
         "Known",
@@ -844,6 +879,44 @@ def test_proportional_dilution_reports_infeasible_volume_limits() -> None:
         ),
         Q_(0, "liter"),
         Q_(5, "liter"),
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(10, "liter"),
+        sources=(source,),
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.PROPORTIONAL_DILUTION,
+        target_profile=_target(50.0),
+        diluent_source=diluent,
+    )
+
+    result = optimize_treatment(request)
+
+    assert result.feasibility is OptimizerFeasibilityStatus.INFEASIBLE
+    assert result.plans == ()
+    assert tuple(diagnostic.code for diagnostic in result.diagnostics) == (
+        OptimizerDiagnosticCode.SOURCE_VOLUME_CONSTRAINTS_INFEASIBLE,
+    )
+
+
+def test_proportional_dilution_does_not_broaden_availability_by_solver_tolerance() -> (
+    None
+):
+    source = OptimizerSource(
+        SourceWaterProfile(
+            "Limited source",
+            (IonConcentration.mg_per_liter(Ion.CALCIUM, 100.0),),
+        ),
+        Q_(1, "liter"),
+        Q_(5, "liter"),
+    )
+    diluent = OptimizerSource(
+        SourceWaterProfile(
+            "Limited diluent",
+            (IonConcentration.mg_per_liter(Ion.CALCIUM, 0.0),),
+        ),
+        Q_(0, "liter"),
+        Q_(4.9999995, "liter"),
     )
     request = OptimizerRequest(
         total_volume=Q_(10, "liter"),

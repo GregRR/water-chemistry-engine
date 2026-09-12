@@ -989,9 +989,9 @@ def _proportional_dilution_bounds(
         float(request.diluent_source.maximum_volume.to("liter").magnitude),
     )
     diluent_minimum = max(0.0, total_liters - maximum_non_diluent)
-    if diluent_minimum > diluent_maximum + _CONTINUOUS_ABS_TOLERANCE:
+    if diluent_minimum > diluent_maximum:
         return None
-    return min(diluent_minimum, diluent_maximum), diluent_maximum
+    return diluent_minimum, diluent_maximum
 
 
 def _proportional_source_volumes(
@@ -1091,7 +1091,7 @@ def _source_volume_reference(request: OptimizerRequest) -> tuple[float, ...] | N
         min(total_liters, float(source.maximum_volume.to("liter").magnitude))
         for source in request.sources
     ]
-    if fsum(maximum) < total_liters - _CONTINUOUS_ABS_TOLERANCE:
+    if fsum(maximum) < total_liters:
         return None
 
     current_total = fsum(current)
@@ -1105,11 +1105,19 @@ def _source_volume_reference(request: OptimizerRequest) -> tuple[float, ...] | N
         addition = min(remaining, upper - reference[index])
         reference[index] += addition
         remaining -= addition
-        if remaining <= _CONTINUOUS_ABS_TOLERANCE:
+        if remaining <= 0.0:
             break
-    if remaining > _CONTINUOUS_ABS_TOLERANCE:
+    if remaining > 0.0:
         return None
-    reference[-1] += total_liters - fsum(reference)
+    correction = total_liters - fsum(reference)
+    if correction != 0.0:
+        for index in range(len(reference) - 1, -1, -1):
+            adjusted = reference[index] + correction
+            if 0.0 <= adjusted <= maximum[index]:
+                reference[index] = adjusted
+                break
+        else:
+            return None
     return tuple(reference)
 
 
@@ -1502,7 +1510,7 @@ def _optimize_proportional_dilution(request: OptimizerRequest) -> OptimizerResul
             plans.append(explained_alternative)
 
     if request.request_no_dilution_plan:
-        if diluent_minimum > _CONTINUOUS_ABS_TOLERANCE:
+        if diluent_minimum > 0.0:
             result_diagnostics.append(
                 OptimizerDiagnostic(
                     code=OptimizerDiagnosticCode.NO_DILUTION_PLAN_INFEASIBLE,

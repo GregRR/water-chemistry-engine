@@ -38,6 +38,9 @@ distribution and its repository milestones.
   lower-mass tertiary ranking, operational deduplication, and explicit tradeoff
   explanations. No-dilution plans now identify unavoidable starting-water
   overshoots and their signed deviations.
+- Kept numerical solver feasibility tolerances separate from caller-declared
+  physical source availability, so a near-boundary solve cannot create volume
+  beyond a source or diluent maximum.
 - Extended the supported package-root consumer facade with the complete
   optimizer request/result graph and the narrow exact-composition, mass-dosed
   material boundary, backed by an end-to-end package-root integration test.
