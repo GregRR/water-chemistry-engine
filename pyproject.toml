@@ -43,6 +43,9 @@ dev = [
 [tool.mypy]
 strict = true
 python_version = "3.11"
+# Every engine module is passed to mypy through ``src``. Skip only traversal
+# into dependency internals, whose stubs may use syntax newer than our baseline.
+follow_imports = "skip"
 
 [tool.ruff]
 # Preserve Ruff 0.16.1's broad default lint policy without copying hundreds of
