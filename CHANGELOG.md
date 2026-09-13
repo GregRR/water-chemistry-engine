@@ -44,6 +44,8 @@ distribution and its repository milestones.
 - Aligned candidate-ranking comparisons with HiGHS's MIP feasibility tolerance,
   preserved an already-validated primary plan when an optional candidate solve
   fails, and hardened non-finite solver-output handling.
+- Accounted for feasibility noise accumulated across multiple target-deviation
+  variables when validating secondary and tertiary ranking solutions.
 - Extended the supported package-root consumer facade with the complete
   optimizer request/result graph and the narrow exact-composition, mass-dosed
   material boundary, backed by an end-to-end package-root integration test.

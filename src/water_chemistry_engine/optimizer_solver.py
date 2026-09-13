@@ -16,7 +16,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from decimal import ROUND_FLOOR, Decimal
-from math import fabs, fsum, inf, isclose, isfinite
+from math import fabs, fsum, inf, isclose, isfinite, nextafter
 from typing import Protocol, cast
 
 from fermunits import Q_
@@ -60,10 +60,16 @@ from water_chemistry_engine.treatment_stoichiometry import (
 
 _SOLVER = "scipy.optimize.milp"
 _METHOD = "highs"
-# HiGHS uses a 1e-6 MIP feasibility tolerance. Ranking constraints and
-# validation checks must not reject a backend-feasible solution for smaller
-# floating-point noise.
-_PRIMARY_OBJECTIVE_TOLERANCE_MG_PER_LITER = 1e-6
+# HiGHS applies its 1e-6 MIP feasibility tolerance independently to each model
+# row and variable bound. Keep the deliberate lexicographic-ranking allowance
+# separate from the accumulated tolerance used to validate a returned vector.
+_HIGHS_MIP_FEASIBILITY_TOLERANCE = 1e-6
+_PRIMARY_OBJECTIVE_RANKING_TOLERANCE_MG_PER_LITER = 1e-6
+# Integer decisions returned within the backend tolerance can shift the replayed
+# objective when snapped to exact counts. This small absolute floor covers the
+# observed normalization noise without a relative tolerance that would grow
+# with large objective values.
+_PRIMARY_OBJECTIVE_VALIDATION_FLOOR_MG_PER_LITER = 2e-5
 _POSTVALIDATION_ABS_TOLERANCE_MG_PER_LITER = 1e-7
 _POSTVALIDATION_REL_TOLERANCE = 1e-12
 _INTEGER_ABS_TOLERANCE = 1e-6
@@ -73,6 +79,26 @@ _MAXIMUM_INCREMENT_COUNT = 1_000_000
 _SMALLEST_SOLVER_MATRIX_VALUE = 1e-9
 _LARGEST_SOLVER_MATRIX_VALUE = 1e15
 _LARGEST_SOLVER_BOUND = 1e20
+
+
+def _primary_objective_validation_tolerance(comparison_count: int) -> float:
+    """Return a conservative bound for accumulated HiGHS feasibility noise.
+
+    Each comparison owns two nonnegative deviation variables. For each one,
+    either its chemistry row or its zero lower bound can make the reconstructed
+    deviation exceed the returned variable by the backend tolerance. The
+    secondary/tertiary ranking constraint is one additional row. The separate
+    ranking allowance preserves lexicographic feasibility rather than
+    representing chemical precision.
+    """
+
+    accumulated_tolerance = _PRIMARY_OBJECTIVE_RANKING_TOLERANCE_MG_PER_LITER + (
+        (2 * comparison_count + 1) * _HIGHS_MIP_FEASIBILITY_TOLERANCE
+    )
+    return max(
+        _PRIMARY_OBJECTIVE_VALIDATION_FLOOR_MG_PER_LITER,
+        accumulated_tolerance,
+    )
 
 
 class _MilpResult(Protocol):
@@ -97,6 +123,7 @@ def _solver_report(
     solver_reported_primary_objective: float | None,
     primary_objective: float | None,
     secondary_objective: float | None,
+    primary_objective_tolerance: float,
 ) -> OptimizerSolverReport:
     return OptimizerSolverReport(
         solver=_SOLVER,
@@ -109,9 +136,7 @@ def _solver_report(
         ),
         primary_objective_mg_per_liter=primary_objective,
         secondary_objective_grams=secondary_objective,
-        primary_objective_tolerance_mg_per_liter=(
-            _PRIMARY_OBJECTIVE_TOLERANCE_MG_PER_LITER
-        ),
+        primary_objective_tolerance_mg_per_liter=primary_objective_tolerance,
         mip_relative_gap=(None if result.mip_gap is None else float(result.mip_gap)),
     )
 
@@ -122,6 +147,7 @@ def _rejected_solver_report(
     message: str,
     solver_reported_primary_objective: float | None,
     primary_objective: float | None = None,
+    primary_objective_tolerance: float,
 ) -> OptimizerSolverReport:
     return OptimizerSolverReport(
         solver=_SOLVER,
@@ -134,9 +160,7 @@ def _rejected_solver_report(
         ),
         primary_objective_mg_per_liter=primary_objective,
         secondary_objective_grams=None,
-        primary_objective_tolerance_mg_per_liter=(
-            _PRIMARY_OBJECTIVE_TOLERANCE_MG_PER_LITER
-        ),
+        primary_objective_tolerance_mg_per_liter=primary_objective_tolerance,
         mip_relative_gap=(None if result.mip_gap is None else float(result.mip_gap)),
     )
 
@@ -476,12 +500,15 @@ def _solve_increment_counts(
                 primary_objective_mg_per_liter=0.0,
                 secondary_objective_grams=0.0,
                 primary_objective_tolerance_mg_per_liter=(
-                    _PRIMARY_OBJECTIVE_TOLERANCE_MG_PER_LITER
+                    _PRIMARY_OBJECTIVE_RANKING_TOLERANCE_MG_PER_LITER
                 ),
                 mip_relative_gap=0.0,
             ),
         )
 
+    primary_objective_validation_tolerance = _primary_objective_validation_tolerance(
+        comparison_count
+    )
     material_coefficients = _increment_coefficients(request, comparisons)
     usage_count = material_count if prefer_fewest_materials else 0
     decision_count = material_count + continuous_count + usage_count
@@ -599,6 +626,7 @@ def _solve_increment_counts(
             ),
             primary_objective=None,
             secondary_objective=None,
+            primary_objective_tolerance=primary_objective_validation_tolerance,
         )
     raw_primary_objective = float(primary.fun)
     if not isfinite(raw_primary_objective) or raw_primary_objective < 0.0:
@@ -606,6 +634,7 @@ def _solve_increment_counts(
             primary,
             message="Solver returned a non-finite or negative primary objective.",
             solver_reported_primary_objective=raw_primary_objective,
+            primary_objective_tolerance=primary_objective_validation_tolerance,
         )
     primary_decisions = _validated_decisions(
         primary,
@@ -622,6 +651,7 @@ def _solve_increment_counts(
             primary,
             message="Solver returned invalid decision values.",
             solver_reported_primary_objective=raw_primary_objective,
+            primary_objective_tolerance=primary_objective_validation_tolerance,
         )
     primary_recomputed_objective = _objective_from_decisions(
         comparisons,
@@ -660,7 +690,7 @@ def _solve_increment_counts(
                     [-inf],
                     [
                         primary_recomputed_objective
-                        + _PRIMARY_OBJECTIVE_TOLERANCE_MG_PER_LITER
+                        + _PRIMARY_OBJECTIVE_RANKING_TOLERANCE_MG_PER_LITER
                     ],
                 ),
             ),
@@ -674,6 +704,7 @@ def _solve_increment_counts(
             solver_reported_primary_objective=raw_primary_objective,
             primary_objective=primary_recomputed_objective,
             secondary_objective=None,
+            primary_objective_tolerance=primary_objective_validation_tolerance,
         )
     if not isfinite(secondary_fun) or secondary_fun < 0:
         return None, _rejected_solver_report(
@@ -681,6 +712,7 @@ def _solve_increment_counts(
             message="Solver returned a non-finite or negative secondary objective.",
             solver_reported_primary_objective=raw_primary_objective,
             primary_objective=primary_recomputed_objective,
+            primary_objective_tolerance=primary_objective_validation_tolerance,
         )
     secondary_decisions = _validated_decisions(
         secondary,
@@ -698,6 +730,7 @@ def _solve_increment_counts(
             message="Solver returned invalid secondary decision values.",
             solver_reported_primary_objective=raw_primary_objective,
             primary_objective=primary_recomputed_objective,
+            primary_objective_tolerance=primary_objective_validation_tolerance,
         )
     secondary_recomputed_objective = _objective_from_decisions(
         comparisons,
@@ -706,14 +739,17 @@ def _solve_increment_counts(
         continuous_coefficients,
         secondary_decisions.continuous_values,
     )
-    if secondary_recomputed_objective > (
-        primary_recomputed_objective + _PRIMARY_OBJECTIVE_TOLERANCE_MG_PER_LITER
-    ):
+    primary_objective_validation_limit = nextafter(
+        primary_recomputed_objective + primary_objective_validation_tolerance,
+        inf,
+    )
+    if secondary_recomputed_objective > primary_objective_validation_limit:
         return None, _rejected_solver_report(
             secondary,
             message="Secondary solve violated the primary-objective tolerance.",
             solver_reported_primary_objective=raw_primary_objective,
             primary_objective=secondary_recomputed_objective,
+            primary_objective_tolerance=primary_objective_validation_tolerance,
         )
 
     selected_mass = sum(
@@ -739,7 +775,7 @@ def _solve_increment_counts(
                         [-inf],
                         [
                             primary_recomputed_objective
-                            + _PRIMARY_OBJECTIVE_TOLERANCE_MG_PER_LITER
+                            + _PRIMARY_OBJECTIVE_RANKING_TOLERANCE_MG_PER_LITER
                         ],
                     ),
                     LinearConstraint(
@@ -757,6 +793,7 @@ def _solve_increment_counts(
                 solver_reported_primary_objective=raw_primary_objective,
                 primary_objective=primary_recomputed_objective,
                 secondary_objective=None,
+                primary_objective_tolerance=primary_objective_validation_tolerance,
             )
         tertiary_fun = float(tertiary.fun)
         if not isfinite(tertiary_fun) or tertiary_fun < 0:
@@ -765,6 +802,7 @@ def _solve_increment_counts(
                 message="Solver returned a non-finite or negative tertiary objective.",
                 solver_reported_primary_objective=raw_primary_objective,
                 primary_objective=primary_recomputed_objective,
+                primary_objective_tolerance=primary_objective_validation_tolerance,
             )
         tertiary_decisions = _validated_decisions(
             tertiary,
@@ -782,6 +820,7 @@ def _solve_increment_counts(
                 message="Solver returned invalid tertiary decision values.",
                 solver_reported_primary_objective=raw_primary_objective,
                 primary_objective=primary_recomputed_objective,
+                primary_objective_tolerance=primary_objective_validation_tolerance,
             )
         tertiary_recomputed_objective = _objective_from_decisions(
             comparisons,
@@ -791,8 +830,7 @@ def _solve_increment_counts(
             tertiary_decisions.continuous_values,
         )
         if (
-            tertiary_recomputed_objective
-            > (primary_recomputed_objective + _PRIMARY_OBJECTIVE_TOLERANCE_MG_PER_LITER)
+            tertiary_recomputed_objective > primary_objective_validation_limit
             or sum(tertiary_decisions.material_usage) > selected_usage
         ):
             return None, _rejected_solver_report(
@@ -800,6 +838,7 @@ def _solve_increment_counts(
                 message="Tertiary solve violated an earlier ranking objective.",
                 solver_reported_primary_objective=raw_primary_objective,
                 primary_objective=tertiary_recomputed_objective,
+                primary_objective_tolerance=primary_objective_validation_tolerance,
             )
         secondary_decisions = tertiary_decisions
         secondary_recomputed_objective = tertiary_recomputed_objective
@@ -818,6 +857,7 @@ def _solve_increment_counts(
         solver_reported_primary_objective=raw_primary_objective,
         primary_objective=secondary_recomputed_objective,
         secondary_objective=selected_mass,
+        primary_objective_tolerance=primary_objective_validation_tolerance,
     )
 
 

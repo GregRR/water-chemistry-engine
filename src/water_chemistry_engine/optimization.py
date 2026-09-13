@@ -204,7 +204,9 @@ class OptimizerSolverReport:
     by the engine from validated integer decisions.  The separately named
     ``solver_reported_primary_objective_mg_per_liter`` is retained only as raw
     backend audit data and may differ within the backend's feasibility
-    tolerances.
+    tolerances. ``primary_objective_tolerance_mg_per_liter`` records the
+    conservative accumulated tolerance used when validating later ranking
+    solves, including the backend tolerance for each relevant row and bound.
     """
 
     solver: str

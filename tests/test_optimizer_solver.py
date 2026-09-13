@@ -1598,7 +1598,7 @@ def test_solver_integer_noise_above_backend_tolerance_is_rejected(
     assert "invalid decision values" in result.solver_report.message
 
 
-def test_secondary_objective_noise_within_backend_tolerance_is_accepted(
+def test_accumulated_objective_noise_within_validation_tolerance_is_accepted(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     responses = iter(
@@ -1616,7 +1616,7 @@ def test_secondary_objective_noise_within_backend_tolerance_is_accepted(
                 status=0,
                 message="secondary optimal",
                 fun=0.0,
-                x=(-5e-7, 50.0000005, 0.0),
+                x=(-19.9e-6, 50.0000199, 0.0),
                 mip_gap=0.0,
             ),
         )
@@ -1647,12 +1647,91 @@ def test_secondary_objective_noise_within_backend_tolerance_is_accepted(
     )
 
     assert decisions is not None
-    assert decisions.continuous_values == pytest.approx((-5e-7,))
+    assert decisions.continuous_values == pytest.approx((-19.9e-6,))
     assert report.success is True
-    assert report.primary_objective_mg_per_liter == pytest.approx(50.0000005)
+    assert report.primary_objective_mg_per_liter == pytest.approx(50.0000199)
+    assert report.primary_objective_tolerance_mg_per_liter == pytest.approx(20e-6)
 
 
-def test_secondary_objective_noise_above_backend_tolerance_is_rejected(
+def test_objective_validation_tolerance_scales_with_target_comparisons() -> None:
+    assert optimizer_solver._primary_objective_validation_tolerance(
+        10
+    ) == pytest.approx(22e-6)
+
+
+@pytest.mark.parametrize(
+    "candidate_request",
+    [
+        OptimizerRequest(
+            total_volume=Q_(10, "liter"),
+            sources=(
+                _available_source(
+                    "Source",
+                    current_liters=10.0,
+                    maximum_liters=10.0,
+                    calcium=239.00856797231233,
+                    sulfate=379.13099482373974,
+                ),
+            ),
+            material_constraints=(_gypsum_constraint(),),
+            source_resolution_policy=_POLICY,
+            blend_policy=OptimizerBlendPolicy.PROPORTIONAL_DILUTION,
+            target_profile=TargetWaterProfile(
+                "Target",
+                (
+                    IonConcentration.mg_per_liter(Ion.CALCIUM, 14.137841931702171),
+                    IonConcentration.mg_per_liter(Ion.SULFATE, 33.94879806356865),
+                ),
+            ),
+            diluent_source=_available_source(
+                "Diluent",
+                current_liters=0.0,
+                maximum_liters=10.0,
+                calcium=8.354988781294496,
+                sulfate=7.359699890685233,
+            ),
+        ),
+        OptimizerRequest(
+            total_volume=Q_(10, "liter"),
+            sources=(
+                _available_source(
+                    "First",
+                    current_liters=5.0,
+                    maximum_liters=10.0,
+                    calcium=143.14418483566038,
+                    sulfate=231.22555790983438,
+                ),
+                _available_source(
+                    "Second",
+                    current_liters=5.0,
+                    maximum_liters=10.0,
+                    calcium=117.96149775430132,
+                    sulfate=189.12551471288918,
+                ),
+            ),
+            material_constraints=(_gypsum_constraint(),),
+            source_resolution_policy=_POLICY,
+            blend_policy=OptimizerBlendPolicy.SOURCE_VOLUMES,
+            target_profile=TargetWaterProfile(
+                "Target",
+                (
+                    IonConcentration.mg_per_liter(Ion.CALCIUM, 114.08681282306584),
+                    IonConcentration.mg_per_liter(Ion.SULFATE, 258.051664159487),
+                ),
+            ),
+        ),
+    ],
+)
+def test_integer_normalization_noise_does_not_discard_valid_plan(
+    candidate_request: OptimizerRequest,
+) -> None:
+    result = optimize_treatment(candidate_request)
+
+    assert result.feasibility is OptimizerFeasibilityStatus.FEASIBLE
+    assert result.plans
+
+
+def test_objective_noise_above_accumulated_validation_tolerance_is_rejected(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     responses = iter(
@@ -1670,7 +1749,7 @@ def test_secondary_objective_noise_above_backend_tolerance_is_rejected(
                 status=0,
                 message="secondary optimal",
                 fun=0.0,
-                x=(-1.1e-6, 50.0000011, 0.0),
+                x=(-20.1e-6, 50.0000201, 0.0),
                 mip_gap=0.0,
             ),
         )

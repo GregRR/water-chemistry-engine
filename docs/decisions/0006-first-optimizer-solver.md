@@ -74,6 +74,12 @@ increment's operational meaning.
   declared bounds, rejects a negative raw deviation objective, reconstructs the
   primary objective from the counts, and compares that value with the ordinary
   forward-calculation result. The reconstructed value is authoritative; the raw
-  value is retained for audit and may differ within backend tolerances.
+  value is retained for audit and may differ within backend tolerances. Ranking
+  validation accounts conservatively for feasibility noise accumulated across
+  the objective constraint and the two nonnegative deviation components
+  associated with each target comparison; this numerical allowance is reported
+  and is not treated as chemical precision. A bounded absolute floor also
+  covers the small objective shift caused when backend-feasible integer values
+  are normalized to exact dose counts.
 - Independent analytical cases and post-solver forward recalculation remain
   required; tests must not merely reproduce SciPy's returned arrays.
