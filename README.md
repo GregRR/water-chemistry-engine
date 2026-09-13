@@ -1,8 +1,8 @@
 # Water Chemistry Engine
 
 A reusable, scientifically grounded Python engine for characterizing, blending,
-treating, comparing, and eventually optimizing water for brewing, fermentation,
-and other validated uses.
+treating, comparing, and optimizing water for brewing, fermentation, and other
+validated uses.
 
 The engine is intentionally independent of web frameworks, databases, graphical
 interfaces, and product-specific persistence. End-user applications consume this
@@ -10,11 +10,11 @@ package from separate projects.
 
 ## Project status
 
-The released **0.3 supported-consumer-API milestone is complete**. The engine can
-resolve reported source-water chemistry, blend multiple characterized sources,
-apply supported mineral additions, calculate the resulting water, compare it
-with target/reference criteria, and return auditable contribution, instruction,
-and notice data.
+The **0.4 automatic-treatment-optimizer milestone is complete**. The engine can
+resolve reported source-water chemistry, optimize or preserve supported source
+blends, choose bounded practical mineral doses, calculate the resulting water,
+compare it with target/reference criteria, and return auditable candidate plans,
+contributions, instructions, diagnostics, and notices.
 
 Python 3.11 is the project compatibility baseline, with CI coverage through
 Python 3.14. Public APIs remain pre-1.0 and may evolve as real consumer
@@ -32,14 +32,14 @@ Version 0.3.1 expands the supported FermUnits dependency range to include the
 stable 1.x series while retaining the compatible 0.1.3 floor; the Engine
 continues to import unit functionality only through FermUnits.
 
-Version 0.4 development now implements the first bounded automatic treatment
+Version 0.4 implements the first bounded automatic treatment
 optimizer. It supports fixed blends, proportional dilution with an explicitly
 characterized diluent, and bounded source-volume selection; chooses whole
 caller-declared material dose increments; returns structured forward-replayed
 plans; offers an equally close fewest-products alternative when materially
 different; and can return an independently solved no-dilution best-effort plan.
-The optimizer contract remains pre-release until the 0.4 review and release
-gates are complete.
+The optimizer contract remains pre-1.0 and may evolve under the documented
+consumer API compatibility policy.
 
 ### Forward-calculator capabilities established in 0.2
 
@@ -101,13 +101,13 @@ Water Chemistry Engine requires Python 3.11 or newer. Install the published
 package with uv or pip:
 
 ```bash
-uv add water-chemistry-engine==0.3.1
+uv add water-chemistry-engine==0.4.0
 ```
 
 or:
 
 ```bash
-python -m pip install water-chemistry-engine==0.3.1
+python -m pip install water-chemistry-engine==0.4.0
 ```
 
 Version 0.3 exposes a supported package-root facade. APIs remain pre-1.0 and may

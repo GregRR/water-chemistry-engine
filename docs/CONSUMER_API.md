@@ -2,8 +2,8 @@
 
 ## Status
 
-This document defines the supported package-root facade for the upcoming Water
-Chemistry Engine 0.4.0 release. Ordinary consumers should prefer imports from
+This document defines the supported package-root facade for Water Chemistry
+Engine 0.4.0. Ordinary consumers should prefer imports from
 `water_chemistry_engine` as documented here. Consumers remaining on an earlier
 minor release should continue using their tested imports and pinned version
 until they deliberately migrate.
@@ -506,7 +506,8 @@ The facade remains framework-neutral. It returns Python domain objects and
 FermUnits/Pint quantities, never HTML, ORM records, database handles, or
 product-specific persistence state.
 
-The active 0.4 development source reports `0.4.0`. `__version__` is distribution
+The 0.4.0 distribution reports `0.4.0`. `__version__` is distribution
 identity, not a capability probe for an arbitrary Git checkout. Consumers must
-not depend directly on `main`; use a released, explicitly pinned distribution
-or an exact commit or built artifact while testing unreleased work.
+not depend directly on `main`; use a released, explicitly pinned distribution.
+An exact commit or built artifact may be appropriate while testing unreleased
+work.

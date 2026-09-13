@@ -1092,7 +1092,10 @@ Blending and treatment remain distinct operations internally even when optimized
 
 Reported/derived semantics are resolved before a calculation uses a representative value. The calculation layer must never guess silently.
 
-The pH capability is reusable and state-based. Any consumer may request pH for a source, blended-water, or final treated-water state when the model's input contract is satisfied; the engine exposes one calculation rather than product-specific variants.
+The planned pH capability must be reusable and state-based. Once a validated
+model and input contract exist, any consumer should be able to request pH for a
+source, blended-water, or final treated-water state through one calculation
+rather than product-specific variants.
 
 ## 16. Version 1.0 scope and release sequence
 

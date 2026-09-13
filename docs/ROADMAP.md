@@ -12,8 +12,10 @@ consumer application's presentation or persistence layer.
 ## Current state
 
 Release 0.2 completed the deterministic source-to-result path needed by real
-consumer applications. Release 0.3 adds the supported package-root boundary
-for consuming that path. Implemented foundations include:
+consumer applications. Release 0.3 added the supported package-root boundary
+for consuming that path, and release 0.4 adds the first bounded automatic
+treatment optimizer and practical candidate plans. Implemented foundations
+include:
 
 - source-water and target-water domain models;
 - `SourceDocumentMetadata` and `SourceWaterProfile.source_document`;
@@ -45,14 +47,11 @@ for consuming that path. Implemented foundations include:
 - API-level compatibility and integration tests;
 - Python 3.11 through 3.14 support with 3.11 as the compatibility baseline.
 
-Release 0.3 completes the supported consumer boundary. Its package-root facade
-exposes the important consumer operations, source-reporting inputs, and nested
-result graph through an intentional supported surface. The next implementation
-work is a small 0.3.1 FermUnits 1.0 compatibility release followed by the 0.4
-first practical treatment optimizer. Curated profiles and the broader
-treatment-material model remain important, but no longer precede the optimizer
-except for the minimum material semantics required to recommend safe,
-reproducible doses.
+Release 0.4 completes the first optimizer vertical slice. Its package-root
+facade exposes the request, plan, diagnostic, solver-report, and exact
+mass-dosed material graph through an intentional supported surface. Curated
+profiles, broader treatment-material semantics, and richer target comparison
+remain planned for 0.5.
 
 ## 0.2 — Deterministic Forward Calculator
 
@@ -161,7 +160,7 @@ an implemented 0.3 capability.
   justified by real application use without duplicating chemistry or hiding
   reported-data semantics.
 
-Consumer applications should depend on and pin the 0.3 release rather than
+Consumer applications should depend on and pin the 0.4.0 release rather than
 depending on the engine repository. Pre-release integration may use an exact
 commit or locally built artifact.
 
@@ -183,7 +182,7 @@ scientific behavior or supported consumer contract. This patch release should:
 
 ## 0.4 — Automatic Treatment Optimizer and Practical Plans
 
-**Status: active development.**
+**Status: complete.**
 
 Let the engine answer:
 

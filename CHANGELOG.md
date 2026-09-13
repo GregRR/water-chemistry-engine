@@ -3,22 +3,38 @@
 This project follows semantic versioning for the Water Chemistry Engine
 distribution and its repository milestones.
 
-## Unreleased
+## 0.4.0 - 2026-09-12
 
-### Changed
+### Added
 
-- Began 0.4.0 development for the first practical treatment optimizer.
-- Added the internal exact-composition, mass-dosed treatment-material boundary
+- The internal exact-composition, mass-dosed treatment-material boundary
   and solver-free optimizer request contract with explicit blend authority,
   source availability, bounded material inputs, diluent input, and separate
   support, feasibility, target-fit, and operational-practicality status
   vocabularies.
-- Selected SciPy's HiGHS mixed-integer interface for practical dose-increment
-  decisions, constrained to the Python 3.11-compatible 1.17 release line.
-- Added the first fixed-blend optimizer strategy: minimize unweighted
+- The first fixed-blend optimizer strategy: minimize unweighted
   absolute target deviation in mg/L over bounded whole dose increments, use
   total measured material mass as a tie-breaker, and verify the selected plan
   through the ordinary forward-calculation path.
+- Proportional-dilution optimization with an explicitly characterized
+  diluent, preserved source proportions, source/diluent availability limits,
+  and an optional deduplicated no-dilution best-effort plan.
+- Bounded source-volume optimization across caller-permitted waters,
+  including exact total-volume enforcement, independent chemistry resolution,
+  positional source identity, and structured insufficient-availability results.
+- Deterministic candidate generation for an equally close
+  fewest-treatment-products strategy, with binary product-use decisions,
+  lower-mass tertiary ranking, operational deduplication, and explicit tradeoff
+  explanations. No-dilution plans now identify unavoidable starting-water
+  overshoots and their signed deviations.
+- The complete optimizer request/result graph and narrow exact-composition,
+  mass-dosed material boundary in the supported package-root consumer facade,
+  backed by an end-to-end package-root integration test.
+
+### Changed
+
+- Selected SciPy's HiGHS mixed-integer interface for practical dose-increment
+  decisions, constrained to the Python 3.11-compatible 1.17 release line.
 - Hardened the solver boundary after independent review: reject unsupported
   integer-count ranges, reject impossible negative objectives, recompute the
   selected objective from returned increment counts, preserve the raw solver
@@ -27,17 +43,6 @@ distribution and its repository milestones.
 - Aligned integer-result validation with the backend's documented MIP
   feasibility tolerance, require the solver's complete decision-vector shape,
   and document the engine-reconstructed objective as the authoritative score.
-- Added proportional-dilution optimization with an explicitly characterized
-  diluent, preserved source proportions, source/diluent availability limits,
-  and an optional deduplicated no-dilution best-effort plan.
-- Added bounded source-volume optimization across caller-permitted waters,
-  including exact total-volume enforcement, independent chemistry resolution,
-  positional source identity, and structured insufficient-availability results.
-- Added deterministic candidate generation for an equally close
-  fewest-treatment-products strategy, with binary product-use decisions,
-  lower-mass tertiary ranking, operational deduplication, and explicit tradeoff
-  explanations. No-dilution plans now identify unavoidable starting-water
-  overshoots and their signed deviations.
 - Kept numerical solver feasibility tolerances separate from caller-declared
   physical source availability, so a near-boundary solve cannot create volume
   beyond a source or diluent maximum.
@@ -46,9 +51,6 @@ distribution and its repository milestones.
   fails, and hardened non-finite solver-output handling.
 - Accounted for feasibility noise accumulated across multiple target-deviation
   variables when validating secondary and tertiary ranking solutions.
-- Extended the supported package-root consumer facade with the complete
-  optimizer request/result graph and the narrow exact-composition, mass-dosed
-  material boundary, backed by an end-to-end package-root integration test.
 
 ### Documentation
 
