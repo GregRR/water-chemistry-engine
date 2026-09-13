@@ -13,7 +13,7 @@ consumer application's presentation or persistence layer.
 
 Release 0.2 completed the deterministic source-to-result path needed by real
 consumer applications. Release 0.3 added the supported package-root boundary
-for consuming that path, and release 0.4 adds the first bounded automatic
+for consuming that path, and release 0.4 added the first bounded automatic
 treatment optimizer and practical candidate plans. Implemented foundations
 include:
 
@@ -330,6 +330,8 @@ silently approximated.
 - equilibrium-dependent chalk treatment.
 
 ## 0.5 — Treatment Materials, Profiles, and Comparison Expansion
+
+**Status: in progress.**
 
 Expand the useful profile library and practical treatment-material model
 without requiring complete coffee-, tea-, bread-, or pizza-specific predictive

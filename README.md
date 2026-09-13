@@ -10,7 +10,8 @@ package from separate projects.
 
 ## Project status
 
-The **0.4 automatic-treatment-optimizer milestone is complete**. The engine can
+The **0.4 automatic-treatment-optimizer milestone is complete**, and 0.5 is
+under active development. The engine can
 resolve reported source-water chemistry, optimize or preserve supported source
 blends, choose bounded practical mineral doses, calculate the resulting water,
 compare it with target/reference criteria, and return auditable candidate plans,
@@ -40,6 +41,11 @@ plans; offers an equally close fewest-products alternative when materially
 different; and can return an independently solved no-dilution best-effort plan.
 The optimizer contract remains pre-1.0 and may evolve under the documented
 consumer API compatibility policy.
+
+Version 0.5 expands practical treatment-material semantics, profile provenance
+and curated reference data, and target-comparison interpretation. Unreleased
+0.5 work should be consumed only from an exact commit or locally built artifact;
+ordinary applications should continue to pin the 0.4.0 PyPI release.
 
 ### Forward-calculator capabilities established in 0.2
 

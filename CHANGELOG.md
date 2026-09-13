@@ -3,6 +3,11 @@
 This project follows semantic versioning for the Water Chemistry Engine
 distribution and its repository milestones.
 
+## 0.5.0 - Unreleased
+
+Development of the treatment-material, profile, and comparison-expansion
+milestone is in progress.
+
 ## 0.4.0 - 2026-09-13
 
 ### Added

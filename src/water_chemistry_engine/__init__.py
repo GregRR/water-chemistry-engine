@@ -151,7 +151,7 @@ from water_chemistry_engine.water_identity import (
     WaterType,
 )
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 __all__ = [
     "CALCIUM_CHLORIDE_DIHYDRATE",
