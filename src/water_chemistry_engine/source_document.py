@@ -9,7 +9,7 @@ def _validate_optional_text(value: str | None, field_name: str) -> None:
 
 @dataclass(frozen=True, slots=True)
 class SourceDocumentMetadata:
-    """Metadata identifying the document that reported water-quality data."""
+    """Metadata identifying a document that reports or defines water data."""
 
     publisher: str
     analysis_provider: str | None = None

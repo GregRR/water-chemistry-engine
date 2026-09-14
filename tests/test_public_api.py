@@ -89,8 +89,10 @@ EXPECTED_PUBLIC_API = {
     "TargetIonComparisonStatus",
     "TargetPHComparison",
     "TargetPHComparisonStatus",
+    "TargetProfileClassification",
     "TargetProfileComparison",
     "TargetProfileComparisonStatus",
+    "TargetProfileProvenance",
     "TargetWaterProfile",
     "TreatmentAddition",
     "TreatmentApplicationResult",
@@ -129,7 +131,7 @@ _PUBLIC_API_END = "<!-- public-api-inventory-end -->"
 
 
 def test_public_api_exports_are_explicit_and_complete() -> None:
-    """The package root exposes exactly the documented 0.3 consumer surface."""
+    """The package root exposes exactly the documented consumer surface."""
     assert len(wce.__all__) == len(set(wce.__all__))
     assert set(wce.__all__) == EXPECTED_PUBLIC_API
     assert all(hasattr(wce, name) for name in wce.__all__)
@@ -145,6 +147,29 @@ def test_consumer_api_inventory_matches_package_exports() -> None:
     documented_names = set(re.findall(r"`([A-Za-z_][A-Za-z0-9_]*)`", inventory))
 
     assert documented_names == EXPECTED_PUBLIC_API
+
+
+def test_target_profile_provenance_uses_only_package_root_imports() -> None:
+    """Consumers can preserve a reference's evidence through the facade."""
+    document = wce.SourceDocumentMetadata(
+        publisher="Example Standards Organization",
+        title="Example Water Standard",
+        source_url="https://example.com/water-standard",
+    )
+    provenance = wce.TargetProfileProvenance(
+        classification=wce.TargetProfileClassification.PUBLISHED_STANDARD,
+        source_document=document,
+        profile_key="example-water-standard",
+        profile_version="2026",
+    )
+
+    target = wce.TargetWaterProfile(
+        name="Example standard",
+        concentrations=(),
+        provenance=provenance,
+    )
+
+    assert target.provenance is provenance
 
 
 def test_complete_forward_workflow_uses_only_package_root_imports() -> None:

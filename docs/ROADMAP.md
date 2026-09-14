@@ -358,6 +358,14 @@ profiles, including concepts such as:
 A reference profile may be selectable as something to reproduce without being
 presented as scientifically optimal.
 
+The initial 0.5 provenance boundary now supplies an explicit classification,
+document attribution, and paired stable key/version for matchable profiles.
+Unclassified targets remain unclassified rather than being silently treated as
+user targets, and classifications that claim external evidence require an
+attributed source document.
+Source water remains structurally represented by `SourceWaterProfile`; it is
+not inferred from or duplicated in the target/reference classification.
+
 ### Near-term profile additions
 
 - Curated brewing, mead, and distilling profiles with explicit provenance.

@@ -2,7 +2,7 @@
 
 **Document:** `docs/WATER_CHEM_DESIGN.md`  
 **Status:** Working design — active implementation  
-**Revision:** 2026-08-29
+**Revision:** 2026-09-13
 **Project:** Water Chemistry Engine
 **Engine distribution:** `water-chemistry-engine`
 **Engine import package:** `water_chemistry_engine`
@@ -627,9 +627,11 @@ Current target profiles support:
 - optional pH target;
 - style associations;
 - notes;
+- optional explicit `TargetProfileProvenance`, including evidentiary
+  classification, document attribution, and paired stable key/version;
 - duplicate-ion protection.
 
-Near-term generic target/reference semantics may add:
+Near-term generic target/reference semantics may additionally add:
 
 - stable profile identifier/version;
 - source/reference attribution;
@@ -653,6 +655,13 @@ Matchable profile classifications may include:
 - experimentally or analytically optimized target.
 
 These labels describe evidence, not merely intended use. A documented New York City analysis may be a regional reference that a user chooses to reproduce for dough; it is not thereby an "optimal pizza water" target. Likewise, water used in a published bread experiment is an experimental reference unless the experiment actually establishes an optimum.
+
+The implemented provenance boundary deliberately leaves legacy and ordinary
+unclassified targets with `provenance=None`; it does not infer that they are
+user targets. Classifications that claim published, practitioner, regional,
+historical, experimental, or analytical support require a
+`SourceDocumentMetadata` attribution. User targets and previously achieved
+treated-water targets may be represented without inventing a publication.
 
 Historical brewing-city tables such as Pilsen, Burton-on-Trent, Dublin, Munich, London, Dortmund, Edinburgh, Vienna, Antwerp, and Cologne are **target/reference profiles**, not claims about present-day municipal source water. Each published version must retain its own source/reference attribution; conflicting published profiles should not be silently merged into one supposedly canonical city profile.
 

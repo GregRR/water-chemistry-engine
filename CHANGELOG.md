@@ -8,6 +8,13 @@ distribution and its repository milestones.
 Development of the treatment-material, profile, and comparison-expansion
 milestone is in progress.
 
+### Added
+
+- Added optional target-profile provenance with explicit evidentiary
+  classification, source-document attribution, and paired stable key/version;
+  unclassified profiles remain unclassified, while classifications that make
+  published or scientific claims require document attribution.
+
 ## 0.4.0 - 2026-09-13
 
 ### Added

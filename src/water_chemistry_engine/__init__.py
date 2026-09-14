@@ -122,7 +122,11 @@ from water_chemistry_engine.target_comparison import (
     TargetProfileComparisonStatus,
     UnsupportedTargetIonReason,
 )
-from water_chemistry_engine.target_profiles import TargetWaterProfile
+from water_chemistry_engine.target_profiles import (
+    TargetProfileClassification,
+    TargetProfileProvenance,
+    TargetWaterProfile,
+)
 from water_chemistry_engine.treatment_application import (
     AppliedTreatment,
     ResolvedTreatmentIon,
@@ -235,8 +239,10 @@ __all__ = [
     "TargetIonComparisonStatus",
     "TargetPHComparison",
     "TargetPHComparisonStatus",
+    "TargetProfileClassification",
     "TargetProfileComparison",
     "TargetProfileComparisonStatus",
+    "TargetProfileProvenance",
     "TargetWaterProfile",
     "TotalDissolvedSolids",
     "TotalHardness",

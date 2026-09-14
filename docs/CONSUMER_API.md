@@ -3,7 +3,7 @@
 ## Status
 
 This document defines the supported package-root facade for Water Chemistry
-Engine 0.4.0. Ordinary consumers should prefer imports from
+Engine 0.5 development. Ordinary consumers should prefer imports from
 `water_chemistry_engine` as documented here. Consumers remaining on an earlier
 minor release should continue using their tested imports and pinned version
 until they deliberately migrate.
@@ -17,9 +17,10 @@ bounded-optimization surface through its explicit `__all__`. It includes:
   result and audit types needed to interpret source resolution, blending,
   treatment contributions, contribution matrices, and preparation
   instructions;
-- `SourceWaterProfile`, `SourceResolutionPolicy`, `TargetWaterProfile`, and
-  the ion concentration/report forms required to build inputs without erasing
-  ranges, bounds, or `ND`;
+- `SourceWaterProfile`, `SourceResolutionPolicy`, `TargetWaterProfile`,
+  `TargetProfileClassification`, `TargetProfileProvenance`, and the ion
+  concentration/report forms required to build inputs without erasing ranges,
+  bounds, `ND`, or the evidentiary meaning of a matchable profile;
 - `Ion`, `TreatmentAddition`, and the supported simple mineral ingredients;
 - target-comparison status/result types; and
 - `ForwardCalculationNotice`, `ForwardNoticeCode`, and `ForwardNoticeLevel`
@@ -85,7 +86,8 @@ The exact initial facade is:
   `BlendPreparationInstruction`, `SourceVolumeInstruction`, and
   `TreatmentPreparationInstruction`;
 - source and target inputs: `SourceWaterProfile`, `SourceResolutionPolicy`,
-  and `TargetWaterProfile`;
+  `TargetWaterProfile`, `TargetProfileClassification`, and
+  `TargetProfileProvenance`;
 - optimizer entry point and request: `optimize_treatment`, `OptimizerRequest`,
   `OptimizerSource`, `OptimizerMaterialConstraint`,
   `ExactMassDosedTreatmentMaterial`, and `OptimizerBlendPolicy`;
@@ -506,8 +508,8 @@ The facade remains framework-neutral. It returns Python domain objects and
 FermUnits/Pint quantities, never HTML, ORM records, database handles, or
 product-specific persistence state.
 
-The 0.4.0 distribution reports `0.4.0`. `__version__` is distribution
-identity, not a capability probe for an arbitrary Git checkout. Consumers must
-not depend directly on `main`; use a released, explicitly pinned distribution.
-An exact commit or built artifact may be appropriate while testing unreleased
-work.
+The 0.5 development source tree reports `0.5.0`; the current public release is
+0.4.0. `__version__` is distribution identity, not a capability probe for an
+arbitrary Git checkout. Consumers must not depend directly on `main`; use a
+released, explicitly pinned distribution. An exact commit or built artifact may
+be appropriate while testing unreleased work.

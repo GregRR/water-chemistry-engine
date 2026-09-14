@@ -6,7 +6,12 @@ from water_chemistry_engine.concentrations import (
     IonConcentrationRange,
 )
 from water_chemistry_engine.ions import Ion
-from water_chemistry_engine.target_profiles import TargetWaterProfile
+from water_chemistry_engine.source_document import SourceDocumentMetadata
+from water_chemistry_engine.target_profiles import (
+    TargetProfileClassification,
+    TargetProfileProvenance,
+    TargetWaterProfile,
+)
 
 
 def test_target_water_profile_stores_target_chemistry() -> None:
@@ -48,6 +53,126 @@ def test_missing_target_ion_returns_none() -> None:
     )
 
     assert profile.concentration_for(Ion.MAGNESIUM) is None
+
+
+def test_target_profile_has_no_implicit_evidentiary_classification() -> None:
+    profile = TargetWaterProfile(name="Unclassified target", concentrations=())
+
+    assert profile.provenance is None
+
+
+def test_target_profile_preserves_versioned_historical_provenance() -> None:
+    document = SourceDocumentMetadata(
+        publisher="Example Historical Archive",
+        title="Example City Water Analysis",
+        source_url="https://example.com/archive/water-analysis",
+    )
+    provenance = TargetProfileProvenance(
+        classification=TargetProfileClassification.HISTORICAL_REFERENCE,
+        source_document=document,
+        profile_key="example-city-archive-1901",
+        profile_version="1",
+    )
+
+    profile = TargetWaterProfile(
+        name="Example City, 1901",
+        concentrations=(),
+        provenance=provenance,
+    )
+
+    assert profile.provenance is provenance
+    assert profile.provenance.classification is (
+        TargetProfileClassification.HISTORICAL_REFERENCE
+    )
+    assert profile.provenance.source_document is document
+    assert profile.provenance.profile_key == "example-city-archive-1901"
+    assert profile.provenance.profile_version == "1"
+
+
+@pytest.mark.parametrize(
+    "classification",
+    [
+        classification
+        for classification in TargetProfileClassification
+        if classification
+        not in {
+            TargetProfileClassification.USER_TARGET,
+            TargetProfileClassification.PREVIOUSLY_ACHIEVED_TREATED_WATER,
+        }
+    ],
+)
+def test_evidence_claiming_classifications_require_document_attribution(
+    classification: TargetProfileClassification,
+) -> None:
+    with pytest.raises(ValueError, match="requires source_document attribution"):
+        TargetProfileProvenance(classification=classification)
+
+
+@pytest.mark.parametrize(
+    "classification",
+    [
+        TargetProfileClassification.USER_TARGET,
+        TargetProfileClassification.PREVIOUSLY_ACHIEVED_TREATED_WATER,
+    ],
+)
+def test_user_owned_classifications_do_not_invent_document_attribution(
+    classification: TargetProfileClassification,
+) -> None:
+    provenance = TargetProfileProvenance(classification=classification)
+
+    assert provenance.source_document is None
+
+
+@pytest.mark.parametrize(
+    ("profile_key", "profile_version"),
+    [("example", None), (None, "1")],
+)
+def test_versioned_profile_identity_requires_key_and_version_together(
+    profile_key: str | None,
+    profile_version: str | None,
+) -> None:
+    with pytest.raises(ValueError, match="must be provided together"):
+        TargetProfileProvenance(
+            classification=TargetProfileClassification.USER_TARGET,
+            profile_key=profile_key,
+            profile_version=profile_version,
+        )
+
+
+@pytest.mark.parametrize("field", ["profile_key", "profile_version"])
+def test_target_profile_provenance_rejects_empty_identity_fields(field: str) -> None:
+    values = {"profile_key": "example", "profile_version": "1"}
+    values[field] = "   "
+
+    with pytest.raises(ValueError, match=rf"{field} cannot be empty"):
+        TargetProfileProvenance(
+            classification=TargetProfileClassification.USER_TARGET,
+            **values,
+        )
+
+
+def test_target_profile_provenance_rejects_raw_classification_string() -> None:
+    with pytest.raises(TypeError, match="TargetProfileClassification"):
+        TargetProfileProvenance(
+            classification="user_target",  # type: ignore[arg-type]
+        )
+
+
+def test_target_profile_provenance_rejects_wrong_document_type() -> None:
+    with pytest.raises(TypeError, match="SourceDocumentMetadata"):
+        TargetProfileProvenance(
+            classification=TargetProfileClassification.PUBLISHED_STANDARD,
+            source_document="citation",  # type: ignore[arg-type]
+        )
+
+
+def test_target_profile_rejects_wrong_provenance_type() -> None:
+    with pytest.raises(TypeError, match="TargetProfileProvenance"):
+        TargetWaterProfile(
+            name="Example target",
+            concentrations=(),
+            provenance="historical",  # type: ignore[arg-type]
+        )
 
 
 def test_empty_target_name_is_rejected() -> None:
