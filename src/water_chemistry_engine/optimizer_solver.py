@@ -26,6 +26,7 @@ from scipy.optimize import (  # type: ignore[import-untyped]
     milp,
 )
 
+from water_chemistry_engine.calculation_policy import capabilities_for
 from water_chemistry_engine.forward_calculator import (
     ForwardWaterSource,
     calculate_forward_water,
@@ -197,7 +198,36 @@ def _input_diagnostics(
             )
         )
 
+    if (
+        request.target_profile is not None
+        and request.target_profile.alkalinity is not None
+    ):
+        support = OptimizerInputSupportStatus.UNSUPPORTED
+        diagnostics.append(
+            OptimizerDiagnostic(
+                code=OptimizerDiagnosticCode.TARGET_ALKALINITY_UNSUPPORTED,
+                message=(
+                    "Final total-alkalinity optimization is not implemented; the "
+                    "target is preserved without being converted to bicarbonate."
+                ),
+            )
+        )
+
     for comparison in comparisons:
+        if not capabilities_for(comparison.ion).optimizer_target:
+            support = OptimizerInputSupportStatus.UNSUPPORTED
+            diagnostics.append(
+                OptimizerDiagnostic(
+                    code=(OptimizerDiagnosticCode.CARBONATE_SYSTEM_TARGET_UNSUPPORTED),
+                    message=(
+                        f"The {comparison.ion.value} target cannot be optimized "
+                        "without a supported carbonate-system policy."
+                    ),
+                    ion=comparison.ion,
+                )
+            )
+            continue
+
         if comparison.status is TargetIonComparisonStatus.TARGET_UNSUPPORTED:
             support = OptimizerInputSupportStatus.UNSUPPORTED
             diagnostics.append(
@@ -222,6 +252,29 @@ def _input_diagnostics(
             )
 
     for constraint in request.material_constraints:
+        unsupported_contributions = tuple(
+            entry.ion
+            for entry in constraint.material.ingredient.ion_stoichiometry
+            if not capabilities_for(entry.ion).optimizer_material_contribution
+        )
+        if unsupported_contributions:
+            support = OptimizerInputSupportStatus.UNSUPPORTED
+            ion = unsupported_contributions[0]
+            diagnostics.append(
+                OptimizerDiagnostic(
+                    code=(
+                        OptimizerDiagnosticCode.CARBONATE_SYSTEM_MATERIAL_UNSUPPORTED
+                    ),
+                    message=(
+                        f"Material {constraint.material.key} contributes "
+                        f"{ion.value} and cannot be selected automatically without "
+                        "a supported carbonate-system policy."
+                    ),
+                    ion=ion,
+                    material_key=constraint.material.key,
+                )
+            )
+
         increment_count = _maximum_increment_count(constraint)
         if increment_count > _MAXIMUM_INCREMENT_COUNT:
             support = OptimizerInputSupportStatus.UNSUPPORTED

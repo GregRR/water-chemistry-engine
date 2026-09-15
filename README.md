@@ -20,10 +20,19 @@ Python 3.11 is the project compatibility baseline, with CI coverage through
 Python 3.14. Public APIs remain pre-1.0 and may evolve as real consumer
 applications exercise the engine.
 
+**0.4.1 compatibility warning:** optimizer admission is stricter for
+carbonate-system inputs. Requests targeting `Ion.BICARBONATE` or
+`Ion.CARBONATE`, requests permitting a material that contributes either species
+(including `SODIUM_BICARBONATE`), and requests targeting total alkalinity are
+now rejected as unsupported with stable diagnostic codes. Manual forward
+sodium-bicarbonate calculations remain available, with explicit formal-inventory
+limitations. See the [consumer API behavior-change note](docs/CONSUMER_API.md)
+before upgrading from 0.4.0.
+
 Version 0.3 establishes a supported package-root consumer facade covering both
 the deterministic forward-result graph and the complete source-reporting and
 provenance input graph. Its compatibility expectations are documented in
-the [consumer API guide](https://github.com/GregRR/water-chemistry-engine/blob/v0.4.0/docs/CONSUMER_API.md).
+the [consumer API guide](https://github.com/GregRR/water-chemistry-engine/blob/v0.4.1/docs/CONSUMER_API.md).
 Reported and target pH use FermUnits' semantic `PHValue`; calculated
 working-water pH remains explicitly deferred until a validated reusable model
 is ready.
@@ -40,6 +49,13 @@ plans; offers an equally close fewest-products alternative when materially
 different; and can return an independently solved no-dilution best-effort plan.
 The optimizer contract remains pre-1.0 and may evolve under the documented
 consumer API compatibility policy.
+
+Version 0.4.1 repairs carbonate-system support boundaries. Explicitly reported
+bicarbonate, carbonate, and total alkalinity remain distinct and lossless, but
+bicarbonate/carbonate results are labeled as formal inventory rather than
+equilibrium speciation. Automatic optimization rejects carbonate-system targets
+and sodium bicarbonate until a validated model exists; deterministic manual
+sodium-bicarbonate accounting remains available with structured limitations.
 
 ### Forward-calculator capabilities established in 0.2
 
@@ -101,17 +117,17 @@ Water Chemistry Engine requires Python 3.11 or newer. Install the published
 package with uv or pip:
 
 ```bash
-uv add water-chemistry-engine==0.4.0
+uv add water-chemistry-engine==0.4.1
 ```
 
 or:
 
 ```bash
-python -m pip install water-chemistry-engine==0.4.0
+python -m pip install water-chemistry-engine==0.4.1
 ```
 
 Version 0.3 exposes a supported package-root facade. APIs remain pre-1.0 and may
-evolve under the [consumer API compatibility policy](https://github.com/GregRR/water-chemistry-engine/blob/v0.4.0/docs/CONSUMER_API.md).
+evolve under the [consumer API compatibility policy](https://github.com/GregRR/water-chemistry-engine/blob/v0.4.1/docs/CONSUMER_API.md).
 
 ## Quickstart
 
@@ -160,7 +176,7 @@ Expected output:
 
 The explicit source-resolution policy prevents the example from silently
 choosing representative values for ranges. See the
-[consumer API guide](https://github.com/GregRR/water-chemistry-engine/blob/v0.4.0/docs/CONSUMER_API.md)
+[consumer API guide](https://github.com/GregRR/water-chemistry-engine/blob/v0.4.1/docs/CONSUMER_API.md)
 for the complete supported workflow, including treatments, targets, notices,
 and audit results.
 

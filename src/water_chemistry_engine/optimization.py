@@ -85,7 +85,10 @@ class OptimizerDiagnosticCode(StrEnum):
     """Machine-readable reasons an optimizer request or plan is limited."""
 
     TARGET_PH_UNSUPPORTED = "target_ph_unsupported"
+    TARGET_ALKALINITY_UNSUPPORTED = "target_alkalinity_unsupported"
     TARGET_CRITERION_UNSUPPORTED = "target_criterion_unsupported"
+    CARBONATE_SYSTEM_TARGET_UNSUPPORTED = "carbonate_system_target_unsupported"
+    CARBONATE_SYSTEM_MATERIAL_UNSUPPORTED = "carbonate_system_material_unsupported"
     REQUIRED_SOURCE_CHEMISTRY_UNKNOWN = "required_source_chemistry_unknown"
     REQUIRED_DILUENT_CHEMISTRY_UNKNOWN = "required_diluent_chemistry_unknown"
     SOURCE_VOLUME_CONSTRAINTS_INFEASIBLE = "source_volume_constraints_infeasible"

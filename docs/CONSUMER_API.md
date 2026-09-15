@@ -3,10 +3,31 @@
 ## Status
 
 This document defines the supported package-root facade for Water Chemistry
-Engine 0.4.0. Ordinary consumers should prefer imports from
+Engine 0.4.1. Ordinary consumers should prefer imports from
 `water_chemistry_engine` as documented here. Consumers remaining on an earlier
 minor release should continue using their tested imports and pinned version
 until they deliberately migrate.
+
+### Important 0.4.1 behavior change
+
+This maintenance release is intentionally stricter for carbonate-system inputs.
+Applications upgrading from 0.4.0 may now observe these optimizer requests
+returning `OptimizerInputSupportStatus.UNSUPPORTED` with no plans:
+
+- a target containing `Ion.BICARBONATE` or `Ion.CARBONATE`, with diagnostic code
+  `CARBONATE_SYSTEM_TARGET_UNSUPPORTED`;
+- a permitted material that contributes bicarbonate or carbonate (including
+  `SODIUM_BICARBONATE`), with diagnostic code
+  `CARBONATE_SYSTEM_MATERIAL_UNSUPPORTED`; or
+- a target containing total alkalinity, with diagnostic code
+  `TARGET_ALKALINITY_UNSUPPORTED`.
+
+This is a deliberate safety boundary, not an input-format error. Manual forward
+calculations with sodium bicarbonate remain supported, but their bicarbonate
+output is formal inventory accounting and carries a structured
+`CARBONATE_SYSTEM_MODEL_LIMITATION` notice. Consumers should handle these
+diagnostic and notice codes explicitly rather than assuming every 0.4.0
+optimizer input remains admissible.
 
 ## Supported boundary
 
@@ -77,7 +98,8 @@ The exact initial facade is:
   `UnresolvedTreatmentIon`, `TreatmentIonContribution`, `IonContribution`,
   and `UnresolvedTreatmentIonReason`;
 - contribution-matrix interpretation: `WaterContributionMatrix`,
-  `IonContributionMatrixRow`, `SourceContributionColumn`,
+  `IonContributionMatrixRow`, `IonContributionCalculationBasis`,
+  `SourceContributionColumn`,
   `SourceContributionCell`, `SourceContributionCellStatus`,
   `TreatmentContributionColumn`, `TreatmentContributionCell`, and
   `TreatmentContributionCellStatus`;
@@ -113,7 +135,9 @@ The exact initial facade is:
   `GYPSUM`, `EPSOM_SALT`, `SODIUM_CHLORIDE`, `SODIUM_BICARBONATE`,
   `POTASSIUM_CHLORIDE`, and `SIMPLE_MINERAL_INGREDIENTS`;
 - comparison interpretation: `TargetIonComparison`,
-  `TargetIonComparisonStatus`, `UnsupportedTargetIonReason`,
+  `TargetIonComparisonStatus`, `TargetIonCalculationBasis`,
+  `UnsupportedTargetIonReason`, `TargetAlkalinityComparison`,
+  `TargetAlkalinityComparisonStatus`,
   `TargetPHComparison`, `TargetPHComparisonStatus`,
   `TargetProfileComparison`, and `TargetProfileComparisonStatus`;
 - notice interpretation: `ForwardCalculationNotice`, `ForwardNoticeCode`, and
@@ -431,6 +455,24 @@ unknown. Target comparison may therefore be `indeterminate`, and the result
 contains structured notices explaining relevant unresolved inputs and
 limitations. Consumers must not replace those unknown values with zero.
 
+### Carbonate-system repair in 0.4.1
+
+Explicit source bicarbonate, carbonate, and total alkalinity remain separate.
+The engine never converts total alkalinity to bicarbonate automatically.
+Forward bicarbonate/carbonate values use formal linear inventory accounting and
+carry `FORMAL_CARBONATE_INVENTORY` result metadata plus structured model-
+limitation notices. A numerical carbonate-species target comparison is retained
+only for reference reproducibility and makes the overall comparison
+`INDETERMINATE`. A total-alkalinity target is preserved separately and reports
+`NOT_CALCULATED`.
+
+The 0.4.1 optimizer rejects bicarbonate and carbonate targets and rejects any
+automatically selectable material that contributes those species. In
+particular, sodium bicarbonate cannot be selected to satisfy a sodium target
+while its unmodeled alkalinity effect is ignored. It remains supported for an
+explicit manual `TreatmentAddition`; consumers must surface the returned
+carbonate-system limitation.
+
 Notices are part of a successful result and do not imply an exception. A
 consumer should:
 
@@ -506,7 +548,7 @@ The facade remains framework-neutral. It returns Python domain objects and
 FermUnits/Pint quantities, never HTML, ORM records, database handles, or
 product-specific persistence state.
 
-The 0.4.0 distribution reports `0.4.0`. `__version__` is distribution
+The 0.4.1 distribution reports `0.4.1`. `__version__` is distribution
 identity, not a capability probe for an arbitrary Git checkout. Consumers must
 not depend directly on `main`; use a released, explicitly pinned distribution.
 An exact commit or built artifact may be appropriate while testing unreleased

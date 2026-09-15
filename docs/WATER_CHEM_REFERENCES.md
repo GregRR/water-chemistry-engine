@@ -271,6 +271,33 @@ Preferred sources include NIST, PubChem, recognized chemical suppliers' technica
 
 #### Carbonate/chalk and dissolution references
 
+- **Parkhurst and Appelo (2013), PHREEQC Version 3**
+  - Title: Description of Input and Examples for PHREEQC Version 3—A Computer
+    Program for Speciation, Batch-Reaction, One-Dimensional Transport, and
+    Inverse Geochemical Calculations
+  - DOI: 10.3133/tm6A43
+  - URL: https://pubs.usgs.gov/publication/tm6A43
+  - Type: authoritative USGS aqueous-geochemistry model documentation
+  - Design implication: equilibrium species distributions require a declared
+    aqueous/activity model and boundary conditions beyond linear ion inventory.
+- **USGS Office of Water Quality Technical Memorandum WQ2012.05**
+  - Title: Replacement of the Simple Speciation Method for Computation of
+    Carbonate and Bicarbonate Concentrations from Alkalinity Titrations
+  - URL: https://water.usgs.gov/water-resources/memos/memo.php?id=2098
+  - Type: authoritative government analytical-method policy and rationale
+  - Relevant topics: pH, alkalinity/ANC, acid-dissociation constants, activity
+    treatment, noncarbonate titratable constituents, and the limitations of
+    simplified carbonate/bicarbonate calculations.
+  - Design implication: neither total alkalinity nor a fixed pH 8.3 threshold
+    supports a universal conversion to bicarbonate/carbonate concentration.
+- **Rounds and Wilde (2012), USGS National Field Manual section 6.6**
+  - Title: Alkalinity and Acid Neutralizing Capacity
+  - DOI: 10.3133/twri09A6.6
+  - URL: https://www.usgs.gov/publications/chapter-a6-section-66-alkalinity-and-acid-neutralizing-capacity
+  - Type: authoritative government field/analytical method
+  - Design implication: alkalinity is acid-neutralizing capacity; carbonate-
+    species calculations are separate analytical/model operations.
+
 - **Plummer and Busenberg (1982)**
   - Title: The solubilities of calcite, aragonite and vaterite in CO2-H2O
     solutions between 0 and 90°C, and an evaluation of the aqueous model for

@@ -9,6 +9,7 @@ from water_chemistry_engine.chemical_state import (
     DerivedIonConcentration,
 )
 from water_chemistry_engine.contribution_matrix import (
+    IonContributionCalculationBasis,
     SourceContributionCellStatus,
     TreatmentContributionCellStatus,
     build_contribution_matrix,
@@ -21,6 +22,7 @@ from water_chemistry_engine.treatment_application import (
 from water_chemistry_engine.treatment_ingredients import (
     CALCIUM_CHLORIDE_DIHYDRATE,
     GYPSUM,
+    SODIUM_BICARBONATE,
     SODIUM_CHLORIDE,
 )
 
@@ -208,6 +210,31 @@ def test_matrix_rows_follow_canonical_ion_order() -> None:
 
     assert tuple(row.ion for row in matrix.rows) == tuple(Ion)
     assert matrix.row_for(Ion.SULFATE) is matrix.rows[5]
+
+
+def test_bicarbonate_row_is_labeled_as_formal_inventory() -> None:
+    blend = blend_waters(
+        (
+            BlendSource(
+                "Source",
+                _state(sodium=0.0, bicarbonate=0.0),
+                Q_(10, "liter"),
+            ),
+        )
+    )
+    treatment = apply_treatment_additions(
+        blend.state,
+        blend.total_volume,
+        (TreatmentAddition(SODIUM_BICARBONATE, Q_(1, "gram")),),
+    )
+
+    row = build_contribution_matrix(blend, treatment).row_for(Ion.BICARBONATE)
+
+    assert (
+        row.calculation_basis
+        is IonContributionCalculationBasis.FORMAL_CARBONATE_INVENTORY
+    )
+    assert row.known_treatment_contribution_sum.magnitude > 0
 
 
 def test_matrix_requires_treatment_to_start_from_supplied_blend() -> None:

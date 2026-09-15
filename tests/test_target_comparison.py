@@ -18,7 +18,10 @@ from water_chemistry_engine.concentrations import (
     UpperBoundConcentrationEndpoint,
 )
 from water_chemistry_engine.ions import Ion
+from water_chemistry_engine.reported_properties import Alkalinity
 from water_chemistry_engine.target_comparison import (
+    TargetAlkalinityComparisonStatus,
+    TargetIonCalculationBasis,
     TargetIonComparisonStatus,
     TargetPHComparisonStatus,
     TargetProfileComparisonStatus,
@@ -223,6 +226,52 @@ def test_not_detected_target_is_not_reinterpreted_as_zero() -> None:
     assert comparison.status is TargetIonComparisonStatus.TARGET_UNSUPPORTED
     assert comparison.unsupported_reason is UnsupportedTargetIonReason.NOT_DETECTED
     assert comparison.deviation is None
+
+
+@pytest.mark.parametrize("ion", [Ion.BICARBONATE, Ion.CARBONATE])
+def test_carbonate_species_target_is_formal_and_summary_is_indeterminate(
+    ion: Ion,
+) -> None:
+    target = TargetWaterProfile(
+        name="Carbonate-system reference",
+        concentrations=(IonConcentration.mg_per_liter(ion, 100.0),),
+    )
+
+    result = compare_state_to_target(
+        AqueousChemicalState(
+            concentrations=(DerivedIonConcentration.mg_per_liter(ion, 100.0),)
+        ),
+        target,
+    )
+    comparison = result.comparison_for(ion)
+
+    assert comparison is not None
+    assert comparison.status is TargetIonComparisonStatus.WITHIN_TARGET
+    assert (
+        comparison.calculation_basis
+        is TargetIonCalculationBasis.FORMAL_CARBONATE_INVENTORY
+    )
+    assert result.status is TargetProfileComparisonStatus.INDETERMINATE
+
+
+def test_alkalinity_target_is_preserved_as_not_calculated() -> None:
+    alkalinity = Alkalinity.mg_per_liter_as_caco3(40.0)
+    target = TargetWaterProfile(
+        name="Alkalinity target",
+        concentrations=(),
+        alkalinity=alkalinity,
+    )
+
+    result = compare_state_to_target(_state(bicarbonate=48.8), target)
+
+    assert result.alkalinity_comparison is not None
+    assert result.alkalinity_comparison.target_alkalinity is alkalinity
+    assert result.alkalinity_comparison.actual_alkalinity is None
+    assert (
+        result.alkalinity_comparison.status
+        is TargetAlkalinityComparisonStatus.NOT_CALCULATED
+    )
+    assert result.status is TargetProfileComparisonStatus.INDETERMINATE
 
 
 def test_target_ph_is_retained_as_explicit_not_calculated_outcome() -> None:

@@ -371,6 +371,21 @@ Likewise, if a source directly reports a result as `mg/L HCO3`, that value can b
 
 Any future model that derives carbonate species from total alkalinity, pH, dissolved inorganic carbon, or other equilibrium inputs must label those species **derived**, retain the assumptions/model version, and coexist with—not replace—the reported alkalinity.
 
+The 0.4.1 repair makes calculation support operation-specific. Membership in
+`Ion` establishes chemical identity and source-report preservation; it does not
+by itself grant ordinary target-comparison, treatment-material optimization, or
+equilibrium-speciation support. The current linear blend and manual-treatment
+paths may retain bicarbonate and carbonate only as **formal inventory**. Their
+result metadata and notices must not describe them as equilibrium species
+concentrations.
+
+Carbonate-system targets may retain a numerical formal-inventory comparison for
+reference reproducibility, but they make the overall profile comparison
+indeterminate. Total-alkalinity targets are preserved as alkalinity with their
+reporting basis and compare as `NOT_CALCULATED`; the engine does not manufacture
+a bicarbonate target from them. The pH near 8.3 associated with a titration
+equivalence region must never be encoded as a universal species switch.
+
 ### 9.7 pH is a logarithmic scientific invariant
 
 pH requires behavior different from linear water properties.
@@ -625,6 +640,7 @@ Current target profiles support:
 - name;
 - exact or ranged ion concentrations;
 - optional pH target;
+- optional total-alkalinity target with an explicit reporting basis;
 - style associations;
 - notes;
 - duplicate-ion protection.
@@ -637,7 +653,7 @@ Near-term generic target/reference semantics may add:
 - preferred value within an acceptable range;
 - hard minimum and maximum;
 - optimization weight;
-- additional supported generic water properties such as alkalinity, hardness, TDS, or disinfectant criteria when concrete standards require them.
+- additional supported generic water properties such as hardness, TDS, or disinfectant criteria when concrete standards require them.
 
 Matchable profile classifications may include:
 
@@ -1249,6 +1265,15 @@ variable per caller-permitted source and an exact total-volume equality
 constraint. ADR 0006 records the dependency, Python-compatibility constraint,
 and division of responsibility between the numerical solver and the engine's
 validation and result semantics.
+
+The optimizer admits ions and material contributions only through an explicit,
+exhaustive operation-specific capability policy. Bicarbonate and carbonate are
+not supported optimizer targets. A material that contributes either species,
+including sodium bicarbonate, is rejected with a structured diagnostic even if
+the request would otherwise use it only to improve a sodium objective. This
+fail-closed boundary remains until a separately named and validated carbonate-
+system/alkalinity policy defines sufficient inputs, equations, assumptions, and
+reference cases.
 
 The initial integration deliberately limits each material variable to
 1,000,000 dose increments. Requests above that project-tested numerical range

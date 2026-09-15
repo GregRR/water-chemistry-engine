@@ -3,6 +3,33 @@
 This project follows semantic versioning for the Water Chemistry Engine
 distribution and its repository milestones.
 
+## 0.4.1 - 2026-09-14
+
+### Compatibility warning
+
+Consumers upgrading from 0.4.0 should expect optimizer requests using
+`Ion.BICARBONATE`, `Ion.CARBONATE`, total alkalinity, or any automatically
+selectable material contributing those species (including sodium bicarbonate)
+to be rejected with `OptimizerInputSupportStatus.UNSUPPORTED`. See the
+consumer API guide for the stable diagnostic codes and the supported manual
+forward-calculation path.
+
+### Fixed
+
+- Separated carbonate-system chemical identity from calculation eligibility so
+  adding an `Ion` no longer silently grants ordinary target-comparison or
+  optimizer support.
+- Marked forward bicarbonate and carbonate values as formal linear inventory,
+  not equilibrium species concentrations, in comparison results, contribution
+  rows, and stable structured notices.
+- Rejected bicarbonate and carbonate optimizer targets and automatically
+  selectable carbonate-system materials, including sodium bicarbonate, until a
+  validated carbonate-system policy exists. Manual sodium-bicarbonate forward
+  calculations remain available with explicit model limitations.
+- Added a distinct total-alkalinity target property whose comparison remains
+  explicitly `NOT_CALCULATED`; total alkalinity is never converted silently to
+  bicarbonate.
+
 ## 0.4.0 - 2026-09-13
 
 ### Added

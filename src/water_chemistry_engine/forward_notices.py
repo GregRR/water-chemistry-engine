@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from water_chemistry_engine.blending import WaterBlendResult
+from water_chemistry_engine.calculation_policy import CARBONATE_SYSTEM_IONS
 from water_chemistry_engine.ions import Ion
 from water_chemistry_engine.source_resolution import (
     ResolvedSourceIon,
@@ -24,6 +25,8 @@ from water_chemistry_engine.source_resolution import (
     UnresolvedSourceIon,
 )
 from water_chemistry_engine.target_comparison import (
+    TargetAlkalinityComparisonStatus,
+    TargetIonCalculationBasis,
     TargetIonComparisonStatus,
     TargetPHComparisonStatus,
     TargetProfileComparison,
@@ -45,9 +48,12 @@ class ForwardNoticeCode(StrEnum):
     SOURCE_RANGE_MIDPOINT_USED = "source_range_midpoint_used"
     SOURCE_ION_UNRESOLVED = "source_ion_unresolved"
     CARBONATE_BLEND_APPROXIMATION = "carbonate_blend_approximation"
+    CARBONATE_SYSTEM_MODEL_LIMITATION = "carbonate_system_model_limitation"
     TREATMENT_COMPLETE_DISSOLUTION_MODEL = "treatment_complete_dissolution_model"
     TARGET_ACTUAL_UNKNOWN = "target_actual_unknown"
     TARGET_CRITERION_UNSUPPORTED = "target_criterion_unsupported"
+    TARGET_CARBONATE_SYSTEM_MODEL_LIMITED = "target_carbonate_system_model_limited"
+    TARGET_ALKALINITY_NOT_CALCULATED = "target_alkalinity_not_calculated"
     TARGET_PH_NOT_CALCULATED = "target_ph_not_calculated"
 
 
@@ -62,6 +68,7 @@ class ForwardCalculationNotice:
     source_index: int | None = None
     source_name: str | None = None
     reason: str | None = None
+    material_key: str | None = None
 
 
 def _source_notices(
@@ -181,6 +188,52 @@ def _treatment_model_notice(
     )
 
 
+def _carbonate_system_notices(
+    blend_result: WaterBlendResult,
+    treatment_result: TreatmentApplicationResult,
+) -> tuple[ForwardCalculationNotice, ...]:
+    """Describe carbonate values as formal inventory, never equilibrium output."""
+    notices: list[ForwardCalculationNotice] = []
+    for ion in Ion:
+        if ion not in CARBONATE_SYSTEM_IONS:
+            continue
+        blend_is_known = blend_result.state.concentration_for(ion) is not None
+        final_is_known = treatment_result.final_state.concentration_for(ion) is not None
+        contributing_material_keys = tuple(
+            applied.addition.ingredient.key
+            for applied in treatment_result.applied_treatments
+            if float(applied.addition.mass.to("gram").magnitude) > 0.0
+            and any(
+                contribution.ion is ion for contribution in applied.ion_contributions
+            )
+        )
+        if not blend_is_known and not final_is_known and not contributing_material_keys:
+            continue
+
+        material_key = (
+            contributing_material_keys[0]
+            if len(contributing_material_keys) == 1
+            else None
+        )
+        notices.append(
+            ForwardCalculationNotice(
+                code=ForwardNoticeCode.CARBONATE_SYSTEM_MODEL_LIMITATION,
+                level=ForwardNoticeLevel.WARNING,
+                message=(
+                    f"Final {ion.value} is formal linear inventory accounting, "
+                    "not an equilibrium species concentration; the current engine "
+                    "does not solve carbonate speciation, alkalinity reactions, or "
+                    "carbon-dioxide exchange."
+                ),
+                ion=ion,
+                material_key=material_key,
+                reason="formal_carbonate_inventory",
+            )
+        )
+
+    return tuple(notices)
+
+
 def _target_notices(
     final_target_comparison: TargetProfileComparison | None,
 ) -> tuple[ForwardCalculationNotice, ...]:
@@ -189,6 +242,24 @@ def _target_notices(
 
     notices: list[ForwardCalculationNotice] = []
     for comparison in final_target_comparison.ion_comparisons:
+        if (
+            comparison.calculation_basis
+            is TargetIonCalculationBasis.FORMAL_CARBONATE_INVENTORY
+        ):
+            notices.append(
+                ForwardCalculationNotice(
+                    code=(ForwardNoticeCode.TARGET_CARBONATE_SYSTEM_MODEL_LIMITED),
+                    level=ForwardNoticeLevel.WARNING,
+                    message=(
+                        f"Target {comparison.ion.value} is retained, but its "
+                        "comparison uses only formal inventory accounting because "
+                        "carbonate equilibrium is not calculated."
+                    ),
+                    ion=comparison.ion,
+                    reason=comparison.calculation_basis.value,
+                )
+            )
+
         if comparison.status is TargetIonComparisonStatus.ACTUAL_UNKNOWN:
             notices.append(
                 ForwardCalculationNotice(
@@ -240,6 +311,24 @@ def _target_notices(
             )
         )
 
+    alkalinity_comparison = final_target_comparison.alkalinity_comparison
+    if (
+        alkalinity_comparison is not None
+        and alkalinity_comparison.status
+        is TargetAlkalinityComparisonStatus.NOT_CALCULATED
+    ):
+        notices.append(
+            ForwardCalculationNotice(
+                code=ForwardNoticeCode.TARGET_ALKALINITY_NOT_CALCULATED,
+                level=ForwardNoticeLevel.INFORMATION,
+                message=(
+                    "Target total alkalinity is retained, but final total "
+                    "alkalinity is not calculated by the current engine."
+                ),
+                reason=alkalinity_comparison.status.value,
+            )
+        )
+
     return tuple(notices)
 
 
@@ -256,16 +345,21 @@ def build_forward_notices(
     assumptions and unresolved reported values.  A multi-source blend that
     actually computes bicarbonate or carbonate receives the documented linear-
     blending approximation notice.  Positive mineral additions surface the
-    current complete-dissolution mass-balance assumption.  Final-target notices
-    surface unknown actual values, unsupported criteria, and deferred working-
-    water pH explicitly.  Source- and blend-stage target comparisons deliberately
-    keep their outcomes on those stage results rather than duplicating notices.
+    current complete-dissolution mass-balance assumption. Any resulting
+    bicarbonate/carbonate inventory receives a model-limitation notice even for
+    a single source or treatment addition. Final-target notices surface formal
+    carbonate comparison, unknown actual values, unsupported criteria, and
+    deferred working-water pH/alkalinity explicitly. Source- and blend-stage
+    target comparisons deliberately keep their outcomes on those stage results
+    rather than duplicating notices.
     """
     notices = list(_source_notices(source_resolutions, blend_result))
 
     carbonate_notice = _carbonate_blend_notice(blend_result)
     if carbonate_notice is not None:
         notices.append(carbonate_notice)
+
+    notices.extend(_carbonate_system_notices(blend_result, treatment_result))
 
     treatment_notice = _treatment_model_notice(treatment_result)
     if treatment_notice is not None:

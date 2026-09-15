@@ -26,6 +26,7 @@ from water_chemistry_engine.blending import (
     UnresolvedBlendIon,
     WaterBlendResult,
 )
+from water_chemistry_engine.calculation_policy import capabilities_for
 from water_chemistry_engine.ions import Ion
 from water_chemistry_engine.treatment_application import (
     ResolvedTreatmentIon,
@@ -90,6 +91,13 @@ class TreatmentContributionCell:
     contribution: Quantity[float] | None
 
 
+class IonContributionCalculationBasis(StrEnum):
+    """Scientific meaning of totals displayed in one contribution row."""
+
+    SUPPORTED_LINEAR_CONCENTRATION = "supported_linear_concentration"
+    FORMAL_CARBONATE_INVENTORY = "formal_carbonate_inventory"
+
+
 @dataclass(frozen=True, slots=True)
 class IonContributionMatrixRow:
     """Combined source and treatment contribution detail for one modeled ion."""
@@ -99,6 +107,9 @@ class IonContributionMatrixRow:
     treatment_contributions: tuple[TreatmentContributionCell, ...]
     blend_concentration: Quantity[float] | None
     final_concentration: Quantity[float] | None
+    calculation_basis: IonContributionCalculationBasis = (
+        IonContributionCalculationBasis.SUPPORTED_LINEAR_CONCENTRATION
+    )
 
     @property
     def blend_is_known(self) -> bool:
@@ -303,6 +314,11 @@ def build_contribution_matrix(
                 ),
                 blend_concentration=blend_concentration,
                 final_concentration=final_concentration,
+                calculation_basis=(
+                    IonContributionCalculationBasis.SUPPORTED_LINEAR_CONCENTRATION
+                    if capabilities_for(ion).ordinary_target_comparison
+                    else IonContributionCalculationBasis.FORMAL_CARBONATE_INVENTORY
+                ),
             )
         )
 
