@@ -33,6 +33,7 @@ from water_chemistry_engine.optimization import (
 )
 from water_chemistry_engine.optimizer_solver import optimize_treatment
 from water_chemistry_engine.profiles import SourceWaterProfile
+from water_chemistry_engine.reported_properties import Alkalinity
 from water_chemistry_engine.reported_values import SourceResolutionPolicy
 from water_chemistry_engine.target_profiles import TargetWaterProfile
 from water_chemistry_engine.treatment_application import TreatmentAddition
@@ -40,6 +41,7 @@ from water_chemistry_engine.treatment_ingredients import (
     CALCIUM_CHLORIDE_DIHYDRATE,
     GYPSUM,
     POTASSIUM_CHLORIDE,
+    SODIUM_BICARBONATE,
 )
 from water_chemistry_engine.treatment_materials import ExactMassDosedTreatmentMaterial
 
@@ -103,6 +105,16 @@ def _gypsum_constraint(
         Q_(increment_grams, "gram"),
     )
     return OptimizerMaterialConstraint(material, Q_(maximum_grams, "gram"))
+
+
+def _sodium_bicarbonate_constraint() -> OptimizerMaterialConstraint:
+    material = ExactMassDosedTreatmentMaterial(
+        "sodium_bicarbonate",
+        "Sodium bicarbonate",
+        SODIUM_BICARBONATE,
+        Q_(0.1, "gram"),
+    )
+    return OptimizerMaterialConstraint(material, Q_(2.0, "gram"))
 
 
 def _target(calcium_mg_per_liter: float) -> TargetWaterProfile:
@@ -594,6 +606,69 @@ def test_unsupported_target_forms_return_structured_diagnostics() -> None:
     assert ph_result.input_support is OptimizerInputSupportStatus.UNSUPPORTED
     assert tuple(diagnostic.code for diagnostic in ph_result.diagnostics) == (
         OptimizerDiagnosticCode.TARGET_PH_UNSUPPORTED,
+    )
+
+
+@pytest.mark.parametrize("ion", [Ion.BICARBONATE, Ion.CARBONATE])
+def test_optimizer_rejects_carbonate_system_target(ion: Ion) -> None:
+    target = TargetWaterProfile(
+        "Carbonate-system target",
+        (IonConcentration.mg_per_liter(ion, 100.0),),
+    )
+    result = optimize_treatment(
+        _fixed_request(
+            source=_source(**{ion.value: 100.0}),
+            target=target,
+            constraints=(),
+        )
+    )
+
+    assert result.input_support is OptimizerInputSupportStatus.UNSUPPORTED
+    assert tuple(diagnostic.code for diagnostic in result.diagnostics) == (
+        OptimizerDiagnosticCode.CARBONATE_SYSTEM_TARGET_UNSUPPORTED,
+    )
+    assert result.diagnostics[0].ion is ion
+    assert result.plans == ()
+
+
+def test_optimizer_rejects_sodium_bicarbonate_for_sodium_target() -> None:
+    target = TargetWaterProfile(
+        "Sodium target",
+        (IonConcentration.mg_per_liter(Ion.SODIUM, 25.0),),
+    )
+    result = optimize_treatment(
+        _fixed_request(
+            source=_source(sodium=0.0, bicarbonate=0.0),
+            target=target,
+            constraints=(_sodium_bicarbonate_constraint(),),
+        )
+    )
+
+    assert result.input_support is OptimizerInputSupportStatus.UNSUPPORTED
+    assert tuple(diagnostic.code for diagnostic in result.diagnostics) == (
+        OptimizerDiagnosticCode.CARBONATE_SYSTEM_MATERIAL_UNSUPPORTED,
+    )
+    assert result.diagnostics[0].material_key == "sodium_bicarbonate"
+    assert result.plans == ()
+
+
+def test_optimizer_rejects_uncalculated_alkalinity_target() -> None:
+    target = TargetWaterProfile(
+        "Alkalinity target",
+        (),
+        alkalinity=Alkalinity.mg_per_liter_as_caco3(40.0),
+    )
+    result = optimize_treatment(
+        _fixed_request(
+            source=_source(calcium=0.0),
+            target=target,
+            constraints=(),
+        )
+    )
+
+    assert result.input_support is OptimizerInputSupportStatus.UNSUPPORTED
+    assert tuple(diagnostic.code for diagnostic in result.diagnostics) == (
+        OptimizerDiagnosticCode.TARGET_ALKALINITY_UNSUPPORTED,
     )
 
 

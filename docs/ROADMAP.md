@@ -160,7 +160,7 @@ an implemented 0.3 capability.
   justified by real application use without duplicating chemistry or hiding
   reported-data semantics.
 
-Consumer applications should depend on and pin the 0.4.0 release rather than
+Consumer applications should depend on and pin the 0.4.1 release rather than
 depending on the engine repository. Pre-release integration may use an exact
 commit or locally built artifact.
 
@@ -183,6 +183,16 @@ scientific behavior or supported consumer contract. This patch release should:
 ## 0.4 — Automatic Treatment Optimizer and Practical Plans
 
 **Status: complete.**
+
+### 0.4.1 carbonate-system safety repair
+
+Release 0.4.1 separates reported carbonate-system identity from calculation
+eligibility. It preserves explicitly reported bicarbonate, carbonate, and total
+alkalinity, retains manual sodium-bicarbonate formal accounting, and labels
+linear bicarbonate/carbonate results as model-limited inventory. Automatic
+optimization rejects bicarbonate/carbonate targets and materials that contribute
+those species until a named, validated carbonate-system policy exists. Total-
+alkalinity targets can be represented but remain explicitly not calculated.
 
 Let the engine answer:
 

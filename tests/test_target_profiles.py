@@ -6,6 +6,7 @@ from water_chemistry_engine.concentrations import (
     IonConcentrationRange,
 )
 from water_chemistry_engine.ions import Ion
+from water_chemistry_engine.reported_properties import Alkalinity
 from water_chemistry_engine.source_document import SourceDocumentMetadata
 from water_chemistry_engine.target_profiles import (
     TargetProfileClassification,
@@ -44,6 +45,19 @@ def test_target_profile_supports_ranges() -> None:
     )
 
     assert profile.concentration_for(Ion.SULFATE) is sulfate
+
+
+def test_target_profile_preserves_total_alkalinity_separately() -> None:
+    alkalinity = Alkalinity.mg_per_liter_as_caco3(40.0)
+
+    profile = TargetWaterProfile(
+        name="Total alkalinity target",
+        concentrations=(),
+        alkalinity=alkalinity,
+    )
+
+    assert profile.alkalinity is alkalinity
+    assert profile.concentration_for(Ion.BICARBONATE) is None
 
 
 def test_missing_target_ion_returns_none() -> None:

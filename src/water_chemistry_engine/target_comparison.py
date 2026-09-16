@@ -9,6 +9,11 @@ Qualified source-style ranges and not-detected results remain representable in a
 ``TargetWaterProfile`` for provenance, but this comparison layer does not invent
 matching semantics for them.  Such criteria receive an explicit unsupported
 outcome instead.
+
+Bicarbonate and carbonate comparisons retain formal numerical inventory for
+reference reproducibility, but their calculation basis is model-limited and
+cannot produce a scientifically unqualified satisfied profile. Total alkalinity
+is preserved separately and remains explicitly not calculated.
 """
 
 from dataclasses import dataclass
@@ -17,6 +22,7 @@ from math import isclose, isfinite
 
 from fermunits import Q_, PHValue, Quantity
 
+from water_chemistry_engine.calculation_policy import capabilities_for
 from water_chemistry_engine.chemical_state import AqueousChemicalState
 from water_chemistry_engine.concentrations import (
     ExactConcentrationEndpoint,
@@ -28,6 +34,7 @@ from water_chemistry_engine.concentrations import (
     IonConcentrationValue,
 )
 from water_chemistry_engine.ions import Ion
+from water_chemistry_engine.reported_properties import Alkalinity
 from water_chemistry_engine.target_profiles import TargetWaterProfile
 
 _NUMERICAL_BOUNDARY_ABS_TOL_MG_PER_LITER = 1e-9
@@ -50,8 +57,21 @@ class UnsupportedTargetIonReason(StrEnum):
     NOT_DETECTED = "not_detected"
 
 
+class TargetIonCalculationBasis(StrEnum):
+    """Scientific meaning of a numerical ion comparison."""
+
+    SUPPORTED_CONCENTRATION = "supported_concentration"
+    FORMAL_CARBONATE_INVENTORY = "formal_carbonate_inventory"
+
+
 class TargetPHComparisonStatus(StrEnum):
     """Current status of a requested target-pH comparison."""
+
+    NOT_CALCULATED = "not_calculated"
+
+
+class TargetAlkalinityComparisonStatus(StrEnum):
+    """Current status of a requested total-alkalinity comparison."""
 
     NOT_CALCULATED = "not_calculated"
 
@@ -84,6 +104,9 @@ class TargetIonComparison:
     status: TargetIonComparisonStatus
     deviation: Quantity[float] | None
     unsupported_reason: UnsupportedTargetIonReason | None = None
+    calculation_basis: TargetIonCalculationBasis = (
+        TargetIonCalculationBasis.SUPPORTED_CONCENTRATION
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -96,6 +119,15 @@ class TargetPHComparison:
 
 
 @dataclass(frozen=True, slots=True)
+class TargetAlkalinityComparison:
+    """Preserved alkalinity target while final alkalinity is unsupported."""
+
+    target_alkalinity: Alkalinity
+    actual_alkalinity: Alkalinity | None
+    status: TargetAlkalinityComparisonStatus
+
+
+@dataclass(frozen=True, slots=True)
 class TargetProfileComparison:
     """Structured state-versus-target/reference comparison result."""
 
@@ -104,6 +136,7 @@ class TargetProfileComparison:
     ion_comparisons: tuple[TargetIonComparison, ...]
     ph_comparison: TargetPHComparison | None
     status: TargetProfileComparisonStatus
+    alkalinity_comparison: TargetAlkalinityComparison | None = None
 
     def comparison_for(self, ion: Ion) -> TargetIonComparison | None:
         """Return one target-ion comparison, or ``None`` if no target was supplied."""
@@ -177,6 +210,11 @@ def _compare_ion(
     state: AqueousChemicalState,
     target: IonConcentrationValue,
 ) -> TargetIonComparison:
+    calculation_basis = (
+        TargetIonCalculationBasis.SUPPORTED_CONCENTRATION
+        if capabilities_for(target.ion).ordinary_target_comparison
+        else TargetIonCalculationBasis.FORMAL_CARBONATE_INVENTORY
+    )
     bounds = _normalized_target_bounds(target)
     if bounds is None:
         reason = _unsupported_reason(target)
@@ -194,6 +232,7 @@ def _compare_ion(
             status=TargetIonComparisonStatus.TARGET_UNSUPPORTED,
             deviation=None,
             unsupported_reason=reason,
+            calculation_basis=calculation_basis,
         )
 
     target_minimum, target_maximum = bounds
@@ -218,6 +257,7 @@ def _compare_ion(
             target_maximum=target_maximum,
             status=TargetIonComparisonStatus.ACTUAL_UNKNOWN,
             deviation=None,
+            calculation_basis=calculation_basis,
         )
 
     actual_mg_per_liter = float(actual.to("milligram / liter").magnitude)
@@ -244,6 +284,7 @@ def _compare_ion(
                 actual_mg_per_liter - minimum_mg_per_liter,
                 "milligram / liter",
             ),
+            calculation_basis=calculation_basis,
         )
 
     if (
@@ -267,6 +308,7 @@ def _compare_ion(
                 actual_mg_per_liter - maximum_mg_per_liter,
                 "milligram / liter",
             ),
+            calculation_basis=calculation_basis,
         )
 
     return TargetIonComparison(
@@ -277,15 +319,19 @@ def _compare_ion(
         target_maximum=target_maximum,
         status=TargetIonComparisonStatus.WITHIN_TARGET,
         deviation=Q_(0.0, "milligram / liter"),
+        calculation_basis=calculation_basis,
     )
 
 
 def _profile_status(
     ion_comparisons: tuple[TargetIonComparison, ...],
     ph_comparison: TargetPHComparison | None,
+    alkalinity_comparison: TargetAlkalinityComparison | None,
 ) -> TargetProfileComparisonStatus:
     if any(
-        comparison.status
+        comparison.calculation_basis
+        is TargetIonCalculationBasis.SUPPORTED_CONCENTRATION
+        and comparison.status
         in (
             TargetIonComparisonStatus.BELOW_TARGET,
             TargetIonComparisonStatus.ABOVE_TARGET,
@@ -295,15 +341,25 @@ def _profile_status(
         return TargetProfileComparisonStatus.NOT_SATISFIED
 
     if (
-        ph_comparison is not None
-        and ph_comparison.status is TargetPHComparisonStatus.NOT_CALCULATED
-    ) or any(
-        comparison.status
-        in (
-            TargetIonComparisonStatus.ACTUAL_UNKNOWN,
-            TargetIonComparisonStatus.TARGET_UNSUPPORTED,
+        (
+            ph_comparison is not None
+            and ph_comparison.status is TargetPHComparisonStatus.NOT_CALCULATED
         )
-        for comparison in ion_comparisons
+        or (
+            alkalinity_comparison is not None
+            and alkalinity_comparison.status
+            is TargetAlkalinityComparisonStatus.NOT_CALCULATED
+        )
+        or any(
+            comparison.calculation_basis
+            is TargetIonCalculationBasis.FORMAL_CARBONATE_INVENTORY
+            or comparison.status
+            in (
+                TargetIonComparisonStatus.ACTUAL_UNKNOWN,
+                TargetIonComparisonStatus.TARGET_UNSUPPORTED,
+            )
+            for comparison in ion_comparisons
+        )
     ):
         return TargetProfileComparisonStatus.INDETERMINATE
 
@@ -329,6 +385,10 @@ def compare_state_to_target(
     Working-water pH is not yet calculated by the engine.  A target pH is
     therefore retained as an explicit ``NOT_CALCULATED`` outcome instead of
     being ignored or compared with reported source pH.
+
+    The same explicit boundary applies to a total-alkalinity target. Carbonate-
+    system ion comparisons are labeled as formal inventory and make the profile
+    result indeterminate because equilibrium speciation is not calculated.
     """
     ion_comparisons = tuple(
         _compare_ion(state, target) for target in target_profile.concentrations
@@ -342,11 +402,25 @@ def compare_state_to_target(
             status=TargetPHComparisonStatus.NOT_CALCULATED,
         )
     )
+    alkalinity_comparison = (
+        None
+        if target_profile.alkalinity is None
+        else TargetAlkalinityComparison(
+            target_alkalinity=target_profile.alkalinity,
+            actual_alkalinity=None,
+            status=TargetAlkalinityComparisonStatus.NOT_CALCULATED,
+        )
+    )
 
     return TargetProfileComparison(
         state=state,
         target_profile=target_profile,
         ion_comparisons=ion_comparisons,
         ph_comparison=ph_comparison,
-        status=_profile_status(ion_comparisons, ph_comparison),
+        status=_profile_status(
+            ion_comparisons,
+            ph_comparison,
+            alkalinity_comparison,
+        ),
+        alkalinity_comparison=alkalinity_comparison,
     )

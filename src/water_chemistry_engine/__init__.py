@@ -33,6 +33,7 @@ from water_chemistry_engine.concentrations import (
     UpperBoundConcentrationEndpoint,
 )
 from water_chemistry_engine.contribution_matrix import (
+    IonContributionCalculationBasis,
     IonContributionMatrixRow,
     SourceContributionCell,
     SourceContributionCellStatus,
@@ -114,6 +115,9 @@ from water_chemistry_engine.source_resolution import (
     UnresolvedSourceIonReason,
 )
 from water_chemistry_engine.target_comparison import (
+    TargetAlkalinityComparison,
+    TargetAlkalinityComparisonStatus,
+    TargetIonCalculationBasis,
     TargetIonComparison,
     TargetIonComparisonStatus,
     TargetPHComparison,
@@ -192,6 +196,7 @@ __all__ = [
     "IonConcentrationUpperBound",
     "IonConcentrationValue",
     "IonContribution",
+    "IonContributionCalculationBasis",
     "IonContributionMatrixRow",
     "LowerBoundConcentrationEndpoint",
     "NotDetectedConcentrationEndpoint",
@@ -235,6 +240,9 @@ __all__ = [
     "SourceResolutionPolicy",
     "SourceVolumeInstruction",
     "SourceWaterProfile",
+    "TargetAlkalinityComparison",
+    "TargetAlkalinityComparisonStatus",
+    "TargetIonCalculationBasis",
     "TargetIonComparison",
     "TargetIonComparisonStatus",
     "TargetPHComparison",
