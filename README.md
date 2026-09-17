@@ -1,5 +1,11 @@
 # Water Chemistry Engine
 
+[![PyPI version](https://img.shields.io/pypi/v/water-chemistry-engine.svg?include_prereleases)](https://pypi.org/project/water-chemistry-engine/)
+[![Python versions](https://img.shields.io/pypi/pyversions/water-chemistry-engine.svg)](https://pypi.org/project/water-chemistry-engine/)
+[![CI](https://github.com/GregRR/water-chemistry-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/GregRR/water-chemistry-engine/actions/workflows/ci.yml)
+[![License](https://img.shields.io/pypi/l/water-chemistry-engine.svg)](LICENSE)
+[![Documentation](https://img.shields.io/badge/docs-project%20documentation-blue)](https://github.com/GregRR/water-chemistry-engine/tree/main/docs)
+
 A reusable, scientifically grounded Python engine for characterizing, blending,
 treating, comparing, and optimizing water for brewing, fermentation, and other
 validated uses.
