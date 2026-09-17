@@ -138,6 +138,8 @@ The exact initial facade is:
   `POTASSIUM_CHLORIDE`, and `SIMPLE_MINERAL_INGREDIENTS`;
 - comparison interpretation: `TargetIonComparison`,
   `TargetIonComparisonStatus`, `TargetIonCalculationBasis`,
+  `TargetIonClosenessStatus`,
+  `TargetComparisonPolicy`, `TargetIonClosenessPolicy`,
   `UnsupportedTargetIonReason`, `TargetAlkalinityComparison`,
   `TargetAlkalinityComparisonStatus`,
   `TargetPHComparison`, `TargetPHComparisonStatus`,
@@ -442,6 +444,39 @@ result remains feasible, retains its primary plans and primary solver report,
 and includes a result-level `SOLVER_FAILED` or
 `SOLVER_POSTVALIDATION_FAILED` diagnostic identifying the unavailable optional
 candidate.
+
+## Planned 0.5 total-alkalinity calculation contract
+
+Engine 0.4.1 preserves report-native source total alkalinity and accepts a
+total-alkalinity target separately from bicarbonate and carbonate. Blend,
+treatment, and final alkalinity remain `NOT_CALCULATED`, and working-water pH
+remains `NOT_CALCULATED`. Consumers may build source/target entry and
+presentation against that contract now, but must not calculate alkalinity,
+carbonate species, or pH in the application layer.
+
+Engine 0.5 plans a named conservative-equivalent alkalinity balance. Its
+supported public result graph will return policy-controlled source resolution,
+volume-weighted blending with unknown propagation, per-source and per-treatment
+contributions, modeled final total alkalinity, exact/range/bound target
+comparison, signed deviation, contribution-matrix rows, and stable model-basis
+and limitation metadata. Reported, calculated, and target alkalinity remain
+conceptually distinct; this does not require consumers to migrate away from the
+public `Alkalinity` type unless the implemented API later documents a concrete
+need.
+
+Sodium bicarbonate may participate in optimization only when starting
+alkalinity is resolved and the request contains an appropriate supported total-
+alkalinity criterion. Its sodium contribution remains ordinary ion chemistry;
+its one-equivalent-per-mole alkalinity rule is specific to the named model and
+its complete-dissolution/no-reaction assumptions. Any retained bicarbonate
+quantity remains formal carbonate inventory rather than a claim about final
+equilibrium bicarbonate concentration. Bicarbonate and carbonate targets remain
+unsupported optimizer inputs, and meeting an alkalinity target never implies
+that a particular pH was achieved.
+
+Every optimized rounded dose must be replayed through the ordinary forward
+calculation so the engine—not the consumer—proves that the plan reproduces its
+reported modeled final alkalinity.
 
 ## Validation, unknowns, and notices
 

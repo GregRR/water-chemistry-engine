@@ -51,17 +51,18 @@ different; and can return an independently solved no-dilution best-effort plan.
 The optimizer contract remains pre-1.0 and may evolve under the documented
 consumer API compatibility policy.
 
-Version 0.5 expands practical treatment-material semantics, profile provenance
-and curated reference data, and target-comparison interpretation. Unreleased
-0.5 work should be consumed only from an exact commit or locally built artifact;
-ordinary applications should continue to pin the 0.4.1 PyPI release.
-
 Version 0.4.1 repairs carbonate-system support boundaries. Explicitly reported
 bicarbonate, carbonate, and total alkalinity remain distinct and lossless, but
 bicarbonate/carbonate results are labeled as formal inventory rather than
 equilibrium speciation. Automatic optimization rejects carbonate-system targets
 and sodium bicarbonate until a validated model exists; deterministic manual
 sodium-bicarbonate accounting remains available with structured limitations.
+
+Version 0.5 expands practical treatment-material semantics, profile provenance,
+curated reference data, target-comparison interpretation, and a planned named
+conservative-equivalent total-alkalinity balance. Unreleased 0.5 work should be
+consumed only from an exact commit or locally built artifact; ordinary
+applications should continue to pin the 0.4.1 PyPI release.
 
 ### Forward-calculator capabilities established in 0.2
 
@@ -83,8 +84,9 @@ sodium-bicarbonate accounting remains available with structured limitations.
 - **0.4:** automatic treatment optimization with practical candidate plans,
   explicit feasibility/deviation diagnostics, and the minimum exact-composition
   treatment-material semantics needed for safe recommendations;
-- **0.5:** broader practical treatment materials, curated target/reference
-  profiles, and richer comparison semantics;
+- **0.5:** conservative-equivalent total-alkalinity calculation, broader
+  practical treatment materials, curated target/reference profiles, and richer
+  comparison semantics;
 - **0.6:** optimizer and public-contract hardening beyond the first useful
   strategy set;
 - **0.7:** reusable working-water pH if a defensible model is ready;

@@ -386,6 +386,82 @@ reporting basis and compare as `NOT_CALCULATED`; the engine does not manufacture
 a bicarbonate target from them. The pH near 8.3 associated with a titration
 equivalence region must never be encoded as a universal species switch.
 
+#### Planned 0.5 conservative-equivalent total-alkalinity balance
+
+Release 0.5 promotes total alkalinity from a preserved-only source/target
+property into the calculated forward workflow through the named
+`conservative_equivalent_alkalinity_v1` model. The model calculates an
+equivalent balance across source resolution, additive-volume blending, and
+specifically reviewed treatment additions. It does not calculate carbonate
+speciation, pH, precipitation, mineral dissolution, biological reactions, or
+unmodeled acid/base reactions.
+
+Reported, calculated, and target alkalinity must remain conceptually distinct.
+This requirement does not prescribe public class names and does not require a
+breaking replacement of the existing public `Alkalinity` type. A calculated
+result is an exact modeled state rather than a reported measurement; it must
+carry its value and reporting basis, model identifier/version, resolution
+status, contribution records, and applicable stable limitation codes. A target
+criterion must express target meaning rather than reinterpreting a
+source-reported average as a preferred value.
+
+The report-native representation should preserve, when supplied, the original
+analyte wording and unit, identity as total alkalinity, named reported
+statistic, analytical method, titration endpoint or method code,
+filtered/unfiltered sample state, distinction between alkalinity and
+acid-neutralizing capacity, result/sampling context, and source-document
+provenance. Calculated and target representations must not acquire invented
+analytical metadata merely to share an API shape with reported data.
+
+The canonical internal calculation axis is equivalents per volume. Values may
+be presented as `mg/L as CaCO3`, where `as CaCO3` is a reporting-equivalent
+basis rather than a claim that dissolved calcium carbonate is present. The
+initial treatment calculation is:
+
+```text
+delta_alkalinity_mg_per_liter_as_caco3 =
+    (ingredient_mass_g / ingredient_molar_mass_g_per_mol / water_volume_l)
+    * alkalinity_equivalents_per_mole
+    * 50_043.45_mg_per_equivalent
+```
+
+The project must use one documented CaCO3 equivalent-mass constant
+consistently. Under the reviewed sodium-bicarbonate rule,
+`alkalinity_equivalents_per_mole = 1`; therefore 1.000 g NaHCO3 per liter
+contributes approximately 595.7 mg/L total alkalinity as CaCO3 under the
+complete-dissolution, no-reaction assumptions.
+
+An equivalent-per-mole rule belongs to the named conservative-equivalent model
+and a specifically reviewed material. It is not a universally valid intrinsic
+property required of every chemical identity. This separation preserves formal
+ion stoichiometry, modeled alkalinity contribution, and equilibrium speciation
+as different concepts and permits later signed rules for reviewed acids,
+hydroxides, or other materials without silently generalizing beyond evidence.
+
+Source alkalinity follows the existing source-resolution policy: an exact
+reported value or independently reported average is usable; an exact-ended
+range requires explicit midpoint permission; and a missing, bounded, or
+otherwise unresolved value remains unknown. Blending is volume-weighted only
+when every positive-volume source is resolved. Known partial contributions
+remain auditable when a total is unknown. A known treatment contribution never
+turns an unknown starting alkalinity into a known final value, and the engine
+never infers alkalinity from bicarbonate, carbonate, pH, hardness, or charge
+balance.
+
+Treatment contributions and calculated alkalinity are signed and must never be
+silently clamped to zero. The result is labeled **modeled final total
+alkalinity**, not reported or measured final alkalinity. Formal NaHCO3
+bicarbonate inventory remains independently labeled as formal carbonate
+inventory and must not be presented as equilibrium final bicarbonate.
+
+Target comparison must support exact values, ranges, lower bounds, and upper
+bounds with signed deviation and an explicit comparison status. The optimizer
+may select sodium bicarbonate only when initial/blended alkalinity is resolved,
+a supported total-alkalinity criterion is present, sodium is accounted for
+normally, and the request requires neither pH nor equilibrium speciation. Every
+returned rounded plan must be replayed through the ordinary forward workflow to
+prove that its modeled final alkalinity matches the reported plan result.
+
 ### 9.7 pH is a logarithmic scientific invariant
 
 pH requires behavior different from linear water properties.
@@ -1589,6 +1665,29 @@ Tests must prove that:
 
 Portable versioned request/result pairs should allow Swift, Kotlin, Dart, JavaScript, or other implementations to demonstrate conformance with the reference engine.
 
+### 24.7 Conservative-equivalent alkalinity tests
+
+The 0.5 alkalinity slice must cover at least:
+
+- equal- and unequal-volume blends of known source alkalinities;
+- missing and unresolved positive-volume source propagation;
+- a zero-volume unknown source that does not contaminate the result;
+- preservation of an explicitly reported zero;
+- 1.000 g/L NaHCO3 contributing approximately 595.7 mg/L as CaCO3 and the
+  independently correct sodium contribution;
+- coexistence of reported total alkalinity and reported bicarbonate without
+  deriving or overwriting either;
+- exact, range, lower-bound, and upper-bound target comparison with signed
+  deviation;
+- contribution-matrix source and treatment audit records;
+- optimizer rejection when starting alkalinity is unresolved or no appropriate
+  alkalinity criterion is present;
+- continued rejection of bicarbonate and carbonate optimizer targets;
+- post-rounding forward replay reproducing a plan's reported final alkalinity;
+- stable conservative-equivalent calculation-basis and limitation metadata;
+  and
+- working-water pH remaining explicitly `NOT_CALCULATED`.
+
 ## 25. Safety and scientific-integrity considerations
 
 - Treat acids and alkalis as hazardous once supported.
@@ -1652,7 +1751,7 @@ The real-report pressure-test phase has served its immediate purpose. Additional
 
 First-class source-report preservation of chlorine/chloramine and related disinfectant reporting is now implemented. The Santa Cruz 2025 fixture pressure-tests an unqualified distribution-system `Chlorine` result as its own reported disinfectant rather than inferring free chlorine or mapping the result to chloride. Treatment/removal modeling remains deliberately out of scope for this representation layer.
 
-Release 0.2 completes the **deterministic forward treatment calculation** boundary. Validated simple treatment-ingredient identities, generic stoichiometric ion contributions, exact derived aqueous chemical states, forward application of one or more additions to a known water volume, explicit source-profile-to-derived-state resolution, fixed source-water blending by volume or fraction, structured target/reference comparison, and end-to-end orchestration across those boundaries are implemented. The forward-calculator result retains every source-resolution result, the normalized fixed-blend result, treatment-application result, explicit blend/final states, and optional source/blend/final target comparisons rather than flattening the workflow into final numbers. Blend and treatment results both preserve structured per-ion resolution outcomes and contribution detail while keeping unknown totals unknown. Target comparison preserves exact/range/bound satisfaction and signed deviation, keeps missing state ions indeterminate, refuses to reinterpret qualified ranges or `ND` as numeric targets, and retains target pH as explicitly not calculated until a validated working-water pH model exists. Boundary classification uses a 1e-9 mg/L absolute tolerance solely to suppress floating-point representation noise from otherwise exact deterministic arithmetic; this tolerance is not a chemical, sensory, or user-facing "close enough" policy. A combined row-per-ion contribution matrix now reshapes the existing blend and treatment audit records for presentation without recalculating chemistry. It preserves each source and treatment as a stable column, distinguishes positive-volume unknown source chemistry from zero-volume sources, distinguishes noncontributing treatment ingredients from unknown data, and retains known partial source/treatment contribution subtotals without presenting them as complete totals when the blend or final concentration is unresolved. Structured preparation instructions now transform those already-calculated blend/treatment results into deterministic human-readable actions while retaining canonical quantities for consumer reformatting. Zero-volume sources and zero-mass treatment rows remain in the calculation/audit results but are omitted from actionable instruction text because they require no physical action. Forward-result notices now surface calculation assumptions and result limitations that consumers should not have to reconstruct from nested audit records: midpoint use, unresolved contributing source results, first-order carbonate-species blending, the complete-dissolution treatment model, unknown final-target actuals, unsupported final-target criteria, and deferred final-target-pH comparison. Source- and blend-stage target comparisons remain available on their own structured results rather than duplicating target notices at every stage. These notices do not change chemistry and preserve structured codes/context alongside deterministic English messages. Release 0.3 adds the reviewed supported consumer facade, complete source-reporting/provenance construction graph, and FermUnits `PHValue` boundary around these proven capabilities. After a small FermUnits 1.0 compatibility release, the next implementation focus is the first practical optimizer plus only the treatment-material semantics it requires; broader materials and curated profiles follow without blocking that vertical slice.
+Release 0.2 completes the **deterministic forward treatment calculation** boundary. Validated simple treatment-ingredient identities, generic stoichiometric ion contributions, exact derived aqueous chemical states, forward application of one or more additions to a known water volume, explicit source-profile-to-derived-state resolution, fixed source-water blending by volume or fraction, structured target/reference comparison, and end-to-end orchestration across those boundaries are implemented. The forward-calculator result retains every source-resolution result, the normalized fixed-blend result, treatment-application result, explicit blend/final states, and optional source/blend/final target comparisons rather than flattening the workflow into final numbers. Blend and treatment results both preserve structured per-ion resolution outcomes and contribution detail while keeping unknown totals unknown. Target comparison preserves exact/range/bound satisfaction and signed deviation, keeps missing state ions indeterminate, refuses to reinterpret qualified ranges or `ND` as numeric targets, and retains target pH as explicitly not calculated until a validated working-water pH model exists. Boundary classification uses a 1e-9 mg/L absolute tolerance solely to suppress floating-point representation noise from otherwise exact deterministic arithmetic; it is separate from the 0.5 versioned comparison policies whose explicit absolute bands can classify an outside result as close or far. No policy means no closeness classification, and no policy uses a percentage of the target. A combined row-per-ion contribution matrix now reshapes the existing blend and treatment audit records for presentation without recalculating chemistry. It preserves each source and treatment as a stable column, distinguishes positive-volume unknown source chemistry from zero-volume sources, distinguishes noncontributing treatment ingredients from unknown data, and retains known partial source/treatment contribution subtotals without presenting them as complete totals when the blend or final concentration is unresolved. Structured preparation instructions now transform those already-calculated blend/treatment results into deterministic human-readable actions while retaining canonical quantities for consumer reformatting. Zero-volume sources and zero-mass treatment rows remain in the calculation/audit results but are omitted from actionable instruction text because they require no physical action. Forward-result notices now surface calculation assumptions and result limitations that consumers should not have to reconstruct from nested audit records: midpoint use, unresolved contributing source results, first-order carbonate-species blending, the complete-dissolution treatment model, unknown final-target actuals, unsupported final-target criteria, and deferred final-target-pH comparison. Source- and blend-stage target comparisons remain available on their own structured results rather than duplicating target notices at every stage. These notices do not change chemistry and preserve structured codes/context alongside deterministic English messages. Release 0.3 adds the reviewed supported consumer facade, complete source-reporting/provenance construction graph, and FermUnits `PHValue` boundary around these proven capabilities. After a small FermUnits 1.0 compatibility release, the next implementation focus is the first practical optimizer plus only the treatment-material semantics it requires; broader materials and curated profiles follow without blocking that vertical slice.
 
 ## 27. Development milestones
 
@@ -1735,8 +1834,13 @@ Completed:
 - end-to-end proof that applying an accepted plan through the ordinary forward
   path reproduces its reported final chemistry.
 
-### Milestone 5 / release 0.5 — materials, profiles, and comparisons
+### Milestone 5 / release 0.5 — total alkalinity, materials, profiles, and comparisons
 
+- named conservative-equivalent total-alkalinity balance across source
+  resolution, blending, reviewed treatment contributions, final state, target
+  comparison, contribution matrices, and eligible optimizer requests;
+- modeled alkalinity kept distinct from reported/target alkalinity and from
+  carbonate speciation or calculated pH;
 - broader solid-material purity/assay semantics and explicit ranged-assay
   policy;
 - liquid concentration-basis semantics and mass dosing;

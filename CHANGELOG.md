@@ -5,8 +5,8 @@ distribution and its repository milestones.
 
 ## 0.5.0 - Unreleased
 
-Development of the treatment-material, profile, and comparison-expansion
-milestone is in progress.
+Development of the total-alkalinity, treatment-material, profile, and
+comparison-expansion milestone is in progress.
 
 ### Added
 
@@ -14,6 +14,18 @@ milestone is in progress.
   classification, source-document attribution, and paired stable key/version;
   unclassified profiles remain unclassified, while classifications that make
   published or scientific claims require document attribution.
+- Added versioned, described per-ion closeness policies using asymmetric
+  absolute mg/L deviations from accepted target boundaries. Comparisons now
+  report within-target, close, far, or not-evaluated interpretation separately
+  from below/within/above status without inventing universal percentages.
+
+### Documentation
+
+- Defined the planned 0.5 conservative-equivalent total-alkalinity balance,
+  including source resolution, blending, reviewed treatment contributions,
+  target comparison, contribution reporting, optimizer admission,
+  post-rounding replay, public-consumer responsibilities, scientific sources,
+  and explicit exclusions for carbonate speciation and calculated pH.
 
 ## 0.4.1 - 2026-09-14
 

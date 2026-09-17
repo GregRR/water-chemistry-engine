@@ -68,6 +68,11 @@ Where an authoritative ASBC method, table, or formula is known to exist but cann
   - Intended water use belongs to calculation/application context because brew water, dilution water, service water, and other brewery uses have different requirements.
   - Chlorine and other oxidizing disinfectants can matter independently of chloride concentration and should not be discarded during report ingestion.
   - The review identifies CaSO4 and CaCl2 additions as noncarbonate-hardness treatments and notes practical control problems from the poor solubility of calcium sulfate, supporting explicit treatment-model limits rather than assuming every mineral behaves like highly soluble calcium chloride.
+  - The review formulates brewing residual alkalinity from total alkalinity and
+    calcium/magnesium hardness on an equivalent basis. This supports total
+    alkalinity as the actionable generic calculation axis while keeping
+    residual alkalinity a later brewing-purpose calculation rather than a
+    source-water identity.
   - Non-additive treatment processes exist, but a generalized treatment-operation abstraction is not required for Version 1.
 - **Caution:** The paper's numerical water-requirement tables are the authors' recommendations in an industrial-brewery context; they are not assumed to be universal standards for every brewery or product.
 
@@ -326,8 +331,45 @@ not encode that process narrative without direct experimental brewing evidence.
 
 ### Water quality and reporting semantics
 
+- **Standard Methods 2320 — Alkalinity**
+  - DOI: 10.2105/SMWW.2882.023
+  - URL: https://www.standardmethods.org/doi/10.2105/SMWW.2882.023
+  - Type: recognized authoritative analytical method
+  - Relevant topic: alkalinity as acid-neutralizing capacity determined by
+    titration.
+  - Design implication: total alkalinity is a water property expressed on an
+    equivalent basis, not an automatically interchangeable bicarbonate or
+    carbonate concentration.
+- **USGS National Field Manual, Chapter A6.6 — Alkalinity and Acid
+  Neutralizing Capacity**
+  - Authors: Stewart A. Rounds; Franceska D. Wilde
+  - DOI: 10.3133/twri09A6.6
+  - URL: https://pubs.usgs.gov/publication/twri09A6.6
+  - Type: authoritative government analytical-method guidance
+  - Relevant topics: alkalinity versus acid-neutralizing capacity, filtered
+    versus unfiltered samples, titration, carbonate and noncarbonate
+    contributors, and method/reporting semantics.
+  - Design implication: preserve whether a source result is alkalinity or ANC,
+    its sample state, and its analytical/titration method when supplied.
+- **USGS Office of Water Quality Technical Memorandum 2012.05**
+  - Title: Replacement of the Simple Speciation Method for Computation of
+    Carbonate and Bicarbonate Concentrations from Alkalinity Titrations
+  - URL: https://water.usgs.gov/water-resources/memos/memo.php?id=2098
+  - Type: authoritative government scientific policy and method rationale
+  - Relevant topics: additional inputs and assumptions required for carbonate
+    speciation; activity, temperature, ionic-strength, hydroxide, and
+    noncarbonate-alkalinity limitations.
+  - Design implication: never silently convert total alkalinity to bicarbonate
+    or carbonate, and keep any future speciation result derived, model-versioned,
+    and separate from the reported value.
+- **USGS PHREEQC Version 3 `SOLUTION` documentation**
+  - URL: https://water.usgs.gov/water-resources/software/PHREEQC/documentation/phreeqc3-html/phreeqc3-48.htm
+  - Type: authoritative government geochemical-model documentation
+  - Relevant data: alkalinity is converted through gram equivalent weight;
+    alkalinity reported as CaCO3 uses approximately 50.04 g/eq.
+  - Design implication: use equivalents as the canonical calculation axis and
+    retain `as CaCO3` as an explicit reporting basis.
 - US EPA drinking-water terminology and reporting guidance.
-- USGS water-chemistry terminology and conversion guidance.
 - WHO drinking-water guidance where relevant.
 - Bottled-water regulatory and quality-report requirements.
 - Definitions and conversions for alkalinity, hardness, `as CaCO3`, equivalents, detection limits, and uncertainty.
@@ -454,7 +496,10 @@ Historical city profiles must not be labeled as a brewery's actual treated liquo
 2. Define and validate treatment-material semantics for solid assay/purity,
    liquid concentration basis, mass dosing, density-supported volume dosing,
    and ranged material specifications before optimizer work relies on them.
-3. Establish authoritative semantics for alkalinity, hardness, bicarbonate, carbonate, and `as CaCO3` reporting.
+3. Implement and validate the 0.5 conservative-equivalent total-alkalinity
+   model from the registered authoritative sources while preserving the
+   distinction among alkalinity, bicarbonate, carbonate, and `as CaCO3`
+   reporting.
 4. Identify defensible initial beer, mead, and distilling target profiles with redistribution rights.
 5. Identify the first defensible coffee target/reference profiles and classify each as standard, recommendation, practitioner reference, experimental reference, or optimized target as appropriate.
 6. Identify tea and dough/bread/pizza reference profiles only where the evidence and redistribution status support admission; do not manufacture optimal profiles from regional analyses.

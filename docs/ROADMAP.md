@@ -339,7 +339,7 @@ silently approximated.
 - product-specific persistence, reports, or UI behavior; and
 - equilibrium-dependent chalk treatment.
 
-## 0.5 — Treatment Materials, Profiles, and Comparison Expansion
+## 0.5 — Total Alkalinity, Treatment Materials, Profiles, and Comparison Expansion
 
 **Status: in progress.**
 
@@ -375,6 +375,81 @@ user targets, and classifications that claim external evidence require an
 attributed source document.
 Source water remains structurally represented by `SourceWaterProfile`; it is
 not inferred from or duplicated in the target/reference classification.
+
+### Conservative-equivalent total-alkalinity balance
+
+Promote total alkalinity from a preserved-only source/target property into the
+calculated forward workflow through a named
+`conservative_equivalent_alkalinity_v1` model. This is an equivalent balance,
+not carbonate speciation, equilibrium chemistry, or pH prediction.
+
+The model must keep reported, calculated, and target alkalinity conceptually
+distinct without requiring a breaking replacement of the public `Alkalinity`
+type. Its initial assumptions are:
+
+- volumes are additive;
+- source alkalinity is resolved under the existing source-resolution policy;
+- resolved source alkalinity is volume-weighted during blending;
+- reviewed treatment contributions are calculated stoichiometrically in
+  equivalents;
+- supported contributing ingredients dissolve completely;
+- precipitation, mineral dissolution, biological reactions, and unmodeled
+  acid/base reactions are not calculated; and
+- carbonate redistribution and CO2 exchange do not themselves change total
+  alkalinity, while reactions such as calcium-carbonate precipitation can and
+  remain explicit limitations.
+
+When a source supplies them, the report-native record should also preserve the
+original analyte wording and unit, explicit identity as total alkalinity,
+reported statistic, analytical method, titration endpoint or method code,
+filtered/unfiltered sample state, alkalinity-versus-acid-neutralizing-capacity
+identity, sampling context, and document provenance. These are source semantics
+and must not be manufactured for calculated or target values.
+
+The supported public API must return:
+
+1. policy-controlled source-alkalinity resolution;
+2. volume-weighted blended alkalinity with unknown propagation;
+3. structured per-source alkalinity contributions;
+4. structured treatment alkalinity contributions;
+5. modeled final total alkalinity;
+6. exact/range/bound target-alkalinity comparison;
+7. signed target deviation and comparison status;
+8. contribution-matrix support for total alkalinity;
+9. stable calculation-basis and limitation metadata;
+10. optimizer support only when final alkalinity is resolvable and an
+    appropriate alkalinity criterion is present; and
+11. post-rounding forward recalculation proving that an optimized plan
+    reproduces its reported final alkalinity.
+
+If any positive-volume source has missing or unresolved alkalinity, blended
+and final total alkalinity remain unresolved. Known source and treatment
+contributions remain auditable, but a known addition must not turn an unknown
+starting value into a known final result. A zero-volume unknown source has no
+effect, and a source alkalinity of zero is known only when explicitly reported
+or otherwise justified by an existing source-resolution contract.
+
+The model must not infer source alkalinity from bicarbonate, carbonate, pH,
+hardness, or charge balance. Bicarbonate and carbonate remain unsupported
+ordinary optimizer targets. Sodium bicarbonate may become optimizer-eligible
+only when initial/blended alkalinity is resolved, a supported total-alkalinity
+criterion is present, its sodium contribution is included normally, and no
+requested behavior requires pH or equilibrium speciation.
+
+For a specifically reviewed material such as sodium bicarbonate, a signed
+equivalent-per-mole rule belongs to this named calculation model; it is not a
+universally valid intrinsic property required of every chemical identity. The
+initial NaHCO3 rule contributes one equivalent of alkalinity per mole under the
+model assumptions. Formal bicarbonate inventory remains separately auditable
+and must not be presented as equilibrium final bicarbonate concentration.
+
+Consumer applications may proceed against Engine 0.4.1 with report-native
+total-alkalinity and pH entry, independent preservation of explicitly reported
+bicarbonate/carbonate, and `NOT_CALCULATED` presentation for blend, treatment,
+and final alkalinity and working-water pH. Applications must not reconstruct
+these calculations from ion data. Field placement, exact labels, layout,
+application schema versions, toggles, and temporary material visibility remain
+consumer-project decisions rather than engine requirements.
 
 ### Near-term profile additions
 
@@ -449,6 +524,14 @@ carbonate/CO2 system and remains later chemistry work.
   application from a universal percentage.
 - Handle zero and very-low targets without percentage-based singularities or
   misleading classifications.
+
+The initial 0.5 comparison-policy boundary uses versioned, described,
+per-ion absolute mass-concentration bands. Existing below/within/above status
+and signed deviation remain unchanged. Within-target, close, far, and
+not-evaluated interpretation is reported separately; without an explicit policy
+the engine does not invent a closeness category. Asymmetric absolute bands are
+measured from the nearest accepted exact/range/bound boundary and remain defined
+for zero and very-low targets without percentage division.
 
 ## 0.6 — Optimizer and Contract Hardening
 
