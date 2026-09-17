@@ -18,6 +18,10 @@ comparison-expansion milestone is in progress.
   absolute mg/L deviations from accepted target boundaries. Comparisons now
   report within-target, close, far, or not-evaluated interpretation separately
   from below/within/above status without inventing universal percentages.
+- Added the first end-to-end conservative-equivalent total-alkalinity workflow:
+  policy-controlled source resolution, unknown-preserving blend calculation,
+  reviewed sodium-bicarbonate treatment contributions, modeled final
+  alkalinity, target comparison, and a structured contribution-matrix row.
 
 ### Documentation
 

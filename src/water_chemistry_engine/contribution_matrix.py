@@ -20,6 +20,7 @@ from fermunits import Q_, Quantity
 from water_chemistry_engine._workflow_validation import (
     require_treatment_matches_blend,
 )
+from water_chemistry_engine.alkalinity_balance import AlkalinityBalanceResult
 from water_chemistry_engine.blending import (
     BlendIonContribution,
     ResolvedBlendIon,
@@ -152,12 +153,54 @@ class IonContributionMatrixRow:
 
 
 @dataclass(frozen=True, slots=True)
+class AlkalinityContributionMatrixRow:
+    """Source, treatment, blend, and final total-alkalinity audit row."""
+
+    source_contributions: tuple[SourceContributionCell, ...]
+    treatment_contributions: tuple[TreatmentContributionCell, ...]
+    blend_alkalinity: Quantity[float] | None
+    final_alkalinity: Quantity[float] | None
+    calculation_model: str
+
+    @property
+    def blend_is_known(self) -> bool:
+        return self.blend_alkalinity is not None
+
+    @property
+    def final_is_known(self) -> bool:
+        return self.final_alkalinity is not None
+
+    @property
+    def known_source_contribution_sum(self) -> Quantity[float]:
+        return Q_(
+            fsum(
+                float(cell.weighted_contribution.magnitude)
+                for cell in self.source_contributions
+                if cell.weighted_contribution is not None
+            ),
+            "milligram / liter",
+        )
+
+    @property
+    def known_treatment_contribution_sum(self) -> Quantity[float]:
+        return Q_(
+            fsum(
+                float(cell.contribution.magnitude)
+                for cell in self.treatment_contributions
+                if cell.contribution is not None
+            ),
+            "milligram / liter",
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class WaterContributionMatrix:
     """One matrix spanning every source, treatment, and canonical ion."""
 
     source_columns: tuple[SourceContributionColumn, ...]
     treatment_columns: tuple[TreatmentContributionColumn, ...]
     rows: tuple[IonContributionMatrixRow, ...]
+    alkalinity_row: AlkalinityContributionMatrixRow | None = None
 
     def row_for(self, ion: Ion) -> IonContributionMatrixRow:
         """Return the matrix row for one canonical ion."""
@@ -275,6 +318,7 @@ def _treatment_cells(
 def build_contribution_matrix(
     blend_result: WaterBlendResult,
     treatment_result: TreatmentApplicationResult,
+    alkalinity_balance: AlkalinityBalanceResult | None = None,
 ) -> WaterContributionMatrix:
     """Build a presentation matrix from one linked blend/treatment workflow.
 
@@ -284,6 +328,96 @@ def build_contribution_matrix(
     the supplied blend volume.
     """
     require_treatment_matches_blend(blend_result, treatment_result)
+
+    alkalinity_row = None
+    if alkalinity_balance is not None:
+        source_contributions_by_index = {
+            contribution.source_index: contribution
+            for contribution in alkalinity_balance.blend.source_contributions
+        }
+        missing_source_indices = frozenset(
+            alkalinity_balance.blend.missing_source_indices
+        )
+        source_cells: list[SourceContributionCell] = []
+        for source_index, source in enumerate(blend_result.sources):
+            if source.fraction == 0.0:
+                source_cells.append(
+                    SourceContributionCell(
+                        source_index=source_index,
+                        source_name=source.name,
+                        status=SourceContributionCellStatus.ZERO_VOLUME,
+                        source_concentration=None,
+                        weighted_contribution=None,
+                    )
+                )
+                continue
+            contribution = source_contributions_by_index.get(source_index)
+            if contribution is not None:
+                source_cells.append(
+                    SourceContributionCell(
+                        source_index=source_index,
+                        source_name=source.name,
+                        status=SourceContributionCellStatus.KNOWN,
+                        source_concentration=(
+                            contribution.source_alkalinity.concentration
+                        ),
+                        weighted_contribution=contribution.weighted_contribution,
+                    )
+                )
+                continue
+            if source_index not in missing_source_indices:
+                raise ValueError(
+                    "Alkalinity balance does not account for every "
+                    "positive-volume source."
+                )
+            source_cells.append(
+                SourceContributionCell(
+                    source_index=source_index,
+                    source_name=source.name,
+                    status=(SourceContributionCellStatus.SOURCE_CONCENTRATION_UNKNOWN),
+                    source_concentration=None,
+                    weighted_contribution=None,
+                )
+            )
+
+        treatment_contributions_by_index = {
+            contribution.treatment_index: contribution
+            for contribution in alkalinity_balance.final.treatment_contributions
+        }
+        treatment_cells = tuple(
+            TreatmentContributionCell(
+                treatment_index=treatment_index,
+                addition=applied.addition,
+                status=(
+                    TreatmentContributionCellStatus.CONTRIBUTES
+                    if treatment_index in treatment_contributions_by_index
+                    else TreatmentContributionCellStatus.DOES_NOT_CONTRIBUTE
+                ),
+                contribution=(
+                    treatment_contributions_by_index[treatment_index].concentration
+                    if treatment_index in treatment_contributions_by_index
+                    else None
+                ),
+            )
+            for treatment_index, applied in enumerate(
+                treatment_result.applied_treatments
+            )
+        )
+        alkalinity_row = AlkalinityContributionMatrixRow(
+            source_contributions=tuple(source_cells),
+            treatment_contributions=treatment_cells,
+            blend_alkalinity=(
+                None
+                if alkalinity_balance.blend.alkalinity is None
+                else alkalinity_balance.blend.alkalinity.concentration
+            ),
+            final_alkalinity=(
+                None
+                if alkalinity_balance.final.alkalinity is None
+                else alkalinity_balance.final.alkalinity.concentration
+            ),
+            calculation_model=alkalinity_balance.model,
+        )
 
     rows: list[IonContributionMatrixRow] = []
     for ion in Ion:
@@ -342,4 +476,5 @@ def build_contribution_matrix(
             )
         ),
         rows=tuple(rows),
+        alkalinity_row=alkalinity_row,
     )

@@ -191,7 +191,7 @@ def test_carbonate_target_and_alkalinity_target_have_separate_limitations() -> N
     assert tuple(notice.code for notice in notices) == (
         ForwardNoticeCode.CARBONATE_SYSTEM_MODEL_LIMITATION,
         ForwardNoticeCode.TARGET_CARBONATE_SYSTEM_MODEL_LIMITED,
-        ForwardNoticeCode.TARGET_ALKALINITY_NOT_CALCULATED,
+        ForwardNoticeCode.TARGET_ALKALINITY_ACTUAL_UNKNOWN,
     )
 
 

@@ -26,7 +26,7 @@ from water_chemistry_engine.quantity_types import ScalarQuantity
 # Sources:
 # - USGS PHREEQC SOLUTION documentation: CaCO3 equivalent mass ~50.04 g/eq
 # - USGS PHREEQC FAQ, question 184: HCO3 equivalent mass 61.0173 g/eq
-_CACO3_EQUIVALENT_MASS_G_PER_EQ = 50.04
+CACO3_EQUIVALENT_MASS_G_PER_EQ = 50.04345
 _BICARBONATE_EQUIVALENT_MASS_G_PER_EQ = 61.0173
 
 
@@ -66,7 +66,7 @@ def bicarbonate_from_bicarbonate_alkalinity_as_caco3(
         raise ValueError("Bicarbonate alkalinity cannot be negative.")
 
     conversion_factor = (
-        _BICARBONATE_EQUIVALENT_MASS_G_PER_EQ / _CACO3_EQUIVALENT_MASS_G_PER_EQ
+        _BICARBONATE_EQUIVALENT_MASS_G_PER_EQ / CACO3_EQUIVALENT_MASS_G_PER_EQ
     )
     # This is a derived reporting-basis conversion.  Preserve the source
     # quantity itself, but normalize the calculated result to the engine's

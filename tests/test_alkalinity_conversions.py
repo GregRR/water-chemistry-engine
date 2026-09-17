@@ -16,7 +16,7 @@ def test_bicarbonate_alkalinity_as_caco3_converts_by_equivalent_mass() -> None:
         Q_(100.0, "milligram / liter")
     )
 
-    assert result.to("milligram / liter").magnitude == pytest.approx(121.93705035971222)
+    assert result.to("milligram / liter").magnitude == pytest.approx(121.92864400835674)
 
 
 def test_conversion_accepts_decimal_and_returns_float_result() -> None:
@@ -24,14 +24,14 @@ def test_conversion_accepts_decimal_and_returns_float_result() -> None:
         Q_(Decimal("100.0"), "milligram / liter")
     )
 
-    assert result.to("milligram / liter").magnitude == pytest.approx(121.93705035971222)
+    assert result.to("milligram / liter").magnitude == pytest.approx(121.92864400835674)
     assert isinstance(result.magnitude, float)
 
 
 def test_conversion_accepts_other_mass_per_volume_units() -> None:
     result = bicarbonate_from_bicarbonate_alkalinity_as_caco3(Q_(0.1, "gram / liter"))
 
-    assert result.to("milligram / liter").magnitude == pytest.approx(121.93705035971222)
+    assert result.to("milligram / liter").magnitude == pytest.approx(121.92864400835674)
 
 
 def test_zero_bicarbonate_alkalinity_remains_zero() -> None:

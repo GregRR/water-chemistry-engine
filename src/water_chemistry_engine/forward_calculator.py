@@ -12,6 +12,12 @@ to the final water, and how each calculation checkpoint compares with a target.
 
 from dataclasses import dataclass
 
+from water_chemistry_engine.alkalinity_balance import (
+    AlkalinityBalanceResult,
+    ModeledAlkalinity,
+    ResolvedSourceAlkalinity,
+    calculate_alkalinity_balance,
+)
 from water_chemistry_engine.blending import BlendSource, WaterBlendResult, blend_waters
 from water_chemistry_engine.chemical_state import AqueousChemicalState
 from water_chemistry_engine.contribution_matrix import (
@@ -76,6 +82,7 @@ class ForwardWaterCalculationResult:
     source_results: tuple[ForwardSourceResult, ...]
     blend_result: WaterBlendResult
     treatment_result: TreatmentApplicationResult
+    alkalinity_balance: AlkalinityBalanceResult
     blend_target_comparison: TargetProfileComparison | None
     final_target_comparison: TargetProfileComparison | None
     contribution_matrix: WaterContributionMatrix
@@ -92,14 +99,30 @@ class ForwardWaterCalculationResult:
         """Return the explicit final treated-water state."""
         return self.treatment_result.final_state
 
+    @property
+    def blended_alkalinity(self) -> ModeledAlkalinity | None:
+        """Return modeled blended total alkalinity, if fully resolvable."""
+        return self.alkalinity_balance.blend.alkalinity
+
+    @property
+    def final_alkalinity(self) -> ModeledAlkalinity | None:
+        """Return modeled final total alkalinity, if fully resolvable."""
+        return self.alkalinity_balance.final.alkalinity
+
 
 def _compare_if_requested(
     state: AqueousChemicalState,
     target_profile: TargetWaterProfile | None,
+    *,
+    actual_alkalinity: ModeledAlkalinity | None = None,
 ) -> TargetProfileComparison | None:
     if target_profile is None:
         return None
-    return compare_state_to_target(state, target_profile)
+    return compare_state_to_target(
+        state,
+        target_profile,
+        actual_alkalinity=actual_alkalinity,
+    )
 
 
 def calculate_forward_water(
@@ -132,18 +155,6 @@ def calculate_forward_water(
         for source in sources
     )
 
-    source_results = tuple(
-        ForwardSourceResult(
-            source=source,
-            resolution=resolution,
-            target_comparison=_compare_if_requested(
-                resolution.state,
-                target_profile,
-            ),
-        )
-        for source, resolution in zip(sources, resolved_sources, strict=True)
-    )
-
     blend_result = blend_waters(
         tuple(
             BlendSource(
@@ -160,9 +171,34 @@ def calculate_forward_water(
         blend_result.total_volume,
         treatment_additions,
     )
+    alkalinity_balance = calculate_alkalinity_balance(
+        tuple(resolution.alkalinity_resolution for resolution in resolved_sources),
+        blend_result,
+        treatment_result,
+    )
+    source_results = tuple(
+        ForwardSourceResult(
+            source=source,
+            resolution=resolution,
+            target_comparison=_compare_if_requested(
+                resolution.state,
+                target_profile,
+                actual_alkalinity=(
+                    resolution.alkalinity_resolution.alkalinity
+                    if isinstance(
+                        resolution.alkalinity_resolution,
+                        ResolvedSourceAlkalinity,
+                    )
+                    else None
+                ),
+            ),
+        )
+        for source, resolution in zip(sources, resolved_sources, strict=True)
+    )
     contribution_matrix = build_contribution_matrix(
         blend_result,
         treatment_result,
+        alkalinity_balance,
     )
     preparation_instructions = build_preparation_instructions(
         blend_result,
@@ -171,10 +207,12 @@ def calculate_forward_water(
     blend_target_comparison = _compare_if_requested(
         blend_result.state,
         target_profile,
+        actual_alkalinity=alkalinity_balance.blend.alkalinity,
     )
     final_target_comparison = _compare_if_requested(
         treatment_result.final_state,
         target_profile,
+        actual_alkalinity=alkalinity_balance.final.alkalinity,
     )
     notices = build_forward_notices(
         resolved_sources,
@@ -189,6 +227,7 @@ def calculate_forward_water(
         source_results=source_results,
         blend_result=blend_result,
         treatment_result=treatment_result,
+        alkalinity_balance=alkalinity_balance,
         blend_target_comparison=blend_target_comparison,
         final_target_comparison=final_target_comparison,
         contribution_matrix=contribution_matrix,

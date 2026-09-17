@@ -13,6 +13,10 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import TypeAlias
 
+from water_chemistry_engine.alkalinity_balance import (
+    SourceAlkalinityResolution,
+    resolve_source_alkalinity,
+)
 from water_chemistry_engine.chemical_state import (
     AqueousChemicalState,
     DerivedIonConcentration,
@@ -85,6 +89,7 @@ class SourceProfileResolutionResult:
     policy: SourceResolutionPolicy
     state: AqueousChemicalState
     ion_resolutions: tuple[SourceIonResolution, ...]
+    alkalinity_resolution: SourceAlkalinityResolution
 
     def resolution_for(self, ion: Ion) -> SourceIonResolution | None:
         """Return one reported-ion outcome, or ``None`` if the source omitted it."""
@@ -205,4 +210,8 @@ def resolve_source_profile(
         policy=policy,
         state=state,
         ion_resolutions=resolutions,
+        alkalinity_resolution=resolve_source_alkalinity(
+            source_profile,
+            policy=policy,
+        ),
     )

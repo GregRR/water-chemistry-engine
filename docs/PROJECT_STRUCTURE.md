@@ -62,6 +62,7 @@ including:
 - water-profile domain models;
 - source-water resolution;
 - fixed water blending;
+- conservative-equivalent total-alkalinity accounting;
 - mineral stoichiometry and forward treatment application;
 - target/reference comparison;
 - contribution reporting;
@@ -84,6 +85,11 @@ source-volume selection, including ranked alternatives and an optional
 no-dilution comparison plan. Broader material authoring—including ranged
 assays and liquid concentration/density semantics—remains subsequent work
 after those contracts are established and validated.
+
+Release 0.5 adds a separate modeled-total-alkalinity result graph across source
+resolution, blending, reviewed treatment contributions, final state, target
+comparison, and contribution reporting. It does not place alkalinity inside the
+derived ion state or treat it as interchangeable with bicarbonate/carbonate.
 
 As later milestones add richer constraints, calculated working-water pH, and
 serialization/interchange adapters, those responsibilities also belong in the

@@ -23,10 +23,10 @@ from water_chemistry_engine.water_identity import WaterIdentity
 class SourceWaterProfile:
     """Measured or reported chemistry for a source of water.
 
-    Ion ``concentrations`` are the only fields automatically resolved into the
-    current derived ion state. Alkalinity, hardness, TDS, conductivity, pH, and
-    disinfectants are preserved as distinct reported properties; storing them
-    does not imply a conversion or validated calculation model.
+    Ion ``concentrations`` resolve into the derived ion state. Total alkalinity
+    resolves separately into the named conservative-equivalent model and is
+    never converted into bicarbonate or carbonate. Hardness, TDS, conductivity,
+    pH, and disinfectants remain preserved reported properties.
     """
 
     name: str

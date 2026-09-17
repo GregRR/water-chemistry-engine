@@ -144,6 +144,14 @@ The exact initial facade is:
   `TargetAlkalinityComparisonStatus`,
   `TargetPHComparison`, `TargetPHComparisonStatus`,
   `TargetProfileComparison`, and `TargetProfileComparisonStatus`;
+- modeled total alkalinity: `ModeledAlkalinity`,
+  `AlkalinityModelLimitation`,
+  `SourceAlkalinityResolution`, `ResolvedSourceAlkalinity`,
+  `UnresolvedSourceAlkalinity`, `UnresolvedSourceAlkalinityReason`,
+  `SourceAlkalinityResolutionMethod`, `SourceAlkalinityContribution`,
+  `BlendedAlkalinityResult`, `TreatmentAlkalinityContribution`,
+  `FinalAlkalinityResult`, `AlkalinityBalanceResult`, and
+  `AlkalinityContributionMatrixRow`;
 - notice interpretation: `ForwardCalculationNotice`, `ForwardNoticeCode`, and
   `ForwardNoticeLevel`; and
 - package identity: `__version__`.
@@ -445,7 +453,7 @@ and includes a result-level `SOLVER_FAILED` or
 `SOLVER_POSTVALIDATION_FAILED` diagnostic identifying the unavailable optional
 candidate.
 
-## Planned 0.5 total-alkalinity calculation contract
+## 0.5 total-alkalinity calculation contract
 
 Engine 0.4.1 preserves report-native source total alkalinity and accepts a
 total-alkalinity target separately from bicarbonate and carbonate. Blend,
@@ -454,17 +462,20 @@ remains `NOT_CALCULATED`. Consumers may build source/target entry and
 presentation against that contract now, but must not calculate alkalinity,
 carbonate species, or pH in the application layer.
 
-Engine 0.5 plans a named conservative-equivalent alkalinity balance. Its
-supported public result graph will return policy-controlled source resolution,
-volume-weighted blending with unknown propagation, per-source and per-treatment
-contributions, modeled final total alkalinity, exact/range/bound target
-comparison, signed deviation, contribution-matrix rows, and stable model-basis
-and limitation metadata. Reported, calculated, and target alkalinity remain
-conceptually distinct; this does not require consumers to migrate away from the
-public `Alkalinity` type unless the implemented API later documents a concrete
-need.
+Engine 0.5 now includes the first public slice of the named
+`conservative_equivalent_alkalinity_v1` balance. It returns policy-controlled
+source resolution, volume-weighted blending with unknown propagation,
+per-source and reviewed per-treatment contributions, modeled final total
+alkalinity, exact/range target comparison with signed deviation, and a
+contribution-matrix row. Reported, modeled, and target alkalinity remain
+conceptually distinct: `Alkalinity` preserves report/target values while
+`ModeledAlkalinity` identifies calculated output and its model. One-sided
+alkalinity target bounds and optimizer admission remain later 0.5 work.
+`AlkalinityBalanceResult.limitations` supplies stable
+`AlkalinityModelLimitation` codes for complete-dissolution, unmodeled-reaction,
+precipitation/dissolution, carbonate-speciation, and working-water-pH limits.
 
-Sodium bicarbonate may participate in optimization only when starting
+Sodium bicarbonate may participate in optimization in a later slice only when starting
 alkalinity is resolved and the request contains an appropriate supported total-
 alkalinity criterion. Its sodium contribution remains ordinary ion chemistry;
 its one-equivalent-per-mole alkalinity rule is specific to the named model and

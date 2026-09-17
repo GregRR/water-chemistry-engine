@@ -65,8 +65,11 @@ and sodium bicarbonate until a validated model exists; deterministic manual
 sodium-bicarbonate accounting remains available with structured limitations.
 
 Version 0.5 expands practical treatment-material semantics, profile provenance,
-curated reference data, target-comparison interpretation, and a planned named
-conservative-equivalent total-alkalinity balance. Unreleased 0.5 work should be
+curated reference data, target-comparison interpretation, and a named
+conservative-equivalent total-alkalinity balance. The in-progress alkalinity
+workflow now covers source resolution, blending, reviewed sodium-bicarbonate
+contributions, final modeled alkalinity, target comparison, and contribution
+reporting; optimizer admission remains pending. Unreleased 0.5 work should be
 consumed only from an exact commit or locally built artifact; ordinary
 applications should continue to pin the 0.4.1 PyPI release.
 

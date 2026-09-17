@@ -406,7 +406,8 @@ filtered/unfiltered sample state, alkalinity-versus-acid-neutralizing-capacity
 identity, sampling context, and document provenance. These are source semantics
 and must not be manufactured for calculated or target values.
 
-The supported public API must return:
+The supported public API must return (items 1–9 are implemented for exact/range
+targets; one-sided alkalinity bounds remain pending):
 
 1. policy-controlled source-alkalinity resolution;
 2. volume-weighted blended alkalinity with unknown propagation;
@@ -421,6 +422,10 @@ The supported public API must return:
     appropriate alkalinity criterion is present; and
 11. post-rounding forward recalculation proving that an optimized plan
     reproduces its reported final alkalinity.
+
+Optimizer items 10–11 remain pending and sodium bicarbonate therefore remains
+excluded from automatic material selection despite its supported manual forward
+alkalinity contribution.
 
 If any positive-volume source has missing or unresolved alkalinity, blended
 and final total alkalinity remain unresolved. Known source and treatment

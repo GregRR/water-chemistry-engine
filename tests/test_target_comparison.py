@@ -379,7 +379,7 @@ def test_carbonate_species_target_is_formal_and_summary_is_indeterminate(
     assert result.status is TargetProfileComparisonStatus.INDETERMINATE
 
 
-def test_alkalinity_target_is_preserved_as_not_calculated() -> None:
+def test_alkalinity_target_is_unknown_without_modeled_actual() -> None:
     alkalinity = Alkalinity.mg_per_liter_as_caco3(40.0)
     target = TargetWaterProfile(
         name="Alkalinity target",
@@ -394,8 +394,9 @@ def test_alkalinity_target_is_preserved_as_not_calculated() -> None:
     assert result.alkalinity_comparison.actual_alkalinity is None
     assert (
         result.alkalinity_comparison.status
-        is TargetAlkalinityComparisonStatus.NOT_CALCULATED
+        is TargetAlkalinityComparisonStatus.ACTUAL_UNKNOWN
     )
+    assert result.alkalinity_comparison.deviation is None
     assert result.status is TargetProfileComparisonStatus.INDETERMINATE
 
 

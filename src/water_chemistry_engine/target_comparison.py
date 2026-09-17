@@ -13,7 +13,8 @@ outcome instead.
 Bicarbonate and carbonate comparisons retain formal numerical inventory for
 reference reproducibility, but their calculation basis is model-limited and
 cannot produce a scientifically unqualified satisfied profile. Total alkalinity
-is preserved separately and remains explicitly not calculated.
+is preserved separately and is compared only with a separately modeled total-
+alkalinity result.
 """
 
 from dataclasses import dataclass
@@ -22,6 +23,7 @@ from math import isclose, isfinite
 
 from fermunits import Q_, PHValue, Quantity
 
+from water_chemistry_engine.alkalinity_balance import ModeledAlkalinity
 from water_chemistry_engine.calculation_policy import capabilities_for
 from water_chemistry_engine.chemical_state import AqueousChemicalState
 from water_chemistry_engine.comparison_policy import TargetIonClosenessPolicy
@@ -81,9 +83,12 @@ class TargetPHComparisonStatus(StrEnum):
 
 
 class TargetAlkalinityComparisonStatus(StrEnum):
-    """Current status of a requested total-alkalinity comparison."""
+    """Relationship between modeled total alkalinity and its target."""
 
-    NOT_CALCULATED = "not_calculated"
+    WITHIN_TARGET = "within_target"
+    BELOW_TARGET = "below_target"
+    ABOVE_TARGET = "above_target"
+    ACTUAL_UNKNOWN = "actual_unknown"
 
 
 class TargetProfileComparisonStatus(StrEnum):
@@ -131,11 +136,14 @@ class TargetPHComparison:
 
 @dataclass(frozen=True, slots=True)
 class TargetAlkalinityComparison:
-    """Preserved alkalinity target while final alkalinity is unsupported."""
+    """Comparison of modeled total alkalinity with a report-basis target."""
 
     target_alkalinity: Alkalinity
-    actual_alkalinity: Alkalinity | None
+    actual_alkalinity: ModeledAlkalinity | None
     status: TargetAlkalinityComparisonStatus
+    target_minimum: Quantity[float]
+    target_maximum: Quantity[float]
+    deviation: Quantity[float] | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -375,6 +383,74 @@ def _closeness_status(
     return TargetIonClosenessStatus.FAR
 
 
+def _compare_alkalinity(
+    target: Alkalinity,
+    actual: ModeledAlkalinity | None,
+) -> TargetAlkalinityComparison:
+    """Compare modeled alkalinity without reinterpreting carbonate species."""
+    if target.value is not None:
+        minimum = target.value
+        maximum = target.value
+    elif target.minimum is not None and target.maximum is not None:
+        minimum = target.minimum
+        maximum = target.maximum
+    elif target.reported_average is not None:
+        minimum = target.reported_average
+        maximum = target.reported_average
+    else:  # pragma: no cover - Alkalinity validates this invariant.
+        raise ValueError("Alkalinity target has no numeric criterion.")
+
+    target_minimum = Q_(
+        float(minimum.to("milligram / liter").magnitude),
+        "milligram / liter",
+    )
+    target_maximum = Q_(
+        float(maximum.to("milligram / liter").magnitude),
+        "milligram / liter",
+    )
+    if actual is None:
+        return TargetAlkalinityComparison(
+            target_alkalinity=target,
+            actual_alkalinity=None,
+            status=TargetAlkalinityComparisonStatus.ACTUAL_UNKNOWN,
+            target_minimum=target_minimum,
+            target_maximum=target_maximum,
+            deviation=None,
+        )
+
+    actual_value = float(actual.concentration.magnitude)
+    minimum_value = float(target_minimum.magnitude)
+    maximum_value = float(target_maximum.magnitude)
+    if actual_value < minimum_value and not isclose(
+        actual_value,
+        minimum_value,
+        rel_tol=0.0,
+        abs_tol=_NUMERICAL_BOUNDARY_ABS_TOL_MG_PER_LITER,
+    ):
+        deviation = actual_value - minimum_value
+        status = TargetAlkalinityComparisonStatus.BELOW_TARGET
+    elif actual_value > maximum_value and not isclose(
+        actual_value,
+        maximum_value,
+        rel_tol=0.0,
+        abs_tol=_NUMERICAL_BOUNDARY_ABS_TOL_MG_PER_LITER,
+    ):
+        deviation = actual_value - maximum_value
+        status = TargetAlkalinityComparisonStatus.ABOVE_TARGET
+    else:
+        deviation = 0.0
+        status = TargetAlkalinityComparisonStatus.WITHIN_TARGET
+
+    return TargetAlkalinityComparison(
+        target_alkalinity=target,
+        actual_alkalinity=actual,
+        status=status,
+        target_minimum=target_minimum,
+        target_maximum=target_maximum,
+        deviation=Q_(deviation, "milligram / liter"),
+    )
+
+
 def _profile_status(
     ion_comparisons: tuple[TargetIonComparison, ...],
     ph_comparison: TargetPHComparison | None,
@@ -392,6 +468,12 @@ def _profile_status(
     ):
         return TargetProfileComparisonStatus.NOT_SATISFIED
 
+    if alkalinity_comparison is not None and alkalinity_comparison.status in (
+        TargetAlkalinityComparisonStatus.BELOW_TARGET,
+        TargetAlkalinityComparisonStatus.ABOVE_TARGET,
+    ):
+        return TargetProfileComparisonStatus.NOT_SATISFIED
+
     if (
         (
             ph_comparison is not None
@@ -400,7 +482,7 @@ def _profile_status(
         or (
             alkalinity_comparison is not None
             and alkalinity_comparison.status
-            is TargetAlkalinityComparisonStatus.NOT_CALCULATED
+            is TargetAlkalinityComparisonStatus.ACTUAL_UNKNOWN
         )
         or any(
             comparison.calculation_basis
@@ -415,7 +497,7 @@ def _profile_status(
     ):
         return TargetProfileComparisonStatus.INDETERMINATE
 
-    if ion_comparisons:
+    if ion_comparisons or alkalinity_comparison is not None:
         return TargetProfileComparisonStatus.SATISFIED
 
     return TargetProfileComparisonStatus.NO_CRITERIA
@@ -424,6 +506,8 @@ def _profile_status(
 def compare_state_to_target(
     state: AqueousChemicalState,
     target_profile: TargetWaterProfile,
+    *,
+    actual_alkalinity: ModeledAlkalinity | None = None,
 ) -> TargetProfileComparison:
     """Compare one derived aqueous state with a target/reference profile.
 
@@ -438,9 +522,10 @@ def compare_state_to_target(
     therefore retained as an explicit ``NOT_CALCULATED`` outcome instead of
     being ignored or compared with reported source pH.
 
-    The same explicit boundary applies to a total-alkalinity target. Carbonate-
-    system ion comparisons are labeled as formal inventory and make the profile
-    result indeterminate because equilibrium speciation is not calculated.
+    A total-alkalinity target is compared only when the caller supplies a
+    separately modeled total-alkalinity result. Carbonate-system ion comparisons
+    remain labeled as formal inventory and make the profile result indeterminate
+    because equilibrium speciation is not calculated.
     """
     comparison_policy = target_profile.comparison_policy
     ion_comparisons = tuple(
@@ -465,11 +550,7 @@ def compare_state_to_target(
     alkalinity_comparison = (
         None
         if target_profile.alkalinity is None
-        else TargetAlkalinityComparison(
-            target_alkalinity=target_profile.alkalinity,
-            actual_alkalinity=None,
-            status=TargetAlkalinityComparisonStatus.NOT_CALCULATED,
-        )
+        else _compare_alkalinity(target_profile.alkalinity, actual_alkalinity)
     )
 
     return TargetProfileComparison(

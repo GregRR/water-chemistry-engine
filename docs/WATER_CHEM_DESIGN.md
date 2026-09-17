@@ -386,7 +386,7 @@ reporting basis and compare as `NOT_CALCULATED`; the engine does not manufacture
 a bicarbonate target from them. The pH near 8.3 associated with a titration
 equivalence region must never be encoded as a universal species switch.
 
-#### Planned 0.5 conservative-equivalent total-alkalinity balance
+#### 0.5 conservative-equivalent total-alkalinity balance
 
 Release 0.5 promotes total alkalinity from a preserved-only source/target
 property into the calculated forward workflow through the named
@@ -461,6 +461,13 @@ a supported total-alkalinity criterion is present, sodium is accounted for
 normally, and the request requires neither pH nor equilibrium speciation. Every
 returned rounded plan must be replayed through the ordinary forward workflow to
 prove that its modeled final alkalinity matches the reported plan result.
+
+The first implemented slice covers source resolution, additive-volume
+blending, the reviewed sodium-bicarbonate contribution, modeled final total
+alkalinity, exact/range target comparison, and contribution-matrix reporting.
+One-sided alkalinity target bounds and optimizer admission/replay remain
+pending; sodium bicarbonate is not yet automatically selectable by the
+optimizer.
 
 ### 9.7 pH is a logarithmic scientific invariant
 
@@ -688,7 +695,12 @@ Individual reported results may additionally carry `ReportedStatistic` and `Repo
 
 The source-report representation must also be extensible to reported disinfectants and other supported analytes outside the canonical optimization-ion panel. Preserving such a reported value does not make it an optimizer variable or imply a validated treatment model for it.
 
-Only the profile's explicit modeled-ion `concentrations` are automatically resolved into the current derived ion state. Alkalinity, total hardness, TDS, conductivity, pH, and disinfectants remain preserved reported properties unless a caller deliberately invokes a separately documented conversion or future validated model. In particular, total alkalinity is not silently converted to bicarbonate.
+Only the profile's explicit modeled-ion `concentrations` are resolved into the
+derived ion state. Total alkalinity is resolved separately by the 0.5 named
+conservative-equivalent model and is never silently converted to bicarbonate or
+carbonate. Total hardness, TDS, conductivity, pH, and disinfectants remain
+preserved reported properties unless a caller deliberately invokes a separately
+documented conversion or future validated model.
 
 A source-water profile describes the water and its provenance. It must not encode the downstream purpose for which a particular calculation happens to use that water.
 

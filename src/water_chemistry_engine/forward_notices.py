@@ -53,7 +53,7 @@ class ForwardNoticeCode(StrEnum):
     TARGET_ACTUAL_UNKNOWN = "target_actual_unknown"
     TARGET_CRITERION_UNSUPPORTED = "target_criterion_unsupported"
     TARGET_CARBONATE_SYSTEM_MODEL_LIMITED = "target_carbonate_system_model_limited"
-    TARGET_ALKALINITY_NOT_CALCULATED = "target_alkalinity_not_calculated"
+    TARGET_ALKALINITY_ACTUAL_UNKNOWN = "target_alkalinity_actual_unknown"
     TARGET_PH_NOT_CALCULATED = "target_ph_not_calculated"
 
 
@@ -315,15 +315,15 @@ def _target_notices(
     if (
         alkalinity_comparison is not None
         and alkalinity_comparison.status
-        is TargetAlkalinityComparisonStatus.NOT_CALCULATED
+        is TargetAlkalinityComparisonStatus.ACTUAL_UNKNOWN
     ):
         notices.append(
             ForwardCalculationNotice(
-                code=ForwardNoticeCode.TARGET_ALKALINITY_NOT_CALCULATED,
-                level=ForwardNoticeLevel.INFORMATION,
+                code=ForwardNoticeCode.TARGET_ALKALINITY_ACTUAL_UNKNOWN,
+                level=ForwardNoticeLevel.WARNING,
                 message=(
-                    "Target total alkalinity is retained, but final total "
-                    "alkalinity is not calculated by the current engine."
+                    "Final total alkalinity cannot be compared with the target "
+                    "because one or more positive-volume sources are unresolved."
                 ),
                 reason=alkalinity_comparison.status.value,
             )
