@@ -19,6 +19,10 @@ from water_chemistry_engine.chemical_state import (
     AqueousChemicalState,
     DerivedIonConcentration,
 )
+from water_chemistry_engine.comparison_policy import (
+    TargetComparisonPolicy,
+    TargetIonClosenessPolicy,
+)
 from water_chemistry_engine.concentrations import (
     ConcentrationRangeEndpoint,
     ExactConcentrationEndpoint,
@@ -118,6 +122,7 @@ from water_chemistry_engine.target_comparison import (
     TargetAlkalinityComparison,
     TargetAlkalinityComparisonStatus,
     TargetIonCalculationBasis,
+    TargetIonClosenessStatus,
     TargetIonComparison,
     TargetIonComparisonStatus,
     TargetPHComparison,
@@ -242,7 +247,10 @@ __all__ = [
     "SourceWaterProfile",
     "TargetAlkalinityComparison",
     "TargetAlkalinityComparisonStatus",
+    "TargetComparisonPolicy",
     "TargetIonCalculationBasis",
+    "TargetIonClosenessPolicy",
+    "TargetIonClosenessStatus",
     "TargetIonComparison",
     "TargetIonComparisonStatus",
     "TargetPHComparison",

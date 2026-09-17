@@ -3,6 +3,7 @@ from enum import StrEnum
 
 from fermunits import PHValue
 
+from water_chemistry_engine.comparison_policy import TargetComparisonPolicy
 from water_chemistry_engine.concentrations import IonConcentrationValue
 from water_chemistry_engine.ions import Ion
 from water_chemistry_engine.reported_properties import Alkalinity
@@ -99,6 +100,7 @@ class TargetWaterProfile:
     notes: str | None = None
     provenance: TargetProfileProvenance | None = None
     alkalinity: Alkalinity | None = None
+    comparison_policy: TargetComparisonPolicy | None = None
 
     def __post_init__(self) -> None:
         if not self.name.strip():
@@ -132,6 +134,21 @@ class TargetWaterProfile:
             raise TypeError(
                 "Target water profile provenance must use TargetProfileProvenance."
             )
+
+        if self.comparison_policy is not None:
+            if not isinstance(self.comparison_policy, TargetComparisonPolicy):
+                raise TypeError(
+                    "Target water profile comparison_policy must use "
+                    "TargetComparisonPolicy."
+                )
+            target_ions = set(ions)
+            policy_ions = {policy.ion for policy in self.comparison_policy.ion_policies}
+            if unsupported_ions := policy_ions - target_ions:
+                names = ", ".join(sorted(ion.value for ion in unsupported_ions))
+                raise ValueError(
+                    "Target comparison policy contains ions absent from the target "
+                    f"profile: {names}."
+                )
 
     def concentration_for(self, ion: Ion) -> IonConcentrationValue | None:
         """Return the target concentration for an ion, if present."""

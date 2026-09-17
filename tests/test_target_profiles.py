@@ -1,6 +1,10 @@
 import pytest
 from fermunits import PHValue
 
+from water_chemistry_engine.comparison_policy import (
+    TargetComparisonPolicy,
+    TargetIonClosenessPolicy,
+)
 from water_chemistry_engine.concentrations import (
     IonConcentration,
     IonConcentrationRange,
@@ -186,6 +190,59 @@ def test_target_profile_rejects_wrong_provenance_type() -> None:
             name="Example target",
             concentrations=(),
             provenance="historical",  # type: ignore[arg-type]
+        )
+
+
+def test_target_profile_preserves_comparison_policy() -> None:
+    comparison_policy = TargetComparisonPolicy(
+        key="example-bands",
+        version="1",
+        description="Example absolute closeness bands.",
+        ion_policies=(
+            TargetIonClosenessPolicy.mg_per_liter(
+                Ion.CALCIUM,
+                maximum_below_deviation=5.0,
+                maximum_above_deviation=10.0,
+            ),
+        ),
+    )
+    profile = TargetWaterProfile(
+        name="Calcium target",
+        concentrations=(IonConcentration.mg_per_liter(Ion.CALCIUM, 50.0),),
+        comparison_policy=comparison_policy,
+    )
+
+    assert profile.comparison_policy is comparison_policy
+
+
+def test_target_profile_rejects_policy_for_absent_ion() -> None:
+    comparison_policy = TargetComparisonPolicy(
+        key="absent-ion",
+        version="1",
+        description="Invalid policy for an absent target ion.",
+        ion_policies=(
+            TargetIonClosenessPolicy.mg_per_liter(
+                Ion.SULFATE,
+                maximum_below_deviation=5.0,
+                maximum_above_deviation=5.0,
+            ),
+        ),
+    )
+
+    with pytest.raises(ValueError, match="ions absent.*sulfate"):
+        TargetWaterProfile(
+            name="Calcium target",
+            concentrations=(IonConcentration.mg_per_liter(Ion.CALCIUM, 50.0),),
+            comparison_policy=comparison_policy,
+        )
+
+
+def test_target_profile_rejects_wrong_comparison_policy_type() -> None:
+    with pytest.raises(TypeError, match="TargetComparisonPolicy"):
+        TargetWaterProfile(
+            name="Calcium target",
+            concentrations=(IonConcentration.mg_per_liter(Ion.CALCIUM, 50.0),),
+            comparison_policy="close",  # type: ignore[arg-type]
         )
 
 

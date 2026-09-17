@@ -8,6 +8,10 @@ from water_chemistry_engine.chemical_state import (
     AqueousChemicalState,
     DerivedIonConcentration,
 )
+from water_chemistry_engine.comparison_policy import (
+    TargetComparisonPolicy,
+    TargetIonClosenessPolicy,
+)
 from water_chemistry_engine.concentrations import (
     ExactConcentrationEndpoint,
     IonConcentration,
@@ -22,6 +26,7 @@ from water_chemistry_engine.reported_properties import Alkalinity
 from water_chemistry_engine.target_comparison import (
     TargetAlkalinityComparisonStatus,
     TargetIonCalculationBasis,
+    TargetIonClosenessStatus,
     TargetIonComparisonStatus,
     TargetPHComparisonStatus,
     TargetProfileComparisonStatus,
@@ -62,18 +67,136 @@ def test_exact_target_reports_signed_raw_deviation() -> None:
 
     assert below is not None
     assert below.status is TargetIonComparisonStatus.BELOW_TARGET
+    assert below.closeness is TargetIonClosenessStatus.NOT_EVALUATED
     assert below.deviation is not None
     assert _mg_per_liter(below.deviation) == pytest.approx(-5.0)
 
     assert at_target is not None
     assert at_target.status is TargetIonComparisonStatus.WITHIN_TARGET
+    assert at_target.closeness is TargetIonClosenessStatus.WITHIN_TARGET
     assert at_target.deviation is not None
     assert _mg_per_liter(at_target.deviation) == 0.0
 
     assert above is not None
     assert above.status is TargetIonComparisonStatus.ABOVE_TARGET
+    assert above.closeness is TargetIonClosenessStatus.NOT_EVALUATED
     assert above.deviation is not None
     assert _mg_per_liter(above.deviation) == pytest.approx(5.0)
+
+
+def test_asymmetric_policy_classifies_distance_from_range_boundaries() -> None:
+    policy = TargetComparisonPolicy(
+        key="example-sulfate-bands",
+        version="1",
+        description="Example asymmetric absolute sulfate bands.",
+        ion_policies=(
+            TargetIonClosenessPolicy.mg_per_liter(
+                Ion.SULFATE,
+                maximum_below_deviation=5.0,
+                maximum_above_deviation=10.0,
+            ),
+        ),
+    )
+    target = TargetWaterProfile(
+        name="Sulfate range",
+        concentrations=(
+            IonConcentrationRange.mg_per_liter(
+                Ion.SULFATE,
+                minimum=100.0,
+                maximum=150.0,
+            ),
+        ),
+        comparison_policy=policy,
+    )
+
+    cases = {
+        94.0: TargetIonClosenessStatus.FAR,
+        95.0: TargetIonClosenessStatus.CLOSE,
+        125.0: TargetIonClosenessStatus.WITHIN_TARGET,
+        160.0: TargetIonClosenessStatus.CLOSE,
+        161.0: TargetIonClosenessStatus.FAR,
+    }
+    for actual, expected in cases.items():
+        comparison = compare_state_to_target(
+            _state(sulfate=actual),
+            target,
+        ).comparison_for(Ion.SULFATE)
+        assert comparison is not None
+        assert comparison.closeness is expected
+
+
+def test_absolute_policy_handles_zero_and_very_low_targets() -> None:
+    policy = TargetComparisonPolicy(
+        key="low-target-bands",
+        version="1",
+        description="Absolute bands that never divide by the target value.",
+        ion_policies=(
+            TargetIonClosenessPolicy.mg_per_liter(
+                Ion.SODIUM,
+                maximum_below_deviation=0.1,
+                maximum_above_deviation=0.1,
+            ),
+            TargetIonClosenessPolicy.mg_per_liter(
+                Ion.CHLORIDE,
+                maximum_below_deviation=0.01,
+                maximum_above_deviation=0.01,
+            ),
+        ),
+    )
+    target = TargetWaterProfile(
+        name="Low targets",
+        concentrations=(
+            IonConcentration.mg_per_liter(Ion.SODIUM, 0.0),
+            IonConcentration.mg_per_liter(Ion.CHLORIDE, 0.001),
+        ),
+        comparison_policy=policy,
+    )
+
+    result = compare_state_to_target(
+        _state(sodium=0.05, chloride=0.02),
+        target,
+    )
+    sodium = result.comparison_for(Ion.SODIUM)
+    chloride = result.comparison_for(Ion.CHLORIDE)
+
+    assert sodium is not None
+    assert sodium.closeness is TargetIonClosenessStatus.CLOSE
+    assert chloride is not None
+    assert chloride.closeness is TargetIonClosenessStatus.FAR
+
+
+def test_closeness_boundary_suppresses_only_numerical_noise() -> None:
+    policy = TargetComparisonPolicy(
+        key="boundary",
+        version="1",
+        description="One mg/L absolute closeness band.",
+        ion_policies=(
+            TargetIonClosenessPolicy.mg_per_liter(
+                Ion.CALCIUM,
+                maximum_below_deviation=1.0,
+                maximum_above_deviation=1.0,
+            ),
+        ),
+    )
+    target = TargetWaterProfile(
+        name="Calcium target",
+        concentrations=(IonConcentration.mg_per_liter(Ion.CALCIUM, 50.0),),
+        comparison_policy=policy,
+    )
+
+    close = compare_state_to_target(
+        _state(calcium=51.0000000005),
+        target,
+    ).comparison_for(Ion.CALCIUM)
+    far = compare_state_to_target(
+        _state(calcium=51.000000002),
+        target,
+    ).comparison_for(Ion.CALCIUM)
+
+    assert close is not None
+    assert close.closeness is TargetIonClosenessStatus.CLOSE
+    assert far is not None
+    assert far.closeness is TargetIonClosenessStatus.FAR
 
 
 def test_exact_ended_range_is_inclusive_and_measures_distance_to_range() -> None:
@@ -131,6 +254,7 @@ def test_missing_actual_ion_is_indeterminate_not_zero() -> None:
     assert comparison is not None
     assert comparison.actual_concentration is None
     assert comparison.status is TargetIonComparisonStatus.ACTUAL_UNKNOWN
+    assert comparison.closeness is TargetIonClosenessStatus.NOT_EVALUATED
     assert comparison.deviation is None
     assert result.status is TargetProfileComparisonStatus.INDETERMINATE
 
@@ -201,6 +325,7 @@ def test_qualified_range_target_is_explicitly_unsupported() -> None:
 
     assert comparison is not None
     assert comparison.status is TargetIonComparisonStatus.TARGET_UNSUPPORTED
+    assert comparison.closeness is TargetIonClosenessStatus.NOT_EVALUATED
     assert comparison.unsupported_reason is UnsupportedTargetIonReason.QUALIFIED_RANGE
     assert comparison.deviation is None
     assert result.status is TargetProfileComparisonStatus.INDETERMINATE

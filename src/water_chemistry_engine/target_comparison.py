@@ -24,6 +24,7 @@ from fermunits import Q_, PHValue, Quantity
 
 from water_chemistry_engine.calculation_policy import capabilities_for
 from water_chemistry_engine.chemical_state import AqueousChemicalState
+from water_chemistry_engine.comparison_policy import TargetIonClosenessPolicy
 from water_chemistry_engine.concentrations import (
     ExactConcentrationEndpoint,
     IonConcentration,
@@ -48,6 +49,15 @@ class TargetIonComparisonStatus(StrEnum):
     ABOVE_TARGET = "above_target"
     ACTUAL_UNKNOWN = "actual_unknown"
     TARGET_UNSUPPORTED = "target_unsupported"
+
+
+class TargetIonClosenessStatus(StrEnum):
+    """Policy-based interpretation kept separate from target position."""
+
+    WITHIN_TARGET = "within_target"
+    CLOSE = "close"
+    FAR = "far"
+    NOT_EVALUATED = "not_evaluated"
 
 
 class UnsupportedTargetIonReason(StrEnum):
@@ -102,6 +112,7 @@ class TargetIonComparison:
     target_minimum: Quantity[float] | None
     target_maximum: Quantity[float] | None
     status: TargetIonComparisonStatus
+    closeness: TargetIonClosenessStatus
     deviation: Quantity[float] | None
     unsupported_reason: UnsupportedTargetIonReason | None = None
     calculation_basis: TargetIonCalculationBasis = (
@@ -209,6 +220,7 @@ def _unsupported_reason(
 def _compare_ion(
     state: AqueousChemicalState,
     target: IonConcentrationValue,
+    closeness_policy: TargetIonClosenessPolicy | None,
 ) -> TargetIonComparison:
     calculation_basis = (
         TargetIonCalculationBasis.SUPPORTED_CONCENTRATION
@@ -230,6 +242,7 @@ def _compare_ion(
             target_minimum=None,
             target_maximum=None,
             status=TargetIonComparisonStatus.TARGET_UNSUPPORTED,
+            closeness=TargetIonClosenessStatus.NOT_EVALUATED,
             deviation=None,
             unsupported_reason=reason,
             calculation_basis=calculation_basis,
@@ -256,6 +269,7 @@ def _compare_ion(
             target_minimum=target_minimum,
             target_maximum=target_maximum,
             status=TargetIonComparisonStatus.ACTUAL_UNKNOWN,
+            closeness=TargetIonClosenessStatus.NOT_EVALUATED,
             deviation=None,
             calculation_basis=calculation_basis,
         )
@@ -273,6 +287,7 @@ def _compare_ion(
             abs_tol=_NUMERICAL_BOUNDARY_ABS_TOL_MG_PER_LITER,
         )
     ):
+        deviation_mg_per_liter = actual_mg_per_liter - minimum_mg_per_liter
         return TargetIonComparison(
             ion=target.ion,
             target=target,
@@ -280,8 +295,13 @@ def _compare_ion(
             target_minimum=target_minimum,
             target_maximum=target_maximum,
             status=TargetIonComparisonStatus.BELOW_TARGET,
+            closeness=_closeness_status(
+                deviation_mg_per_liter,
+                closeness_policy,
+                below=True,
+            ),
             deviation=Q_(
-                actual_mg_per_liter - minimum_mg_per_liter,
+                deviation_mg_per_liter,
                 "milligram / liter",
             ),
             calculation_basis=calculation_basis,
@@ -297,6 +317,7 @@ def _compare_ion(
             abs_tol=_NUMERICAL_BOUNDARY_ABS_TOL_MG_PER_LITER,
         )
     ):
+        deviation_mg_per_liter = actual_mg_per_liter - maximum_mg_per_liter
         return TargetIonComparison(
             ion=target.ion,
             target=target,
@@ -304,8 +325,13 @@ def _compare_ion(
             target_minimum=target_minimum,
             target_maximum=target_maximum,
             status=TargetIonComparisonStatus.ABOVE_TARGET,
+            closeness=_closeness_status(
+                deviation_mg_per_liter,
+                closeness_policy,
+                below=False,
+            ),
             deviation=Q_(
-                actual_mg_per_liter - maximum_mg_per_liter,
+                deviation_mg_per_liter,
                 "milligram / liter",
             ),
             calculation_basis=calculation_basis,
@@ -318,9 +344,35 @@ def _compare_ion(
         target_minimum=target_minimum,
         target_maximum=target_maximum,
         status=TargetIonComparisonStatus.WITHIN_TARGET,
+        closeness=TargetIonClosenessStatus.WITHIN_TARGET,
         deviation=Q_(0.0, "milligram / liter"),
         calculation_basis=calculation_basis,
     )
+
+
+def _closeness_status(
+    deviation_mg_per_liter: float,
+    policy: TargetIonClosenessPolicy | None,
+    *,
+    below: bool,
+) -> TargetIonClosenessStatus:
+    if policy is None:
+        return TargetIonClosenessStatus.NOT_EVALUATED
+
+    maximum_deviation = (
+        policy.maximum_below_deviation if below else policy.maximum_above_deviation
+    )
+    maximum_mg_per_liter = float(maximum_deviation.to("milligram / liter").magnitude)
+    absolute_deviation = abs(deviation_mg_per_liter)
+    if absolute_deviation <= maximum_mg_per_liter or isclose(
+        absolute_deviation,
+        maximum_mg_per_liter,
+        rel_tol=0.0,
+        abs_tol=_NUMERICAL_BOUNDARY_ABS_TOL_MG_PER_LITER,
+    ):
+        return TargetIonClosenessStatus.CLOSE
+
+    return TargetIonClosenessStatus.FAR
 
 
 def _profile_status(
@@ -390,8 +442,16 @@ def compare_state_to_target(
     system ion comparisons are labeled as formal inventory and make the profile
     result indeterminate because equilibrium speciation is not calculated.
     """
+    comparison_policy = target_profile.comparison_policy
     ion_comparisons = tuple(
-        _compare_ion(state, target) for target in target_profile.concentrations
+        _compare_ion(
+            state,
+            target,
+            None
+            if comparison_policy is None
+            else comparison_policy.policy_for(target.ion),
+        )
+        for target in target_profile.concentrations
     )
     ph_comparison = (
         None
