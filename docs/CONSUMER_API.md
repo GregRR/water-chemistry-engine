@@ -70,7 +70,16 @@ volume dosing, practical-use limits, and other requirements of the planned
 reusable treatment-material contract. Release 0.4 instead exposes the narrow
 `ExactMassDosedTreatmentMaterial` boundary for caller-named physical materials
 that map exactly, mass for mass, to one of the supported built-in chemical
-identities. Broader authoring remains planned work.
+identities. Engine 0.5 also exposes exact and ranged mass-fraction material
+types. They retain solid-versus-aqueous-solution form independently from the
+chemical identity, and their fractions must be explicitly dimensionless (for
+example, `Q_(80, "percent")`). An exact fraction can resolve a measured mass to
+an ordinary `TreatmentAddition`; a ranged fraction returns active-chemical mass
+bounds and cannot silently select a midpoint or produce an exact addition.
+These types support mass dosing only. They do not infer density or permit
+volume dosing. Their optional `composition_source` retains manufacturer,
+standard, or other specification-document metadata without turning that source
+into an assumed universal use limit.
 
 The facade also supports the complete source-report construction graph retained
 by `SourceWaterProfile`: reported pH and disinfectants, source-document
@@ -137,7 +146,10 @@ The exact initial facade is:
 - treatment inputs: `TreatmentAddition`, `CALCIUM_CHLORIDE_ANHYDROUS`,
   `CALCIUM_CHLORIDE_DIHYDRATE`, `GYPSUM`, `EPSOM_SALT`, `SODIUM_CHLORIDE`,
   `SODIUM_BICARBONATE`, `POTASSIUM_CHLORIDE`, and
-  `SIMPLE_MINERAL_INGREDIENTS`;
+  `SIMPLE_MINERAL_INGREDIENTS`; plus
+  `ExactMassDosedTreatmentMaterial`, `ExactMassFractionTreatmentMaterial`,
+  `RangedMassFractionTreatmentMaterial`, `TreatmentMaterialForm`, and
+  `TreatmentMaterialActiveMassRange` for physical mass-dosed materials;
 - comparison interpretation: `TargetIonComparison`,
   `TargetIonComparisonStatus`, `TargetIonCalculationBasis`,
   `TargetIonClosenessStatus`,

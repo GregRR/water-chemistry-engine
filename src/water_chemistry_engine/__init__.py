@@ -171,7 +171,13 @@ from water_chemistry_engine.treatment_ingredients import (
     SODIUM_BICARBONATE,
     SODIUM_CHLORIDE,
 )
-from water_chemistry_engine.treatment_materials import ExactMassDosedTreatmentMaterial
+from water_chemistry_engine.treatment_materials import (
+    ExactMassDosedTreatmentMaterial,
+    ExactMassFractionTreatmentMaterial,
+    RangedMassFractionTreatmentMaterial,
+    TreatmentMaterialActiveMassRange,
+    TreatmentMaterialForm,
+)
 from water_chemistry_engine.treatment_stoichiometry import IonContribution
 from water_chemistry_engine.water_identity import (
     PhysicalSourceType,
@@ -208,6 +214,7 @@ __all__ = [
     "DisinfectantKind",
     "ExactConcentrationEndpoint",
     "ExactMassDosedTreatmentMaterial",
+    "ExactMassFractionTreatmentMaterial",
     "FinalAlkalinityResult",
     "ForwardCalculationNotice",
     "ForwardNoticeCode",
@@ -247,6 +254,7 @@ __all__ = [
     "OptimizerTargetFitStatus",
     "PhysicalSourceType",
     "PhysicalWaterSource",
+    "RangedMassFractionTreatmentMaterial",
     "ReportedDisinfectant",
     "ReportedPH",
     "ReportedResultContext",
@@ -297,6 +305,8 @@ __all__ = [
     "TreatmentContributionColumn",
     "TreatmentIonContribution",
     "TreatmentIonResolution",
+    "TreatmentMaterialActiveMassRange",
+    "TreatmentMaterialForm",
     "TreatmentPreparationInstruction",
     "UnresolvedBlendIon",
     "UnresolvedBlendIonReason",

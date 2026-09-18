@@ -888,6 +888,17 @@ supported chemical identity from calcium chloride dihydrate (`CaCl2·2H2O`).
 Both remain ideal chemical identities: neither represents an unspecified
 commercial flake, assay range, solution, or retained-moisture condition.
 
+Release 0.5 also adds mass-dosed treatment-material types with explicitly
+dimensionless active-chemical mass fractions and separate solid or aqueous-
+solution form. Exact fractions resolve measured material mass to active
+chemical mass and then reuse ordinary `TreatmentAddition` semantics. Ranged
+fractions preserve their endpoints and return active-mass bounds; they cannot
+produce an exact addition or silently use a midpoint. This supports mass dosing
+without density. Volume dosing remains unsupported because no density or
+reference-temperature assumption is inferred. Optional composition-source
+metadata retains the document behind a material definition separately from the
+chemical identity and from any future practical-use-limit policy.
+
 ### 9.17 Future TreatmentPlan
 
 A complete plan should contain:

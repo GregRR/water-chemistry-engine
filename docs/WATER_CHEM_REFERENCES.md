@@ -495,9 +495,10 @@ Historical city profiles must not be labeled as a brewery's actual treated liquo
    1 salts. Anhydrous calcium chloride is now implemented as a distinct identity
    from the dihydrate using the registered PubChem reference and independently
    checked formula-mass and ion-yield cases.
-2. Define and validate treatment-material semantics for solid assay/purity,
-   liquid concentration basis, mass dosing, density-supported volume dosing,
-   and ranged material specifications before optimizer work relies on them.
+2. Continue validating treatment-material semantics. Exact and ranged active-
+   chemical mass fractions now cover solid and aqueous-solution mass dosing;
+   ranged specifications stay unresolved. Density-supported volume dosing and
+   practical-use-limit policy remain to be defined before use.
 3. Implement and validate the 0.5 conservative-equivalent total-alkalinity
    model from the registered authoritative sources while preserving the
    distinction among alkalinity, bicarbonate, carbonate, and `as CaCO3`

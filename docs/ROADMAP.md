@@ -497,17 +497,19 @@ real material a user measures and adds.
 - Anhydrous calcium chloride is now a supported chemical identity, distinct
   from calcium chloride dihydrate, with authoritative composition provenance
   and independent formula-mass and ion-yield tests.
-- Introduce a reusable treatment-material representation for commercial or
-  user-defined preparations without changing the underlying chemical
-  stoichiometry.
+- Exact and ranged mass-fraction treatment-material representations now cover
+  solid and aqueous-solution preparations without changing the underlying
+  chemical stoichiometry. Exact fractions resolve measured mass to active
+  chemical mass; ranged fractions preserve active-mass bounds without an
+  implicit midpoint.
 - Represent purity/assay separately from chemical hydration state. A commercial
   flake specified as a range such as 77–80% or 83–87% CaCl2 is a material
   specification, not the definition of pure calcium chloride dihydrate.
 - Represent solution concentration with an explicit basis; never accept an
   unlabeled percentage whose meaning could be mass fraction, mass/volume, or
   another convention.
-- Support mass-based dosing of liquid materials directly when their
-  concentration basis permits it. Support volume dosing only when sufficient
+- Mass-based dosing of aqueous solutions is supported when an exact mass
+  fraction is supplied. Volume dosing remains deferred until sufficient
   concentration and density information makes the conversion deterministic.
 - Associate density with the applicable/reference temperature when required;
   never assume a concentrated aqueous treatment solution has density 1 g/mL.

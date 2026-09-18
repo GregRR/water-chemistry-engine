@@ -43,6 +43,11 @@ comparison-expansion milestone is in progress.
   chemical identity with its own formula mass and per-gram ion yield; it is not
   treated as interchangeable with calcium chloride dihydrate or commercial
   calcium-chloride products.
+- Added mass-dosed solid and aqueous-solution material types with explicit
+  exact or ranged active-chemical mass fractions. Exact fractions resolve to
+  ordinary treatment additions without density; ranged fractions preserve
+  active-mass bounds and never select an implicit midpoint. Optional source-
+  document metadata retains composition/specification provenance.
 
 ### Documentation
 
