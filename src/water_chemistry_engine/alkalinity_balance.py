@@ -70,6 +70,8 @@ class UnresolvedSourceAlkalinityReason(StrEnum):
 
     NOT_REPORTED = "not_reported"
     EXACT_RANGE_MIDPOINT_NOT_PERMITTED = "exact_range_midpoint_not_permitted"
+    LOWER_BOUND = "lower_bound"
+    UPPER_BOUND = "upper_bound"
 
 
 @dataclass(frozen=True, slots=True)
@@ -211,6 +213,16 @@ def resolve_source_alkalinity(
     elif reported.reported_average is not None:
         value = reported.reported_average
         method = SourceAlkalinityResolutionMethod.REPORTED_AVERAGE
+    elif reported.minimum is not None and reported.maximum is None:
+        return UnresolvedSourceAlkalinity(
+            source_result=reported,
+            reason=UnresolvedSourceAlkalinityReason.LOWER_BOUND,
+        )
+    elif reported.maximum is not None and reported.minimum is None:
+        return UnresolvedSourceAlkalinity(
+            source_result=reported,
+            reason=UnresolvedSourceAlkalinityReason.UPPER_BOUND,
+        )
     elif policy.allow_exact_range_midpoints:
         value = reported.calculation_value_with_policy(policy)
         method = SourceAlkalinityResolutionMethod.DERIVED_EXACT_RANGE_MIDPOINT

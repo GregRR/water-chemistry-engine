@@ -462,12 +462,13 @@ normally, and the request requires neither pH nor equilibrium speciation. Every
 returned rounded plan must be replayed through the ordinary forward workflow to
 prove that its modeled final alkalinity matches the reported plan result.
 
-The first implemented slice covers source resolution, additive-volume
+The implemented forward slice covers source resolution, additive-volume
 blending, the reviewed sodium-bicarbonate contribution, modeled final total
-alkalinity, exact/range target comparison, and contribution-matrix reporting.
-One-sided alkalinity target bounds and optimizer admission/replay remain
-pending; sodium bicarbonate is not yet automatically selectable by the
-optimizer.
+alkalinity, exact/range/lower-bound/upper-bound target comparison, and
+contribution-matrix reporting. One-sided reported source values remain
+unresolved and are never treated as exact starting alkalinity. Optimizer
+admission/replay remains pending; sodium bicarbonate is not yet automatically
+selectable by the optimizer.
 
 ### 9.7 pH is a logarithmic scientific invariant
 

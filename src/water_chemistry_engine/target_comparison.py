@@ -141,8 +141,8 @@ class TargetAlkalinityComparison:
     target_alkalinity: Alkalinity
     actual_alkalinity: ModeledAlkalinity | None
     status: TargetAlkalinityComparisonStatus
-    target_minimum: Quantity[float]
-    target_maximum: Quantity[float]
+    target_minimum: Quantity[float] | None
+    target_maximum: Quantity[float] | None
     deviation: Quantity[float] | None
 
 
@@ -391,7 +391,7 @@ def _compare_alkalinity(
     if target.value is not None:
         minimum = target.value
         maximum = target.value
-    elif target.minimum is not None and target.maximum is not None:
+    elif target.minimum is not None or target.maximum is not None:
         minimum = target.minimum
         maximum = target.maximum
     elif target.reported_average is not None:
@@ -400,13 +400,21 @@ def _compare_alkalinity(
     else:  # pragma: no cover - Alkalinity validates this invariant.
         raise ValueError("Alkalinity target has no numeric criterion.")
 
-    target_minimum = Q_(
-        float(minimum.to("milligram / liter").magnitude),
-        "milligram / liter",
+    target_minimum = (
+        None
+        if minimum is None
+        else Q_(
+            float(minimum.to("milligram / liter").magnitude),
+            "milligram / liter",
+        )
     )
-    target_maximum = Q_(
-        float(maximum.to("milligram / liter").magnitude),
-        "milligram / liter",
+    target_maximum = (
+        None
+        if maximum is None
+        else Q_(
+            float(maximum.to("milligram / liter").magnitude),
+            "milligram / liter",
+        )
     )
     if actual is None:
         return TargetAlkalinityComparison(
@@ -419,21 +427,29 @@ def _compare_alkalinity(
         )
 
     actual_value = float(actual.concentration.magnitude)
-    minimum_value = float(target_minimum.magnitude)
-    maximum_value = float(target_maximum.magnitude)
-    if actual_value < minimum_value and not isclose(
-        actual_value,
-        minimum_value,
-        rel_tol=0.0,
-        abs_tol=_NUMERICAL_BOUNDARY_ABS_TOL_MG_PER_LITER,
+    minimum_value = None if target_minimum is None else float(target_minimum.magnitude)
+    maximum_value = None if target_maximum is None else float(target_maximum.magnitude)
+    if (
+        minimum_value is not None
+        and actual_value < minimum_value
+        and not isclose(
+            actual_value,
+            minimum_value,
+            rel_tol=0.0,
+            abs_tol=_NUMERICAL_BOUNDARY_ABS_TOL_MG_PER_LITER,
+        )
     ):
         deviation = actual_value - minimum_value
         status = TargetAlkalinityComparisonStatus.BELOW_TARGET
-    elif actual_value > maximum_value and not isclose(
-        actual_value,
-        maximum_value,
-        rel_tol=0.0,
-        abs_tol=_NUMERICAL_BOUNDARY_ABS_TOL_MG_PER_LITER,
+    elif (
+        maximum_value is not None
+        and actual_value > maximum_value
+        and not isclose(
+            actual_value,
+            maximum_value,
+            rel_tol=0.0,
+            abs_tol=_NUMERICAL_BOUNDARY_ABS_TOL_MG_PER_LITER,
+        )
     ):
         deviation = actual_value - maximum_value
         status = TargetAlkalinityComparisonStatus.ABOVE_TARGET

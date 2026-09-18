@@ -466,11 +466,13 @@ Engine 0.5 now includes the first public slice of the named
 `conservative_equivalent_alkalinity_v1` balance. It returns policy-controlled
 source resolution, volume-weighted blending with unknown propagation,
 per-source and reviewed per-treatment contributions, modeled final total
-alkalinity, exact/range target comparison with signed deviation, and a
-contribution-matrix row. Reported, modeled, and target alkalinity remain
+alkalinity, exact/range/bound target comparison with signed deviation, and a
+contribution-matrix row. Exact, range, lower-bound, and upper-bound alkalinity
+targets are supported; one-sided source reports remain unresolved rather than
+being treated as exact values. Reported, modeled, and target alkalinity remain
 conceptually distinct: `Alkalinity` preserves report/target values while
-`ModeledAlkalinity` identifies calculated output and its model. One-sided
-alkalinity target bounds and optimizer admission remain later 0.5 work.
+`ModeledAlkalinity` identifies calculated output and its model. Optimizer
+admission remains later 0.5 work.
 `AlkalinityBalanceResult.limitations` supplies stable
 `AlkalinityModelLimitation` codes for complete-dissolution, unmodeled-reaction,
 precipitation/dissolution, carbonate-speciation, and working-water-pH limits.

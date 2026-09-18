@@ -129,11 +129,27 @@ class Alkalinity:
     result_context: ReportedResultContext | None = None
 
     def __post_init__(self) -> None:
-        _validate_reported_values(
-            value=self.value,
-            minimum=self.minimum,
-            maximum=self.maximum,
-            reported_average=self.reported_average,
+        if (self.minimum is None) == (self.maximum is None):
+            _validate_reported_values(
+                value=self.value,
+                minimum=self.minimum,
+                maximum=self.maximum,
+                reported_average=self.reported_average,
+                canonical_unit="milligram / liter",
+                label="Alkalinity",
+                dimension_label="mass per volume",
+            )
+            return
+
+        if self.value is not None or self.reported_average is not None:
+            raise ValueError(
+                "Alkalinity bound cannot be combined with an exact value or "
+                "reported average."
+            )
+        bound = self.minimum if self.minimum is not None else self.maximum
+        assert bound is not None
+        _validate_quantity(
+            bound,
             canonical_unit="milligram / liter",
             label="Alkalinity",
             dimension_label="mass per volume",
@@ -186,6 +202,14 @@ class Alkalinity:
                 else Q_(reported_average, "milligram / liter")
             ),
         )
+
+    @classmethod
+    def mg_per_liter_as_caco3_lower_bound(cls, minimum: float) -> Alkalinity:
+        return cls(minimum=Q_(minimum, "milligram / liter"))
+
+    @classmethod
+    def mg_per_liter_as_caco3_upper_bound(cls, maximum: float) -> Alkalinity:
+        return cls(maximum=Q_(maximum, "milligram / liter"))
 
 
 @dataclass(frozen=True, slots=True)

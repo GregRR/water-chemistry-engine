@@ -83,6 +83,34 @@ def test_alkalinity_reported_average_takes_precedence_over_midpoint() -> None:
     assert measurement.calculation_value.to("milligram / liter").magnitude == 108.0
 
 
+@pytest.mark.parametrize(
+    ("measurement", "expected_bound"),
+    (
+        (Alkalinity.mg_per_liter_as_caco3_lower_bound(40.0), 40.0),
+        (Alkalinity.mg_per_liter_as_caco3_upper_bound(120.0), 120.0),
+    ),
+)
+def test_alkalinity_bound_is_preserved_without_representative_value(
+    measurement: Alkalinity,
+    expected_bound: float,
+) -> None:
+    bound = measurement.minimum or measurement.maximum
+    assert bound is not None
+    assert bound.to("milligram / liter").magnitude == expected_bound
+    with pytest.raises(ValueError, match="bound has no representative"):
+        _ = measurement.calculation_value
+    with pytest.raises(ValueError, match="bound has no representative"):
+        measurement.calculation_value_with_policy(ALLOW_MIDPOINTS)
+
+
+def test_alkalinity_bound_rejects_reported_average() -> None:
+    with pytest.raises(ValueError, match="bound cannot be combined"):
+        Alkalinity(
+            minimum=Q_(40.0, "milligram / liter"),
+            reported_average=Q_(50.0, "milligram / liter"),
+        )
+
+
 def test_total_hardness_preserves_as_caco3_basis() -> None:
     measurement = TotalHardness.mg_per_liter_as_caco3_range(
         minimum=130.0,

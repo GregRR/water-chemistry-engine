@@ -106,6 +106,35 @@ def test_source_alkalinity_range_requires_explicit_midpoint_policy() -> None:
     assert resolved.final_alkalinity.concentration.magnitude == pytest.approx(100.0)
 
 
+@pytest.mark.parametrize(
+    ("alkalinity", "reason"),
+    (
+        (
+            Alkalinity.mg_per_liter_as_caco3_lower_bound(80.0),
+            UnresolvedSourceAlkalinityReason.LOWER_BOUND,
+        ),
+        (
+            Alkalinity.mg_per_liter_as_caco3_upper_bound(120.0),
+            UnresolvedSourceAlkalinityReason.UPPER_BOUND,
+        ),
+    ),
+)
+def test_source_alkalinity_bound_remains_unresolved(
+    alkalinity: Alkalinity,
+    reason: UnresolvedSourceAlkalinityReason,
+) -> None:
+    result = calculate_forward_water(
+        (ForwardWaterSource(_source("Bounded", alkalinity), Q_(10, "liter")),),
+        source_resolution_policy=ALLOW_MIDPOINTS,
+    )
+
+    resolution = result.source_results[0].resolution.alkalinity_resolution
+    assert isinstance(resolution, UnresolvedSourceAlkalinity)
+    assert resolution.reason is reason
+    assert result.blended_alkalinity is None
+    assert result.final_alkalinity is None
+
+
 def test_blend_is_volume_weighted_and_zero_volume_unknown_is_ignored() -> None:
     low = _source("Low", Alkalinity.mg_per_liter_as_caco3(40.0))
     high = _source("High", Alkalinity.mg_per_liter_as_caco3(100.0))
@@ -311,6 +340,62 @@ def test_alkalinity_range_upper_boundary_and_numerical_tolerance(
         (ForwardWaterSource(source, Q_(10, "liter")),),
         source_resolution_policy=REPORTED_ONLY,
         target_profile=target,
+    )
+
+    comparison = result.final_target_comparison
+    assert comparison is not None
+    assert comparison.alkalinity_comparison is not None
+    assert comparison.alkalinity_comparison.status is expected_status
+    assert comparison.alkalinity_comparison.deviation.magnitude == pytest.approx(
+        expected_deviation
+    )
+
+
+@pytest.mark.parametrize(
+    ("source_value", "target", "expected_status", "expected_deviation"),
+    (
+        (
+            75.0,
+            Alkalinity.mg_per_liter_as_caco3_lower_bound(80.0),
+            TargetAlkalinityComparisonStatus.BELOW_TARGET,
+            -5.0,
+        ),
+        (
+            90.0,
+            Alkalinity.mg_per_liter_as_caco3_lower_bound(80.0),
+            TargetAlkalinityComparisonStatus.WITHIN_TARGET,
+            0.0,
+        ),
+        (
+            85.0,
+            Alkalinity.mg_per_liter_as_caco3_upper_bound(80.0),
+            TargetAlkalinityComparisonStatus.ABOVE_TARGET,
+            5.0,
+        ),
+    ),
+)
+def test_one_sided_alkalinity_target_comparison(
+    source_value: float,
+    target: Alkalinity,
+    expected_status: TargetAlkalinityComparisonStatus,
+    expected_deviation: float,
+) -> None:
+    result = calculate_forward_water(
+        (
+            ForwardWaterSource(
+                _source(
+                    "Source",
+                    Alkalinity.mg_per_liter_as_caco3(source_value),
+                ),
+                Q_(10, "liter"),
+            ),
+        ),
+        source_resolution_policy=REPORTED_ONLY,
+        target_profile=TargetWaterProfile(
+            name="Bounded alkalinity target",
+            concentrations=(),
+            alkalinity=target,
+        ),
     )
 
     comparison = result.final_target_comparison

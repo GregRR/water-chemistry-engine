@@ -57,4 +57,7 @@ def linear_calculation_value(
         maximum_value = float(maximum.to(unit).magnitude)
         return Q_((minimum_value + maximum_value) / 2.0, unit)
 
+    if minimum is not None or maximum is not None:
+        raise ValueError(f"{label} bound has no representative calculation value.")
+
     raise RuntimeError(f"Validated {label.casefold()} has no calculation value.")

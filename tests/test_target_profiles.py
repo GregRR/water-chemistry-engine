@@ -64,6 +64,20 @@ def test_target_profile_preserves_total_alkalinity_separately() -> None:
     assert profile.concentration_for(Ion.BICARBONATE) is None
 
 
+def test_target_profile_preserves_one_sided_alkalinity_bound() -> None:
+    alkalinity = Alkalinity.mg_per_liter_as_caco3_upper_bound(80.0)
+
+    profile = TargetWaterProfile(
+        name="Upper alkalinity target",
+        concentrations=(),
+        alkalinity=alkalinity,
+    )
+
+    assert profile.alkalinity is alkalinity
+    assert profile.alkalinity.minimum is None
+    assert profile.alkalinity.maximum is not None
+
+
 def test_missing_target_ion_returns_none() -> None:
     profile = TargetWaterProfile(
         name="Example Target",

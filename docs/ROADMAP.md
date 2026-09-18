@@ -406,8 +406,8 @@ filtered/unfiltered sample state, alkalinity-versus-acid-neutralizing-capacity
 identity, sampling context, and document provenance. These are source semantics
 and must not be manufactured for calculated or target values.
 
-The supported public API must return (items 1–9 are implemented for exact/range
-targets; one-sided alkalinity bounds remain pending):
+The supported public API must return (items 1–9 are implemented for exact,
+range, and one-sided bound targets):
 
 1. policy-controlled source-alkalinity resolution;
 2. volume-weighted blended alkalinity with unknown propagation;

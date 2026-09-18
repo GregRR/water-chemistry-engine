@@ -31,6 +31,9 @@ comparison-expansion milestone is in progress.
   policy-controlled source resolution, unknown-preserving blend calculation,
   reviewed sodium-bicarbonate treatment contributions, modeled final
   alkalinity, target comparison, and a structured contribution-matrix row.
+- Added one-sided lower/upper total-alkalinity values. They remain unresolved
+  when used as source reports and act as supported numeric bounds when used as
+  target criteria.
 
 ### Documentation
 
