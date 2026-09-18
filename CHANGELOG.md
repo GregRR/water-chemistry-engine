@@ -48,6 +48,12 @@ comparison-expansion milestone is in progress.
   ordinary treatment additions without density; ranged fractions preserve
   active-mass bounds and never select an implicit midpoint. Optional source-
   document metadata retains composition/specification provenance.
+- Extended optimizer admission to exact mass-fraction materials. Operational
+  increments, limits, and mass ranking use measured material mass while
+  chemistry and forward replay use resolved active chemical mass; ranged
+  compositions remain rejected. Plan additions provide measured-material
+  preparation text so consumers do not mistake replay-active mass for the
+  operator dose.
 
 ### Documentation
 

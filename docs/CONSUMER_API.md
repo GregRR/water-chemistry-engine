@@ -81,6 +81,17 @@ volume dosing. Their optional `composition_source` retains manufacturer,
 standard, or other specification-document metadata without turning that source
 into an assumed universal use limit.
 
+`OptimizerMaterialConstraint` accepts the pure mass-for-mass material and the
+exact mass-fraction material. Optimizer increments and maximums are measured-
+material masses; ion and alkalinity coefficients use the resolved active
+chemical mass. Plans report both values. Ranged mass-fraction materials remain
+ineligible because optimization cannot select an unreported composition or
+silently use a midpoint. Use
+`OptimizerMaterialAddition.preparation_text` (and its structured measured/active
+fields) for operator dosing. The nested forward calculation's generic
+treatment instructions intentionally describe the resolved active chemical
+used for calculation replay, not the physical material mass.
+
 The facade also supports the complete source-report construction graph retained
 by `SourceWaterProfile`: reported pH and disinfectants, source-document
 metadata, water and physical-source identity, observation/result context,

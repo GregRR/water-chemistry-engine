@@ -18,7 +18,10 @@ from water_chemistry_engine.profiles import SourceWaterProfile
 from water_chemistry_engine.quantity_types import ScalarQuantity
 from water_chemistry_engine.reported_values import SourceResolutionPolicy
 from water_chemistry_engine.target_profiles import TargetWaterProfile
-from water_chemistry_engine.treatment_materials import ExactMassDosedTreatmentMaterial
+from water_chemistry_engine.treatment_materials import (
+    ExactMassDosedTreatmentMaterial,
+    ExactMassFractionTreatmentMaterial,
+)
 
 if TYPE_CHECKING:
     from water_chemistry_engine.forward_calculator import ForwardWaterCalculationResult
@@ -162,20 +165,24 @@ class OptimizerSource:
 
 @dataclass(frozen=True, slots=True)
 class OptimizerMaterialConstraint:
-    """One permitted exact material and its caller-declared batch limit.
+    """One permitted exact-composition material and its measured-mass limit.
 
     ``maximum_mass`` is an explicit operational constraint for this request. It
     prevents an unbounded recommendation but is not represented as a universal
     safety, sensory, solubility, or regulatory limit.
     """
 
-    material: ExactMassDosedTreatmentMaterial
+    material: ExactMassDosedTreatmentMaterial | ExactMassFractionTreatmentMaterial
     maximum_mass: ScalarQuantity
 
     def __post_init__(self) -> None:
-        if not isinstance(self.material, ExactMassDosedTreatmentMaterial):
+        if not isinstance(
+            self.material,
+            (ExactMassDosedTreatmentMaterial, ExactMassFractionTreatmentMaterial),
+        ):
             raise TypeError(
-                "Optimizer material constraint requires an exact mass-dosed material."
+                "Optimizer material constraint requires an exact-composition "
+                "mass-dosed material."
             )
         maximum = _positive_mass(
             self.maximum_mass,
@@ -242,6 +249,21 @@ class OptimizerMaterialAddition:
     measured_mass: Quantity[float]
     active_chemical_mass: Quantity[float]
     treatment_addition: TreatmentAddition
+
+    @property
+    def preparation_text(self) -> str:
+        """Describe the measured material dose and its resolved active mass."""
+        measured = format(float(self.measured_mass.to("gram").magnitude), ".12g")
+        active = format(
+            float(self.active_chemical_mass.to("gram").magnitude),
+            ".12g",
+        )
+        material = self.constraint.material
+        ingredient = self.treatment_addition.ingredient
+        return (
+            f"Add {measured} g of {material.name}; this supplies {active} g "
+            f"of {ingredient.name} ({ingredient.formula})."
+        )
 
 
 @dataclass(frozen=True, slots=True)

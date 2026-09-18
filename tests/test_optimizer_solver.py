@@ -43,7 +43,11 @@ from water_chemistry_engine.treatment_ingredients import (
     POTASSIUM_CHLORIDE,
     SODIUM_BICARBONATE,
 )
-from water_chemistry_engine.treatment_materials import ExactMassDosedTreatmentMaterial
+from water_chemistry_engine.treatment_materials import (
+    ExactMassDosedTreatmentMaterial,
+    ExactMassFractionTreatmentMaterial,
+    TreatmentMaterialForm,
+)
 
 _POLICY = SourceResolutionPolicy(allow_exact_range_midpoints=False)
 _GYPSUM_MOLAR_MASS_G_PER_MOL = 172.164
@@ -783,6 +787,77 @@ def test_fixed_optimizer_accounts_for_sodium_and_alkalinity_together() -> None:
     )
     assert plan.target_fit is OptimizerTargetFitStatus.WITHIN_TARGET
     assert plan.solver_report.primary_objective_mg_per_liter == pytest.approx(0.0)
+
+
+def test_fixed_optimizer_uses_active_mass_from_exact_fraction_material() -> None:
+    material = ExactMassFractionTreatmentMaterial(
+        key="gypsum_material",
+        name="80 percent gypsum material",
+        ingredient=GYPSUM,
+        form=TreatmentMaterialForm.SOLID,
+        active_mass_fraction=Q_(80, "percent"),
+        dose_increment=Q_(1, "gram"),
+    )
+    result = optimize_treatment(
+        _fixed_request(
+            source=_source(calcium=0.0, sulfate=0.0),
+            target=_target(0.8 * _CALCIUM_MG_PER_LITER_PER_GYPSUM_GRAM_IN_TEN_LITERS),
+            constraints=(OptimizerMaterialConstraint(material, Q_(1, "gram")),),
+        )
+    )
+
+    assert result.input_support is OptimizerInputSupportStatus.SUPPORTED
+    plan = result.plans[0]
+    assert plan.target_fit is OptimizerTargetFitStatus.WITHIN_TARGET
+    assert len(plan.material_additions) == 1
+    addition = plan.material_additions[0]
+    assert addition.measured_mass.magnitude == pytest.approx(1.0)
+    assert addition.active_chemical_mass.magnitude == pytest.approx(0.8)
+    assert addition.treatment_addition.mass.magnitude == pytest.approx(0.8)
+    assert addition.preparation_text == (
+        "Add 1 g of 80 percent gypsum material; this supplies 0.8 g of "
+        "Gypsum (CaSO4·2H2O)."
+    )
+    assert plan.calculation.final_state.concentration_for(
+        Ion.CALCIUM
+    ).magnitude == pytest.approx(
+        0.8 * _CALCIUM_MG_PER_LITER_PER_GYPSUM_GRAM_IN_TEN_LITERS
+    )
+    assert plan.solver_report.secondary_objective_grams == pytest.approx(1.0)
+
+
+def test_alkalinity_optimizer_uses_active_sodium_bicarbonate_fraction() -> None:
+    material = ExactMassFractionTreatmentMaterial(
+        key="sodium_bicarbonate_50_percent",
+        name="50 percent sodium bicarbonate material",
+        ingredient=SODIUM_BICARBONATE,
+        form=TreatmentMaterialForm.SOLID,
+        active_mass_fraction=Q_(50, "percent"),
+        dose_increment=Q_(1, "gram"),
+    )
+    expected_alkalinity = 0.5 / 84.00576928 / 10.0 * 50_043.45
+    result = optimize_treatment(
+        _fixed_request(
+            source=_source_with_alkalinity(0.0, sodium=0.0, bicarbonate=0.0),
+            target=TargetWaterProfile(
+                "Alkalinity target",
+                (),
+                alkalinity=Alkalinity.mg_per_liter_as_caco3(expected_alkalinity),
+            ),
+            constraints=(OptimizerMaterialConstraint(material, Q_(1, "gram")),),
+        )
+    )
+
+    assert result.input_support is OptimizerInputSupportStatus.SUPPORTED
+    plan = result.plans[0]
+    addition = plan.material_additions[0]
+    assert addition.measured_mass.magnitude == pytest.approx(1.0)
+    assert addition.active_chemical_mass.magnitude == pytest.approx(0.5)
+    assert plan.calculation.final_alkalinity is not None
+    assert plan.calculation.final_alkalinity.concentration.magnitude == pytest.approx(
+        expected_alkalinity
+    )
+    assert plan.target_fit is OptimizerTargetFitStatus.WITHIN_TARGET
 
 
 @pytest.mark.parametrize(

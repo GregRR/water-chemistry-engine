@@ -899,6 +899,17 @@ reference-temperature assumption is inferred. Optional composition-source
 metadata retains the document behind a material definition separately from the
 chemical identity and from any future practical-use-limit policy.
 
+The optimizer accepts exact mass-fraction materials without changing its
+measured-dose semantics. Whole increments, request maximums, and mass ranking
+refer to material mass; stoichiometric ion and reviewed alkalinity coefficients
+use the corresponding resolved active chemical mass. Returned plan additions
+retain both quantities and are replayed through the ordinary forward path.
+Ranged compositions remain excluded because no uncertainty or representative-
+value policy has been adopted. Plan material additions provide operator text
+from measured material mass plus resolved active mass; nested forward
+preparation instructions remain an audit description of the active chemical
+replay and are not substituted for the physical-material dose.
+
 ### 9.17 Future TreatmentPlan
 
 A complete plan should contain:

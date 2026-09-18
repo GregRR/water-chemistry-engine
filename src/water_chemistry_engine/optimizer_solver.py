@@ -62,7 +62,6 @@ from water_chemistry_engine.target_comparison import (
     TargetProfileComparison,
     TargetProfileComparisonStatus,
 )
-from water_chemistry_engine.treatment_application import TreatmentAddition
 from water_chemistry_engine.treatment_ingredients import SODIUM_BICARBONATE
 from water_chemistry_engine.treatment_stoichiometry import (
     calculate_ion_contributions,
@@ -360,22 +359,22 @@ def _increment_coefficients(
     total_volume = request.total_volume.to("liter")
     by_material = []
     for constraint in request.material_constraints:
+        increment_addition = constraint.material.treatment_addition(
+            constraint.material.normalized_dose_increment
+        )
         per_increment = {
             contribution.ion: float(
                 contribution.concentration.to("milligram / liter").magnitude
             )
             for contribution in calculate_ion_contributions(
-                constraint.material.ingredient,
-                constraint.material.normalized_dose_increment,
+                increment_addition.ingredient,
+                increment_addition.mass,
                 total_volume,
             )
         }
         alkalinity_contribution = calculate_treatment_alkalinity_contribution(
             0,
-            TreatmentAddition(
-                constraint.material.ingredient,
-                constraint.material.normalized_dose_increment,
-            ),
+            increment_addition,
             float(total_volume.magnitude),
         )
         by_material.append(
@@ -1016,11 +1015,12 @@ def _material_additions(
         increment_grams = float(constraint.material.normalized_dose_increment.magnitude)
         measured = Q_(increment_count * increment_grams, "gram")
         addition = constraint.material.treatment_addition(measured)
+        active_chemical_mass = addition.mass.to("gram")
         additions.append(
             OptimizerMaterialAddition(
                 constraint=constraint,
                 measured_mass=measured,
-                active_chemical_mass=measured,
+                active_chemical_mass=active_chemical_mass,
                 treatment_addition=addition,
             )
         )

@@ -14,7 +14,12 @@ from water_chemistry_engine.optimization import (
 from water_chemistry_engine.profiles import SourceWaterProfile
 from water_chemistry_engine.reported_values import SourceResolutionPolicy
 from water_chemistry_engine.treatment_ingredients import GYPSUM
-from water_chemistry_engine.treatment_materials import ExactMassDosedTreatmentMaterial
+from water_chemistry_engine.treatment_materials import (
+    ExactMassDosedTreatmentMaterial,
+    ExactMassFractionTreatmentMaterial,
+    RangedMassFractionTreatmentMaterial,
+    TreatmentMaterialForm,
+)
 
 
 def _source(name: str = "Source") -> OptimizerSource:
@@ -372,6 +377,39 @@ def test_optimizer_material_constraint_requires_one_usable_increment() -> None:
     )
     with pytest.raises(ValueError, match="at least one dose increment"):
         OptimizerMaterialConstraint(material, Q_(0.09, "gram"))
+
+
+def test_optimizer_material_constraint_accepts_exact_mass_fraction() -> None:
+    material = ExactMassFractionTreatmentMaterial(
+        key="gypsum_80_percent",
+        name="80 percent gypsum material",
+        ingredient=GYPSUM,
+        form=TreatmentMaterialForm.SOLID,
+        active_mass_fraction=Q_(80, "percent"),
+        dose_increment=Q_(0.1, "gram"),
+    )
+
+    constraint = OptimizerMaterialConstraint(material, Q_(1, "gram"))
+
+    assert constraint.material is material
+
+
+def test_optimizer_material_constraint_rejects_ranged_mass_fraction() -> None:
+    material = RangedMassFractionTreatmentMaterial(
+        key="ranged_gypsum",
+        name="Ranged gypsum material",
+        ingredient=GYPSUM,
+        form=TreatmentMaterialForm.SOLID,
+        minimum_active_mass_fraction=Q_(77, "percent"),
+        maximum_active_mass_fraction=Q_(80, "percent"),
+        dose_increment=Q_(0.1, "gram"),
+    )
+
+    with pytest.raises(TypeError, match="exact-composition mass-dosed material"):
+        OptimizerMaterialConstraint(
+            material,  # type: ignore[arg-type]
+            Q_(1, "gram"),
+        )
 
 
 def test_optimizer_request_rejects_wrong_diluent_type() -> None:

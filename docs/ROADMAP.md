@@ -502,6 +502,10 @@ real material a user measures and adds.
   chemical stoichiometry. Exact fractions resolve measured mass to active
   chemical mass; ranged fractions preserve active-mass bounds without an
   implicit midpoint.
+- Exact mass-fraction materials are eligible optimizer inputs. Dose increments,
+  request maximums, and mass ranking remain measured-material quantities while
+  chemistry uses resolved active mass. Ranged materials remain optimizer-
+  ineligible until an explicit uncertainty policy exists.
 - Represent purity/assay separately from chemical hydration state. A commercial
   flake specified as a range such as 77–80% or 83–87% CaCl2 is a material
   specification, not the definition of pure calcium chloride dihydrate.
