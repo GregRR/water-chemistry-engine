@@ -491,8 +491,10 @@ Historical city profiles must not be labeled as a brewery's actual treated liquo
 
 ## 8. Immediate research priorities
 
-1. Validate the chemical definitions and ion yields for the version 1 salts,
-   including anhydrous calcium chloride as a distinct identity.
+1. Continue validating the chemical definitions and ion yields for the version
+   1 salts. Anhydrous calcium chloride is now implemented as a distinct identity
+   from the dihydrate using the registered PubChem reference and independently
+   checked formula-mass and ion-yield cases.
 2. Define and validate treatment-material semantics for solid assay/purity,
    liquid concentration basis, mass dosing, density-supported volume dosing,
    and ranged material specifications before optimizer work relies on them.

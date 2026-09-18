@@ -3,6 +3,7 @@ from fermunits import Q_
 
 from water_chemistry_engine.ions import Ion
 from water_chemistry_engine.treatment_ingredients import (
+    CALCIUM_CHLORIDE_ANHYDROUS,
     CALCIUM_CHLORIDE_DIHYDRATE,
     EPSOM_SALT,
     GYPSUM,
@@ -24,6 +25,7 @@ def test_initial_ingredient_keys_are_unique() -> None:
 @pytest.mark.parametrize(
     ("ingredient", "formula", "expected_g_per_mol"),
     [
+        (CALCIUM_CHLORIDE_ANHYDROUS, "CaCl2", 110.978),
         (CALCIUM_CHLORIDE_DIHYDRATE, "CaCl2·2H2O", 147.008),
         (GYPSUM, "CaSO4·2H2O", 172.164),
         (EPSOM_SALT, "MgSO4·7H2O", 246.466),
@@ -44,11 +46,14 @@ def test_formula_and_molar_mass_are_stable(
     )
 
 
-def test_calcium_chloride_dihydrate_has_one_to_two_ion_stoichiometry() -> None:
-    entries = {
-        entry.ion: entry.coefficient
-        for entry in CALCIUM_CHLORIDE_DIHYDRATE.ion_stoichiometry
-    }
+@pytest.mark.parametrize(
+    "ingredient",
+    (CALCIUM_CHLORIDE_ANHYDROUS, CALCIUM_CHLORIDE_DIHYDRATE),
+)
+def test_calcium_chloride_identities_have_one_to_two_ion_stoichiometry(
+    ingredient: TreatmentIngredient,
+) -> None:
+    entries = {entry.ion: entry.coefficient for entry in ingredient.ion_stoichiometry}
 
     assert entries == {
         Ion.CALCIUM: 1,
@@ -62,7 +67,7 @@ def test_hydration_water_changes_formula_mass_without_adding_treatment_ions() ->
     assert ions == {Ion.CALCIUM, Ion.CHLORIDE}
     assert (
         CALCIUM_CHLORIDE_DIHYDRATE.molar_mass.to("gram / mole").magnitude
-        > Q_(110, "gram / mole").magnitude
+        > CALCIUM_CHLORIDE_ANHYDROUS.molar_mass.to("gram / mole").magnitude
     )
 
 

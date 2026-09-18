@@ -125,6 +125,17 @@ def _ion(ion: Ion, coefficient: int, molar_mass_g_per_mol: float) -> IonStoichio
 # used for the ion masses.  Waters of hydration contribute to the compound's
 # total molar mass but do not appear in ion_stoichiometry because they do not add
 # calcium, chloride, sulfate, etc. to the ion inventory.
+CALCIUM_CHLORIDE_ANHYDROUS = TreatmentIngredient(
+    key="calcium_chloride_anhydrous",
+    name="Calcium chloride anhydrous",
+    formula="CaCl2",
+    molar_mass=Q_(_CA + 2 * _CL, "gram / mole"),
+    ion_stoichiometry=(
+        _ion(Ion.CALCIUM, 1, _CA),
+        _ion(Ion.CHLORIDE, 2, _CL),
+    ),
+)
+
 CALCIUM_CHLORIDE_DIHYDRATE = TreatmentIngredient(
     key="calcium_chloride_dihydrate",
     name="Calcium chloride dihydrate",
@@ -205,6 +216,7 @@ POTASSIUM_CHLORIDE = TreatmentIngredient(
 # equilibria, so treating an added gram as a fixed dissolved-ion contribution would
 # overstate what the water actually receives.
 SIMPLE_MINERAL_INGREDIENTS = (
+    CALCIUM_CHLORIDE_ANHYDROUS,
     CALCIUM_CHLORIDE_DIHYDRATE,
     GYPSUM,
     EPSOM_SALT,

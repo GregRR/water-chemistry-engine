@@ -162,6 +162,7 @@ from water_chemistry_engine.treatment_application import (
     UnresolvedTreatmentIonReason,
 )
 from water_chemistry_engine.treatment_ingredients import (
+    CALCIUM_CHLORIDE_ANHYDROUS,
     CALCIUM_CHLORIDE_DIHYDRATE,
     EPSOM_SALT,
     GYPSUM,
@@ -182,6 +183,7 @@ from water_chemistry_engine.water_identity import (
 __version__ = "0.5.0"
 
 __all__ = [
+    "CALCIUM_CHLORIDE_ANHYDROUS",
     "CALCIUM_CHLORIDE_DIHYDRATE",
     "EPSOM_SALT",
     "GYPSUM",

@@ -6,6 +6,7 @@ from fermunits import Q_
 
 from water_chemistry_engine.ions import Ion
 from water_chemistry_engine.treatment_ingredients import (
+    CALCIUM_CHLORIDE_ANHYDROUS,
     CALCIUM_CHLORIDE_DIHYDRATE,
     EPSOM_SALT,
     GYPSUM,
@@ -39,6 +40,10 @@ def _as_mg_per_liter(
 @pytest.mark.parametrize(
     ("ingredient", "expected"),
     [
+        (
+            CALCIUM_CHLORIDE_ANHYDROUS,
+            {Ion.CALCIUM: 361.135, Ion.CHLORIDE: 638.865},
+        ),
         (
             CALCIUM_CHLORIDE_DIHYDRATE,
             {Ion.CALCIUM: 272.625, Ion.CHLORIDE: 482.286},
@@ -88,6 +93,14 @@ def test_doubling_addition_mass_doubles_concentrations() -> None:
 
     for ion in once:
         assert twice[ion] == pytest.approx(2 * once[ion])
+
+
+def test_anhydrous_calcium_chloride_contributes_more_per_gram_than_dihydrate() -> None:
+    anhydrous = _as_mg_per_liter(CALCIUM_CHLORIDE_ANHYDROUS)
+    dihydrate = _as_mg_per_liter(CALCIUM_CHLORIDE_DIHYDRATE)
+
+    assert anhydrous[Ion.CALCIUM] > dihydrate[Ion.CALCIUM]
+    assert anhydrous[Ion.CHLORIDE] > dihydrate[Ion.CHLORIDE]
 
 
 def test_doubling_water_volume_halves_concentrations() -> None:

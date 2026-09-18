@@ -21,6 +21,7 @@ EXPECTED_PUBLIC_API = {
     "BlendPreparationInstruction",
     "BlendedSource",
     "BlendedAlkalinityResult",
+    "CALCIUM_CHLORIDE_ANHYDROUS",
     "CALCIUM_CHLORIDE_DIHYDRATE",
     "EPSOM_SALT",
     "GYPSUM",

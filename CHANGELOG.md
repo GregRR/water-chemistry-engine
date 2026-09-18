@@ -39,6 +39,10 @@ comparison-expansion milestone is in progress.
   sodium bicarbonate only when starting alkalinity is resolved and an
   alkalinity criterion is present, includes its sodium effect normally, and
   replays selected practical doses through the forward calculation.
+- Added pure anhydrous calcium chloride (`CaCl2`) as a distinct supported
+  chemical identity with its own formula mass and per-gram ion yield; it is not
+  treated as interchangeable with calcium chloride dihydrate or commercial
+  calcium-chloride products.
 
 ### Documentation
 

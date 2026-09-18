@@ -494,8 +494,9 @@ real material a user measures and adds.
 - Treat hydration state as part of chemical identity. Calcium chloride
   anhydrous and calcium chloride dihydrate are distinct identities, not unit
   conversions or interchangeable product forms.
-- Add anhydrous calcium chloride as a supported chemical identity once its
-  authoritative composition and reference tests are recorded.
+- Anhydrous calcium chloride is now a supported chemical identity, distinct
+  from calcium chloride dihydrate, with authoritative composition provenance
+  and independent formula-mass and ion-yield tests.
 - Introduce a reusable treatment-material representation for commercial or
   user-defined preparations without changing the underlying chemical
   stoichiometry.

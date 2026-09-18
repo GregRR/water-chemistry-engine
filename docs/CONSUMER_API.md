@@ -58,8 +58,9 @@ The built-in treatment constants are idealized supported chemical identities
 for this facade. They define formula/hydration-state stoichiometry; they do not
 imply that an arbitrary commercial product has the same purity, assay, retained
 moisture, physical form, or solution concentration. For example,
-`CALCIUM_CHLORIDE_DIHYDRATE` means the pure `CaCl2·2H2O` chemical identity, not
-"calcium chloride flakes" generically.
+`CALCIUM_CHLORIDE_ANHYDROUS` means pure `CaCl2`, while
+`CALCIUM_CHLORIDE_DIHYDRATE` means pure `CaCl2·2H2O`; neither means "calcium
+chloride flakes" generically.
 
 The current `TreatmentIngredient` and `IonStoichiometry` authoring types are
 deliberately not root exports. Their present structure models ideal chemical
@@ -133,9 +134,10 @@ The exact initial facade is:
   `IonConcentrationValue`, `ExactConcentrationEndpoint`,
   `UpperBoundConcentrationEndpoint`, `LowerBoundConcentrationEndpoint`,
   `NotDetectedConcentrationEndpoint`, and `ConcentrationRangeEndpoint`;
-- treatment inputs: `TreatmentAddition`, `CALCIUM_CHLORIDE_DIHYDRATE`,
-  `GYPSUM`, `EPSOM_SALT`, `SODIUM_CHLORIDE`, `SODIUM_BICARBONATE`,
-  `POTASSIUM_CHLORIDE`, and `SIMPLE_MINERAL_INGREDIENTS`;
+- treatment inputs: `TreatmentAddition`, `CALCIUM_CHLORIDE_ANHYDROUS`,
+  `CALCIUM_CHLORIDE_DIHYDRATE`, `GYPSUM`, `EPSOM_SALT`, `SODIUM_CHLORIDE`,
+  `SODIUM_BICARBONATE`, `POTASSIUM_CHLORIDE`, and
+  `SIMPLE_MINERAL_INGREDIENTS`;
 - comparison interpretation: `TargetIonComparison`,
   `TargetIonComparisonStatus`, `TargetIonCalculationBasis`,
   `TargetIonClosenessStatus`,

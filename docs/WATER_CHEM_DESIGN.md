@@ -883,6 +883,11 @@ constraint, must permit at least one whole declared dose increment, and must not
 be presented as a sourced universal safety, sensory, solubility, or regulatory
 limit.
 
+Release 0.5 adds pure anhydrous calcium chloride (`CaCl2`) as a separate
+supported chemical identity from calcium chloride dihydrate (`CaCl2·2H2O`).
+Both remain ideal chemical identities: neither represents an unspecified
+commercial flake, assay range, solution, or retained-moisture condition.
+
 ### 9.17 Future TreatmentPlan
 
 A complete plan should contain:
