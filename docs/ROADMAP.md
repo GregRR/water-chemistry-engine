@@ -406,8 +406,7 @@ filtered/unfiltered sample state, alkalinity-versus-acid-neutralizing-capacity
 identity, sampling context, and document provenance. These are source semantics
 and must not be manufactured for calculated or target values.
 
-The supported public API must return (items 1–9 are implemented for exact,
-range, and one-sided bound targets):
+The supported public API returns:
 
 1. policy-controlled source-alkalinity resolution;
 2. volume-weighted blended alkalinity with unknown propagation;
@@ -423,9 +422,11 @@ range, and one-sided bound targets):
 11. post-rounding forward recalculation proving that an optimized plan
     reproduces its reported final alkalinity.
 
-Optimizer items 10–11 remain pending and sodium bicarbonate therefore remains
-excluded from automatic material selection despite its supported manual forward
-alkalinity contribution.
+All eleven items are implemented. Sodium bicarbonate is automatically
+selectable only under the named conservative-equivalent model when starting
+alkalinity is resolved and a supported total-alkalinity criterion is present.
+Every selected dose is replayed through the ordinary forward calculation before
+the plan is accepted.
 
 If any positive-volume source has missing or unresolved alkalinity, blended
 and final total alkalinity remain unresolved. Known source and treatment
@@ -436,7 +437,7 @@ or otherwise justified by an existing source-resolution contract.
 
 The model must not infer source alkalinity from bicarbonate, carbonate, pH,
 hardness, or charge balance. Bicarbonate and carbonate remain unsupported
-ordinary optimizer targets. Sodium bicarbonate may become optimizer-eligible
+ordinary optimizer targets. Sodium bicarbonate is optimizer-eligible
 only when initial/blended alkalinity is resolved, a supported total-alkalinity
 criterion is present, its sodium contribution is included normally, and no
 requested behavior requires pH or equilibrium speciation.

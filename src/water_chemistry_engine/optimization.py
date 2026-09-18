@@ -91,6 +91,8 @@ class OptimizerDiagnosticCode(StrEnum):
     CARBONATE_SYSTEM_MATERIAL_UNSUPPORTED = "carbonate_system_material_unsupported"
     REQUIRED_SOURCE_CHEMISTRY_UNKNOWN = "required_source_chemistry_unknown"
     REQUIRED_DILUENT_CHEMISTRY_UNKNOWN = "required_diluent_chemistry_unknown"
+    REQUIRED_SOURCE_ALKALINITY_UNKNOWN = "required_source_alkalinity_unknown"
+    REQUIRED_DILUENT_ALKALINITY_UNKNOWN = "required_diluent_alkalinity_unknown"
     SOURCE_VOLUME_CONSTRAINTS_INFEASIBLE = "source_volume_constraints_infeasible"
     NO_DILUTION_PLAN_INFEASIBLE = "no_dilution_plan_infeasible"
     UNAVOIDABLE_TARGET_OVERSHOOT = "unavoidable_target_overshoot"

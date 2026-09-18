@@ -288,11 +288,12 @@ def _blend_alkalinity(
     )
 
 
-def _treatment_contribution(
+def calculate_treatment_alkalinity_contribution(
     treatment_index: int,
     addition: TreatmentAddition,
     water_volume_liters: float,
 ) -> TreatmentAlkalinityContribution | None:
+    """Return a reviewed conservative-equivalent treatment contribution."""
     # This is deliberately a reviewed-model mapping.  A matching-looking key on
     # an arbitrary chemical does not opt that chemical into alkalinity behavior.
     if addition.ingredient != SODIUM_BICARBONATE:
@@ -329,7 +330,7 @@ def calculate_alkalinity_balance(
         contribution
         for treatment_index, applied in enumerate(treatment_result.applied_treatments)
         if (
-            contribution := _treatment_contribution(
+            contribution := calculate_treatment_alkalinity_contribution(
                 treatment_index,
                 applied.addition,
                 water_volume_liters,

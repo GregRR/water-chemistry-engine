@@ -472,12 +472,13 @@ targets are supported; one-sided source reports remain unresolved rather than
 being treated as exact values. Reported, modeled, and target alkalinity remain
 conceptually distinct: `Alkalinity` preserves report/target values while
 `ModeledAlkalinity` identifies calculated output and its model. Optimizer
-admission remains later 0.5 work.
+admission is supported when every contributing source alkalinity is resolved
+and the target supplies an exact, range, or one-sided alkalinity criterion.
 `AlkalinityBalanceResult.limitations` supplies stable
 `AlkalinityModelLimitation` codes for complete-dissolution, unmodeled-reaction,
 precipitation/dissolution, carbonate-speciation, and working-water-pH limits.
 
-Sodium bicarbonate may participate in optimization in a later slice only when starting
+Sodium bicarbonate may participate in optimization only when starting
 alkalinity is resolved and the request contains an appropriate supported total-
 alkalinity criterion. Its sodium contribution remains ordinary ion chemistry;
 its one-equivalent-per-mole alkalinity rule is specific to the named model and
@@ -490,6 +491,12 @@ that a particular pH was achieved.
 Every optimized rounded dose must be replayed through the ordinary forward
 calculation so the engine—not the consumer—proves that the plan reproduces its
 reported modeled final alkalinity.
+
+This admission applies to fixed blends, proportional dilution, and bounded
+source-volume selection. Unknown source or diluent alkalinity produces an
+explicit indeterminate optimizer result rather than an assumed zero. A sodium-
+bicarbonate material remains unsupported when no alkalinity criterion is
+present, and bicarbonate/carbonate species targets remain unsupported.
 
 ## Validation, unknowns, and notices
 

@@ -26,11 +26,16 @@ from scipy.optimize import (  # type: ignore[import-untyped]
     milp,
 )
 
+from water_chemistry_engine.alkalinity_balance import (
+    ResolvedSourceAlkalinity,
+    calculate_treatment_alkalinity_contribution,
+)
 from water_chemistry_engine.calculation_policy import capabilities_for
 from water_chemistry_engine.forward_calculator import (
     ForwardWaterSource,
     calculate_forward_water,
 )
+from water_chemistry_engine.ions import Ion
 from water_chemistry_engine.optimization import (
     OptimizerBlendPolicy,
     OptimizerDiagnostic,
@@ -50,11 +55,15 @@ from water_chemistry_engine.optimization import (
 )
 from water_chemistry_engine.source_resolution import resolve_source_profile
 from water_chemistry_engine.target_comparison import (
+    TargetAlkalinityComparison,
+    TargetAlkalinityComparisonStatus,
     TargetIonComparison,
     TargetIonComparisonStatus,
     TargetProfileComparison,
     TargetProfileComparisonStatus,
 )
+from water_chemistry_engine.treatment_application import TreatmentAddition
+from water_chemistry_engine.treatment_ingredients import SODIUM_BICARBONATE
 from water_chemistry_engine.treatment_stoichiometry import (
     calculate_ion_contributions,
 )
@@ -116,6 +125,40 @@ class _ValidatedDecisions:
     material_counts: tuple[int, ...]
     continuous_values: tuple[float, ...]
     material_usage: tuple[int, ...]
+
+
+_OptimizationComparison = TargetIonComparison | TargetAlkalinityComparison
+
+
+def _comparison_actual(comparison: _OptimizationComparison) -> float | None:
+    if isinstance(comparison, TargetIonComparison):
+        if comparison.actual_concentration is None:
+            return None
+        return float(comparison.actual_concentration.to("milligram / liter").magnitude)
+    if comparison.actual_alkalinity is None:
+        return None
+    return float(comparison.actual_alkalinity.concentration.magnitude)
+
+
+def _comparison_label(comparison: _OptimizationComparison) -> str:
+    if isinstance(comparison, TargetIonComparison):
+        return comparison.ion.value
+    return "total alkalinity"
+
+
+def _comparison_ion(comparison: _OptimizationComparison) -> Ion | None:
+    if isinstance(comparison, TargetIonComparison):
+        return comparison.ion
+    return None
+
+
+def _optimization_comparisons(
+    comparison: TargetProfileComparison | None,
+) -> tuple[_OptimizationComparison, ...]:
+    if comparison is None:
+        return ()
+    alkalinity = comparison.alkalinity_comparison
+    return comparison.ion_comparisons + (() if alkalinity is None else (alkalinity,))
 
 
 def _solver_report(
@@ -184,7 +227,7 @@ def _unsupported_result(
 
 def _input_diagnostics(
     request: OptimizerRequest,
-    comparisons: tuple[TargetIonComparison, ...],
+    comparisons: tuple[_OptimizationComparison, ...],
 ) -> tuple[OptimizerInputSupportStatus, tuple[OptimizerDiagnostic, ...]]:
     diagnostics: list[OptimizerDiagnostic] = []
     support = OptimizerInputSupportStatus.SUPPORTED
@@ -198,22 +241,24 @@ def _input_diagnostics(
             )
         )
 
-    if (
-        request.target_profile is not None
-        and request.target_profile.alkalinity is not None
-    ):
-        support = OptimizerInputSupportStatus.UNSUPPORTED
-        diagnostics.append(
-            OptimizerDiagnostic(
-                code=OptimizerDiagnosticCode.TARGET_ALKALINITY_UNSUPPORTED,
-                message=(
-                    "Final total-alkalinity optimization is not implemented; the "
-                    "target is preserved without being converted to bicarbonate."
-                ),
-            )
-        )
-
     for comparison in comparisons:
+        if isinstance(comparison, TargetAlkalinityComparison):
+            if comparison.status is TargetAlkalinityComparisonStatus.ACTUAL_UNKNOWN:
+                if support is OptimizerInputSupportStatus.SUPPORTED:
+                    support = OptimizerInputSupportStatus.INDETERMINATE
+                diagnostics.append(
+                    OptimizerDiagnostic(
+                        code=(
+                            OptimizerDiagnosticCode.REQUIRED_SOURCE_ALKALINITY_UNKNOWN
+                        ),
+                        message=(
+                            "Starting total alkalinity is unknown; optimization "
+                            "cannot assume zero."
+                        ),
+                    )
+                )
+            continue
+
         if not capabilities_for(comparison.ion).optimizer_target:
             support = OptimizerInputSupportStatus.UNSUPPORTED
             diagnostics.append(
@@ -251,13 +296,20 @@ def _input_diagnostics(
                 )
             )
 
+    has_alkalinity_criterion = any(
+        isinstance(comparison, TargetAlkalinityComparison) for comparison in comparisons
+    )
     for constraint in request.material_constraints:
         unsupported_contributions = tuple(
             entry.ion
             for entry in constraint.material.ingredient.ion_stoichiometry
             if not capabilities_for(entry.ion).optimizer_material_contribution
         )
-        if unsupported_contributions:
+        reviewed_alkalinity_material = (
+            constraint.material.ingredient == SODIUM_BICARBONATE
+            and has_alkalinity_criterion
+        )
+        if unsupported_contributions and not reviewed_alkalinity_material:
             support = OptimizerInputSupportStatus.UNSUPPORTED
             ion = unsupported_contributions[0]
             diagnostics.append(
@@ -303,7 +355,7 @@ def _maximum_increment_count(constraint: OptimizerMaterialConstraint) -> int:
 
 def _increment_coefficients(
     request: OptimizerRequest,
-    comparisons: tuple[TargetIonComparison, ...],
+    comparisons: tuple[_OptimizationComparison, ...],
 ) -> tuple[tuple[float, ...], ...]:
     total_volume = request.total_volume.to("liter")
     by_material = []
@@ -318,15 +370,34 @@ def _increment_coefficients(
                 total_volume,
             )
         }
+        alkalinity_contribution = calculate_treatment_alkalinity_contribution(
+            0,
+            TreatmentAddition(
+                constraint.material.ingredient,
+                constraint.material.normalized_dose_increment,
+            ),
+            float(total_volume.magnitude),
+        )
         by_material.append(
-            tuple(per_increment.get(comparison.ion, 0.0) for comparison in comparisons)
+            tuple(
+                (
+                    per_increment.get(comparison.ion, 0.0)
+                    if isinstance(comparison, TargetIonComparison)
+                    else (
+                        0.0
+                        if alkalinity_contribution is None
+                        else float(alkalinity_contribution.concentration.magnitude)
+                    )
+                )
+                for comparison in comparisons
+            )
         )
     return tuple(by_material)
 
 
 def _numerical_model_diagnostics(
     request: OptimizerRequest,
-    comparisons: tuple[TargetIonComparison, ...],
+    comparisons: tuple[_OptimizationComparison, ...],
 ) -> tuple[OptimizerDiagnostic, ...]:
     diagnostics: list[OptimizerDiagnostic] = []
     coefficients = _increment_coefficients(request, comparisons)
@@ -341,7 +412,12 @@ def _numerical_model_diagnostics(
             strict=True,
         ):
             magnitude = fabs(coefficient)
-            if comparison.ion in contributed_ions and (
+            contributes = (
+                comparison.ion in contributed_ions
+                if isinstance(comparison, TargetIonComparison)
+                else constraint.material.ingredient == SODIUM_BICARBONATE
+            )
+            if contributes and (
                 magnitude <= _SMALLEST_SOLVER_MATRIX_VALUE
                 or magnitude >= _LARGEST_SOLVER_MATRIX_VALUE
             ):
@@ -352,19 +428,17 @@ def _numerical_model_diagnostics(
                         ),
                         message=(
                             f"The {constraint.material.key} dose-increment effect on "
-                            f"{comparison.ion.value} is outside this solver's "
+                            f"{_comparison_label(comparison)} is outside this solver's "
                             "supported numerical coefficient range."
                         ),
-                        ion=comparison.ion,
+                        ion=_comparison_ion(comparison),
                         material_key=constraint.material.key,
                     )
                 )
 
     for comparison in comparisons:
-        assert comparison.actual_concentration is not None
-        actual = float(
-            comparison.actual_concentration.to("milligram / liter").magnitude
-        )
+        actual = _comparison_actual(comparison)
+        assert actual is not None
         for bound in (comparison.target_minimum, comparison.target_maximum):
             if bound is not None and fabs(float(bound.magnitude) - actual) >= (
                 _LARGEST_SOLVER_BOUND
@@ -375,10 +449,10 @@ def _numerical_model_diagnostics(
                             OptimizerDiagnosticCode.NUMERICAL_MODEL_RANGE_UNSUPPORTED
                         ),
                         message=(
-                            f"The {comparison.ion.value} target difference is outside "
+                            f"The {_comparison_label(comparison)} target difference is outside "
                             "this solver's supported numerical bound range."
                         ),
-                        ion=comparison.ion,
+                        ion=_comparison_ion(comparison),
                     )
                 )
                 break
@@ -485,7 +559,7 @@ def _validated_decisions(
 
 
 def _objective_from_decisions(
-    comparisons: tuple[TargetIonComparison, ...],
+    comparisons: tuple[_OptimizationComparison, ...],
     material_coefficients: tuple[tuple[float, ...], ...],
     material_counts: tuple[int, ...],
     continuous_coefficients: tuple[tuple[float, ...], ...],
@@ -493,9 +567,10 @@ def _objective_from_decisions(
 ) -> float:
     objective = 0.0
     for comparison_index, comparison in enumerate(comparisons):
-        assert comparison.actual_concentration is not None
+        actual = _comparison_actual(comparison)
+        assert actual is not None
         predicted = (
-            float(comparison.actual_concentration.to("milligram / liter").magnitude)
+            actual
             + sum(
                 count * material_coefficients[material_index][comparison_index]
                 for material_index, count in enumerate(material_counts)
@@ -516,7 +591,7 @@ def _objective_from_decisions(
 
 def _solve_increment_counts(
     request: OptimizerRequest,
-    comparisons: tuple[TargetIonComparison, ...],
+    comparisons: tuple[_OptimizationComparison, ...],
     *,
     continuous_coefficients: tuple[tuple[float, ...], ...] = (),
     continuous_lower_bounds: tuple[float, ...] = (),
@@ -596,10 +671,8 @@ def _solve_increment_counts(
     for comparison_index, comparison in enumerate(comparisons):
         lower_slack_index = decision_count + 2 * comparison_index
         upper_slack_index = lower_slack_index + 1
-        assert comparison.actual_concentration is not None
-        actual = float(
-            comparison.actual_concentration.to("milligram / liter").magnitude
-        )
+        actual = _comparison_actual(comparison)
+        assert actual is not None
         decision_terms = (
             [
                 material_coefficients[material_index][comparison_index]
@@ -917,11 +990,15 @@ def _solve_increment_counts(
 def _target_deviation_sum(comparison: TargetProfileComparison | None) -> float:
     if comparison is None:
         return 0.0
-    return sum(
+    ion_sum = sum(
         fabs(float(ion.deviation.to("milligram / liter").magnitude))
         for ion in comparison.ion_comparisons
         if ion.deviation is not None
     )
+    alkalinity = comparison.alkalinity_comparison
+    if alkalinity is None or alkalinity.deviation is None:
+        return ion_sum
+    return ion_sum + fabs(float(alkalinity.deviation.to("milligram / liter").magnitude))
 
 
 def _material_additions(
@@ -1036,9 +1113,29 @@ def _build_plan(
                             deviation=deviation,
                         )
                     )
+            alkalinity_comparison = blend_comparison.alkalinity_comparison
+            if (
+                alkalinity_comparison is not None
+                and alkalinity_comparison.status
+                is TargetAlkalinityComparisonStatus.ABOVE_TARGET
+                and alkalinity_comparison.deviation is not None
+            ):
+                deviation = alkalinity_comparison.deviation.to("milligram / liter")
+                plan_diagnostics.append(
+                    OptimizerDiagnostic(
+                        code=OptimizerDiagnosticCode.UNAVOIDABLE_TARGET_OVERSHOOT,
+                        message=(
+                            "Without dilution, the starting total alkalinity "
+                            f"exceeds the target by {float(deviation.magnitude):g} "
+                            "mg/L as CaCO3; the permitted additive treatments "
+                            "cannot reduce it."
+                        ),
+                        deviation=deviation,
+                    )
+                )
 
     if target_fit is OptimizerTargetFitStatus.NOT_EVALUATED:
-        summary = f"{summary_label}: no numeric ion targets were supplied."
+        summary = f"{summary_label}: no numeric targets were supplied."
     elif target_fit is OptimizerTargetFitStatus.WITHIN_TARGET:
         summary = f"{summary_label} is within all supported target criteria."
     else:
@@ -1119,7 +1216,7 @@ def _proportional_source_volumes(
 
 def _dilution_coefficients(
     request: OptimizerRequest,
-    comparisons: tuple[TargetIonComparison, ...],
+    comparisons: tuple[_OptimizationComparison, ...],
 ) -> tuple[tuple[float, ...] | None, tuple[OptimizerDiagnostic, ...]]:
     assert request.diluent_source is not None
     unsupported = tuple(
@@ -1129,7 +1226,8 @@ def _dilution_coefficients(
             ion=comparison.ion,
         )
         for comparison in comparisons
-        if comparison.status is TargetIonComparisonStatus.TARGET_UNSUPPORTED
+        if isinstance(comparison, TargetIonComparison)
+        and comparison.status is TargetIonComparisonStatus.TARGET_UNSUPPORTED
     )
     if unsupported:
         return None, unsupported
@@ -1141,27 +1239,39 @@ def _dilution_coefficients(
     coefficients: list[float] = []
     diagnostics: list[OptimizerDiagnostic] = []
     for comparison in comparisons:
-        assert comparison.actual_concentration is not None
-        diluent_concentration = resolution.state.concentration_for(comparison.ion)
-        if diluent_concentration is None:
+        baseline = _comparison_actual(comparison)
+        assert baseline is not None
+        if isinstance(comparison, TargetIonComparison):
+            diluent_quantity = resolution.state.concentration_for(comparison.ion)
+            diluent = (
+                None
+                if diluent_quantity is None
+                else float(diluent_quantity.to("milligram / liter").magnitude)
+            )
+            unknown_code = OptimizerDiagnosticCode.REQUIRED_DILUENT_CHEMISTRY_UNKNOWN
+        else:
+            alkalinity_resolution = resolution.alkalinity_resolution
+            diluent = (
+                float(alkalinity_resolution.alkalinity.concentration.magnitude)
+                if isinstance(alkalinity_resolution, ResolvedSourceAlkalinity)
+                else None
+            )
+            unknown_code = OptimizerDiagnosticCode.REQUIRED_DILUENT_ALKALINITY_UNKNOWN
+        if diluent is None:
             diagnostics.append(
                 OptimizerDiagnostic(
-                    code=(OptimizerDiagnosticCode.REQUIRED_DILUENT_CHEMISTRY_UNKNOWN),
+                    code=unknown_code,
                     message=(
                         f"Diluent {request.diluent_source.source_profile.name} has "
-                        f"unknown {comparison.ion.value} concentration; optimization "
+                        f"unknown {_comparison_label(comparison)}; optimization "
                         "cannot assume zero."
                     ),
-                    ion=comparison.ion,
+                    ion=_comparison_ion(comparison),
                     source_index=len(request.sources),
                     source_name=request.diluent_source.source_profile.name,
                 )
             )
             continue
-        baseline = float(
-            comparison.actual_concentration.to("milligram / liter").magnitude
-        )
-        diluent = float(diluent_concentration.to("milligram / liter").magnitude)
         coefficient = (diluent - baseline) / total_liters
         magnitude = fabs(coefficient)
         if magnitude != 0.0 and (
@@ -1172,10 +1282,10 @@ def _dilution_coefficients(
                 OptimizerDiagnostic(
                     code=OptimizerDiagnosticCode.NUMERICAL_MODEL_RANGE_UNSUPPORTED,
                     message=(
-                        f"The diluent effect on {comparison.ion.value} is outside "
+                        f"The diluent effect on {_comparison_label(comparison)} is outside "
                         "this solver's supported numerical coefficient range."
                     ),
-                    ion=comparison.ion,
+                    ion=_comparison_ion(comparison),
                     source_index=len(request.sources),
                     source_name=request.diluent_source.source_profile.name,
                 )
@@ -1229,7 +1339,7 @@ def _source_volume_reference(request: OptimizerRequest) -> tuple[float, ...] | N
 
 def _source_volume_coefficients(
     request: OptimizerRequest,
-    comparisons: tuple[TargetIonComparison, ...],
+    comparisons: tuple[_OptimizationComparison, ...],
 ) -> tuple[tuple[tuple[float, ...], ...] | None, tuple[OptimizerDiagnostic, ...]]:
     unsupported = tuple(
         OptimizerDiagnostic(
@@ -1238,7 +1348,8 @@ def _source_volume_coefficients(
             ion=comparison.ion,
         )
         for comparison in comparisons
-        if comparison.status is TargetIonComparisonStatus.TARGET_UNSUPPORTED
+        if isinstance(comparison, TargetIonComparison)
+        and comparison.status is TargetIonComparisonStatus.TARGET_UNSUPPORTED
     )
     if unsupported:
         return None, unsupported
@@ -1252,27 +1363,40 @@ def _source_volume_coefficients(
         )
         source_coefficients: list[float] = []
         for comparison in comparisons:
-            concentration = resolution.state.concentration_for(comparison.ion)
-            if concentration is None:
+            if isinstance(comparison, TargetIonComparison):
+                source_quantity = resolution.state.concentration_for(comparison.ion)
+                source_value = (
+                    None
+                    if source_quantity is None
+                    else float(source_quantity.to("milligram / liter").magnitude)
+                )
+                unknown_code = OptimizerDiagnosticCode.REQUIRED_SOURCE_CHEMISTRY_UNKNOWN
+            else:
+                alkalinity_resolution = resolution.alkalinity_resolution
+                source_value = (
+                    float(alkalinity_resolution.alkalinity.concentration.magnitude)
+                    if isinstance(alkalinity_resolution, ResolvedSourceAlkalinity)
+                    else None
+                )
+                unknown_code = (
+                    OptimizerDiagnosticCode.REQUIRED_SOURCE_ALKALINITY_UNKNOWN
+                )
+            if source_value is None:
                 diagnostics.append(
                     OptimizerDiagnostic(
-                        code=(
-                            OptimizerDiagnosticCode.REQUIRED_SOURCE_CHEMISTRY_UNKNOWN
-                        ),
+                        code=unknown_code,
                         message=(
                             f"Source {source.source_profile.name} has unknown "
-                            f"{comparison.ion.value} concentration; source-volume "
+                            f"{_comparison_label(comparison)}; source-volume "
                             "optimization cannot assume zero."
                         ),
-                        ion=comparison.ion,
+                        ion=_comparison_ion(comparison),
                         source_index=source_index,
                         source_name=source.source_profile.name,
                     )
                 )
                 continue
-            coefficient = (
-                float(concentration.to("milligram / liter").magnitude) / total_liters
-            )
+            coefficient = source_value / total_liters
             magnitude = fabs(coefficient)
             if magnitude != 0.0 and (
                 magnitude <= _SMALLEST_SOLVER_MATRIX_VALUE
@@ -1285,10 +1409,11 @@ def _source_volume_coefficients(
                         ),
                         message=(
                             f"The {source.source_profile.name} source-volume effect "
-                            f"on {comparison.ion.value} is outside this solver's "
+                            f"on {_comparison_label(comparison)} is outside this "
+                            "solver's "
                             "supported numerical coefficient range."
                         ),
-                        ion=comparison.ion,
+                        ion=_comparison_ion(comparison),
                         source_index=source_index,
                         source_name=source.source_profile.name,
                     )
@@ -1447,7 +1572,7 @@ def _optional_candidate_failure(
 
 def _fewest_material_candidate(
     request: OptimizerRequest,
-    comparisons: tuple[TargetIonComparison, ...],
+    comparisons: tuple[_OptimizationComparison, ...],
     *,
     source_volumes_for: Callable[
         [_ValidatedDecisions], tuple[OptimizerSourceVolume, ...]
@@ -1537,7 +1662,7 @@ def _optimize_proportional_dilution(request: OptimizerRequest) -> OptimizerResul
         target_profile=request.target_profile,
     )
     comparison = initial.final_target_comparison
-    comparisons = () if comparison is None else comparison.ion_comparisons
+    comparisons = _optimization_comparisons(comparison)
     support, diagnostics = _input_diagnostics(request, comparisons)
     if support is not OptimizerInputSupportStatus.SUPPORTED:
         return _unsupported_result(
@@ -1561,7 +1686,10 @@ def _optimize_proportional_dilution(request: OptimizerRequest) -> OptimizerResul
             OptimizerInputSupportStatus.INDETERMINATE
             if all(
                 diagnostic.code
-                is OptimizerDiagnosticCode.REQUIRED_DILUENT_CHEMISTRY_UNKNOWN
+                in (
+                    OptimizerDiagnosticCode.REQUIRED_DILUENT_CHEMISTRY_UNKNOWN,
+                    OptimizerDiagnosticCode.REQUIRED_DILUENT_ALKALINITY_UNKNOWN,
+                )
                 for diagnostic in dilution_diagnostics
             )
             else OptimizerInputSupportStatus.UNSUPPORTED
@@ -1746,7 +1874,7 @@ def _optimize_source_volumes(request: OptimizerRequest) -> OptimizerResult:
         target_profile=request.target_profile,
     )
     comparison = initial.final_target_comparison
-    comparisons = () if comparison is None else comparison.ion_comparisons
+    comparisons = _optimization_comparisons(comparison)
     support, diagnostics = _input_diagnostics(request, comparisons)
     if support is OptimizerInputSupportStatus.UNSUPPORTED:
         return _unsupported_result(
@@ -1764,7 +1892,10 @@ def _optimize_source_volumes(request: OptimizerRequest) -> OptimizerResult:
             OptimizerInputSupportStatus.INDETERMINATE
             if all(
                 diagnostic.code
-                is OptimizerDiagnosticCode.REQUIRED_SOURCE_CHEMISTRY_UNKNOWN
+                in (
+                    OptimizerDiagnosticCode.REQUIRED_SOURCE_CHEMISTRY_UNKNOWN,
+                    OptimizerDiagnosticCode.REQUIRED_SOURCE_ALKALINITY_UNKNOWN,
+                )
                 for diagnostic in source_diagnostics
             )
             else OptimizerInputSupportStatus.UNSUPPORTED
@@ -1887,7 +2018,7 @@ def optimize_treatment(request: OptimizerRequest) -> OptimizerResult:
         target_profile=request.target_profile,
     )
     comparison = initial.final_target_comparison
-    comparisons = () if comparison is None else comparison.ion_comparisons
+    comparisons = _optimization_comparisons(comparison)
     support, diagnostics = _input_diagnostics(request, comparisons)
     if support is not OptimizerInputSupportStatus.SUPPORTED:
         return _unsupported_result(

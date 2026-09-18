@@ -75,6 +75,26 @@ def _source(*, volume_liters: float = 10.0, **values: float) -> OptimizerSource:
     )
 
 
+def _source_with_alkalinity(
+    alkalinity_mg_per_liter_as_caco3: float,
+    *,
+    volume_liters: float = 10.0,
+    **values: float,
+) -> OptimizerSource:
+    source = _source(volume_liters=volume_liters, **values)
+    return OptimizerSource(
+        SourceWaterProfile(
+            name=source.source_profile.name,
+            concentrations=source.source_profile.concentrations,
+            alkalinity=Alkalinity.mg_per_liter_as_caco3(
+                alkalinity_mg_per_liter_as_caco3
+            ),
+        ),
+        source.current_volume,
+        source.maximum_volume,
+    )
+
+
 def _available_source(
     name: str,
     *,
@@ -92,6 +112,33 @@ def _available_source(
         ),
         Q_(current_liters, "liter"),
         Q_(maximum_liters, "liter"),
+    )
+
+
+def _available_source_with_alkalinity(
+    name: str,
+    *,
+    current_liters: float,
+    maximum_liters: float,
+    alkalinity_mg_per_liter_as_caco3: float,
+    **values: float,
+) -> OptimizerSource:
+    source = _available_source(
+        name,
+        current_liters=current_liters,
+        maximum_liters=maximum_liters,
+        **values,
+    )
+    return OptimizerSource(
+        SourceWaterProfile(
+            name=name,
+            concentrations=source.source_profile.concentrations,
+            alkalinity=Alkalinity.mg_per_liter_as_caco3(
+                alkalinity_mg_per_liter_as_caco3
+            ),
+        ),
+        source.current_volume,
+        source.maximum_volume,
     )
 
 
@@ -652,7 +699,7 @@ def test_optimizer_rejects_sodium_bicarbonate_for_sodium_target() -> None:
     assert result.plans == ()
 
 
-def test_optimizer_rejects_uncalculated_alkalinity_target() -> None:
+def test_optimizer_rejects_unknown_starting_alkalinity() -> None:
     target = TargetWaterProfile(
         "Alkalinity target",
         (),
@@ -666,10 +713,330 @@ def test_optimizer_rejects_uncalculated_alkalinity_target() -> None:
         )
     )
 
+    assert result.input_support is OptimizerInputSupportStatus.INDETERMINATE
+    assert tuple(diagnostic.code for diagnostic in result.diagnostics) == (
+        OptimizerDiagnosticCode.REQUIRED_SOURCE_ALKALINITY_UNKNOWN,
+    )
+
+
+def test_fixed_optimizer_selects_sodium_bicarbonate_for_alkalinity_target() -> None:
+    expected_alkalinity = 0.5 / 84.00576928 / 10.0 * 50_043.45
+    target = TargetWaterProfile(
+        "Alkalinity target",
+        (),
+        alkalinity=Alkalinity.mg_per_liter_as_caco3(expected_alkalinity),
+    )
+    result = optimize_treatment(
+        _fixed_request(
+            source=_source_with_alkalinity(0.0, sodium=0.0, bicarbonate=0.0),
+            target=target,
+            constraints=(_sodium_bicarbonate_constraint(),),
+        )
+    )
+
+    assert result.input_support is OptimizerInputSupportStatus.SUPPORTED
+    assert result.feasibility is OptimizerFeasibilityStatus.FEASIBLE
+    assert len(result.plans) == 1
+    plan = result.plans[0]
+    assert plan.target_fit is OptimizerTargetFitStatus.WITHIN_TARGET
+    assert len(plan.material_additions) == 1
+    assert plan.material_additions[0].measured_mass.magnitude == pytest.approx(0.5)
+    assert plan.calculation.final_alkalinity is not None
+    assert plan.calculation.final_alkalinity.concentration.magnitude == pytest.approx(
+        expected_alkalinity
+    )
+    assert plan.target_comparison is not None
+    assert plan.target_comparison.alkalinity_comparison is not None
+    assert plan.target_comparison.alkalinity_comparison.deviation.magnitude == (
+        pytest.approx(0.0)
+    )
+    assert plan.solver_report.primary_objective_mg_per_liter == pytest.approx(0.0)
+
+
+def test_fixed_optimizer_accounts_for_sodium_and_alkalinity_together() -> None:
+    mass_grams = 0.5
+    molar_mass = 84.00576928
+    target = TargetWaterProfile(
+        "Sodium and alkalinity target",
+        (
+            IonConcentration.mg_per_liter(
+                Ion.SODIUM,
+                mass_grams / molar_mass / 10.0 * 22.98976928 * 1000.0,
+            ),
+        ),
+        alkalinity=Alkalinity.mg_per_liter_as_caco3(
+            mass_grams / molar_mass / 10.0 * 50_043.45
+        ),
+    )
+    result = optimize_treatment(
+        _fixed_request(
+            source=_source_with_alkalinity(0.0, sodium=0.0, bicarbonate=0.0),
+            target=target,
+            constraints=(_sodium_bicarbonate_constraint(),),
+        )
+    )
+
+    assert result.input_support is OptimizerInputSupportStatus.SUPPORTED
+    plan = result.plans[0]
+    assert plan.material_additions[0].measured_mass.magnitude == pytest.approx(
+        mass_grams
+    )
+    assert plan.target_fit is OptimizerTargetFitStatus.WITHIN_TARGET
+    assert plan.solver_report.primary_objective_mg_per_liter == pytest.approx(0.0)
+
+
+@pytest.mark.parametrize(
+    "alkalinity_target",
+    (
+        Alkalinity.mg_per_liter_as_caco3_lower_bound(
+            0.5 / 84.00576928 / 10.0 * 50_043.45
+        ),
+        Alkalinity.mg_per_liter_as_caco3_range(
+            0.5 / 84.00576928 / 10.0 * 50_043.45,
+            0.6 / 84.00576928 / 10.0 * 50_043.45,
+        ),
+    ),
+)
+def test_fixed_optimizer_supports_bounded_alkalinity_targets(
+    alkalinity_target: Alkalinity,
+) -> None:
+    result = optimize_treatment(
+        _fixed_request(
+            source=_source_with_alkalinity(0.0, sodium=0.0, bicarbonate=0.0),
+            target=TargetWaterProfile(
+                "Bounded alkalinity target",
+                (),
+                alkalinity=alkalinity_target,
+            ),
+            constraints=(_sodium_bicarbonate_constraint(),),
+        )
+    )
+
+    assert result.input_support is OptimizerInputSupportStatus.SUPPORTED
+    plan = result.plans[0]
+    assert plan.material_additions[0].measured_mass.magnitude == pytest.approx(0.5)
+    assert plan.target_fit is OptimizerTargetFitStatus.WITHIN_TARGET
+
+
+def test_sodium_bicarbonate_requires_alkalinity_criterion() -> None:
+    result = optimize_treatment(
+        _fixed_request(
+            source=_source_with_alkalinity(0.0, sodium=0.0, bicarbonate=0.0),
+            target=None,
+            constraints=(_sodium_bicarbonate_constraint(),),
+        )
+    )
+
     assert result.input_support is OptimizerInputSupportStatus.UNSUPPORTED
     assert tuple(diagnostic.code for diagnostic in result.diagnostics) == (
-        OptimizerDiagnosticCode.TARGET_ALKALINITY_UNSUPPORTED,
+        OptimizerDiagnosticCode.CARBONATE_SYSTEM_MATERIAL_UNSUPPORTED,
     )
+
+
+def test_proportional_dilution_optimizes_total_alkalinity() -> None:
+    source = _available_source_with_alkalinity(
+        "Source",
+        current_liters=10.0,
+        maximum_liters=10.0,
+        alkalinity_mg_per_liter_as_caco3=100.0,
+    )
+    diluent = _available_source_with_alkalinity(
+        "Diluent",
+        current_liters=0.0,
+        maximum_liters=10.0,
+        alkalinity_mg_per_liter_as_caco3=0.0,
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(10, "liter"),
+        sources=(source,),
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.PROPORTIONAL_DILUTION,
+        target_profile=TargetWaterProfile(
+            "Alkalinity target",
+            (),
+            alkalinity=Alkalinity.mg_per_liter_as_caco3(50.0),
+        ),
+        diluent_source=diluent,
+    )
+
+    result = optimize_treatment(request)
+
+    assert result.input_support is OptimizerInputSupportStatus.SUPPORTED
+    assert len(result.plans) == 1
+    plan = result.plans[0]
+    assert tuple(float(entry.volume.magnitude) for entry in plan.source_volumes) == (
+        pytest.approx(5.0),
+        pytest.approx(5.0),
+    )
+    assert plan.calculation.final_alkalinity is not None
+    assert plan.calculation.final_alkalinity.concentration.magnitude == pytest.approx(
+        50.0
+    )
+    assert plan.target_fit is OptimizerTargetFitStatus.WITHIN_TARGET
+
+
+def test_no_dilution_plan_reports_unavoidable_alkalinity_overshoot() -> None:
+    source = _available_source_with_alkalinity(
+        "Source",
+        current_liters=10.0,
+        maximum_liters=10.0,
+        alkalinity_mg_per_liter_as_caco3=100.0,
+    )
+    diluent = _available_source_with_alkalinity(
+        "Diluent",
+        current_liters=0.0,
+        maximum_liters=10.0,
+        alkalinity_mg_per_liter_as_caco3=0.0,
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(10, "liter"),
+        sources=(source,),
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.PROPORTIONAL_DILUTION,
+        target_profile=TargetWaterProfile(
+            "Alkalinity target",
+            (),
+            alkalinity=Alkalinity.mg_per_liter_as_caco3(50.0),
+        ),
+        diluent_source=diluent,
+        request_no_dilution_plan=True,
+    )
+
+    result = optimize_treatment(request)
+
+    assert len(result.plans) == 2
+    no_dilution = next(
+        plan
+        for plan in result.plans
+        if plan.strategy is OptimizerStrategy.NO_DILUTION_CLOSEST_ABSOLUTE_MG_PER_LITER
+    )
+    assert no_dilution.target_fit is OptimizerTargetFitStatus.OUTSIDE_TARGET
+    overshoot = tuple(
+        diagnostic
+        for diagnostic in no_dilution.diagnostics
+        if diagnostic.code is OptimizerDiagnosticCode.UNAVOIDABLE_TARGET_OVERSHOOT
+    )
+    assert len(overshoot) == 1
+    assert overshoot[0].ion is None
+    assert overshoot[0].deviation is not None
+    assert overshoot[0].deviation.magnitude == pytest.approx(50.0)
+
+
+def test_proportional_dilution_rejects_unknown_diluent_alkalinity() -> None:
+    source = _available_source_with_alkalinity(
+        "Source",
+        current_liters=10.0,
+        maximum_liters=10.0,
+        alkalinity_mg_per_liter_as_caco3=100.0,
+    )
+    diluent = _available_source(
+        "Unknown diluent",
+        current_liters=0.0,
+        maximum_liters=10.0,
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(10, "liter"),
+        sources=(source,),
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.PROPORTIONAL_DILUTION,
+        target_profile=TargetWaterProfile(
+            "Alkalinity target",
+            (),
+            alkalinity=Alkalinity.mg_per_liter_as_caco3(50.0),
+        ),
+        diluent_source=diluent,
+    )
+
+    result = optimize_treatment(request)
+
+    assert result.input_support is OptimizerInputSupportStatus.INDETERMINATE
+    assert tuple(diagnostic.code for diagnostic in result.diagnostics) == (
+        OptimizerDiagnosticCode.REQUIRED_DILUENT_ALKALINITY_UNKNOWN,
+    )
+
+
+def test_source_volume_policy_optimizes_total_alkalinity() -> None:
+    sources = (
+        _available_source_with_alkalinity(
+            "High alkalinity",
+            current_liters=5.0,
+            maximum_liters=10.0,
+            alkalinity_mg_per_liter_as_caco3=100.0,
+        ),
+        _available_source_with_alkalinity(
+            "Zero alkalinity",
+            current_liters=5.0,
+            maximum_liters=10.0,
+            alkalinity_mg_per_liter_as_caco3=0.0,
+        ),
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(10, "liter"),
+        sources=sources,
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.SOURCE_VOLUMES,
+        target_profile=TargetWaterProfile(
+            "Alkalinity target",
+            (),
+            alkalinity=Alkalinity.mg_per_liter_as_caco3(25.0),
+        ),
+    )
+
+    result = optimize_treatment(request)
+
+    assert result.input_support is OptimizerInputSupportStatus.SUPPORTED
+    assert len(result.plans) == 1
+    plan = result.plans[0]
+    assert tuple(float(entry.volume.magnitude) for entry in plan.source_volumes) == (
+        pytest.approx(2.5),
+        pytest.approx(7.5),
+    )
+    assert plan.calculation.final_alkalinity is not None
+    assert plan.calculation.final_alkalinity.concentration.magnitude == pytest.approx(
+        25.0
+    )
+    assert plan.target_fit is OptimizerTargetFitStatus.WITHIN_TARGET
+
+
+def test_source_volume_policy_rejects_unknown_available_source_alkalinity() -> None:
+    sources = (
+        _available_source_with_alkalinity(
+            "Known alkalinity",
+            current_liters=10.0,
+            maximum_liters=10.0,
+            alkalinity_mg_per_liter_as_caco3=50.0,
+        ),
+        _available_source(
+            "Unknown alkalinity",
+            current_liters=0.0,
+            maximum_liters=10.0,
+        ),
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(10, "liter"),
+        sources=sources,
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.SOURCE_VOLUMES,
+        target_profile=TargetWaterProfile(
+            "Alkalinity target",
+            (),
+            alkalinity=Alkalinity.mg_per_liter_as_caco3(25.0),
+        ),
+    )
+
+    result = optimize_treatment(request)
+
+    assert result.input_support is OptimizerInputSupportStatus.INDETERMINATE
+    assert result.plans == ()
+    assert tuple(diagnostic.code for diagnostic in result.diagnostics) == (
+        OptimizerDiagnosticCode.REQUIRED_SOURCE_ALKALINITY_UNKNOWN,
+    )
+    assert result.diagnostics[0].source_name == "Unknown alkalinity"
 
 
 def test_coefficient_builders_fail_closed_for_unsupported_targets() -> None:

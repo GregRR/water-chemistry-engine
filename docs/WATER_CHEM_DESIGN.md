@@ -467,8 +467,10 @@ blending, the reviewed sodium-bicarbonate contribution, modeled final total
 alkalinity, exact/range/lower-bound/upper-bound target comparison, and
 contribution-matrix reporting. One-sided reported source values remain
 unresolved and are never treated as exact starting alkalinity. Optimizer
-admission/replay remains pending; sodium bicarbonate is not yet automatically
-selectable by the optimizer.
+admission covers fixed blends, proportional dilution, and bounded source-volume
+selection. Sodium bicarbonate is selectable only with resolved starting
+alkalinity and an alkalinity criterion, and every chosen practical dose is
+replayed through the ordinary forward workflow before acceptance.
 
 ### 9.7 pH is a logarithmic scientific invariant
 

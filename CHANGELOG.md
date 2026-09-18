@@ -34,6 +34,11 @@ comparison-expansion milestone is in progress.
 - Added one-sided lower/upper total-alkalinity values. They remain unresolved
   when used as source reports and act as supported numeric bounds when used as
   target criteria.
+- Added total-alkalinity optimization across fixed blends, proportional
+  dilution, and bounded source-volume selection. The optimizer admits reviewed
+  sodium bicarbonate only when starting alkalinity is resolved and an
+  alkalinity criterion is present, includes its sodium effect normally, and
+  replays selected practical doses through the forward calculation.
 
 ### Documentation
 
