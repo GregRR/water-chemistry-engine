@@ -56,8 +56,12 @@ owner-controlled publication gates.
 For the first 0.5 conservative-equivalent total-alkalinity checkpoint, read:
 
 1. `0.5-alkalinity-pass-1.md`
+2. `0.5-alkalinity-remediation-follow-up.md`
 
 That record preserves the independent scientific/code review of the first
 source-to-final alkalinity slice and the maintainer's finding-by-finding
 adjudication. The confirmed corrections cover equivalent-mass provenance and
 compatibility disclosure plus contribution-matrix and target-boundary tests.
+The follow-up independently verified every finding closed, ran the complete
+quality gate, found no new defect, and cleared the checkpoint for dependent 0.5
+development.
