@@ -10,6 +10,10 @@ from water_chemistry_engine.alkalinity_balance import (
     UnresolvedSourceAlkalinityReason,
 )
 from water_chemistry_engine.concentrations import IonConcentration
+from water_chemistry_engine.contribution_matrix import (
+    SourceContributionCellStatus,
+    TreatmentContributionCellStatus,
+)
 from water_chemistry_engine.forward_calculator import (
     ForwardWaterSource,
     calculate_forward_water,
@@ -142,6 +146,41 @@ def test_positive_volume_unknown_propagates_but_known_contributions_remain() -> 
     assert len(result.alkalinity_balance.final.treatment_contributions) == 1
 
 
+def test_alkalinity_matrix_distinguishes_zero_unknown_and_known_sources() -> None:
+    zero_volume = _source("Zero volume", None)
+    unknown = _source("Unknown", None)
+    known = _source("Known", Alkalinity.mg_per_liter_as_caco3(80.0))
+
+    result = calculate_forward_water(
+        (
+            ForwardWaterSource(zero_volume, Q_(0, "liter")),
+            ForwardWaterSource(unknown, Q_(5, "liter")),
+            ForwardWaterSource(known, Q_(5, "liter")),
+        ),
+        source_resolution_policy=REPORTED_ONLY,
+        treatment_additions=(TreatmentAddition(SODIUM_BICARBONATE, Q_(1, "gram")),),
+    )
+
+    row = result.contribution_matrix.alkalinity_row
+    assert row is not None
+    assert tuple(cell.status for cell in row.source_contributions) == (
+        SourceContributionCellStatus.ZERO_VOLUME,
+        SourceContributionCellStatus.SOURCE_CONCENTRATION_UNKNOWN,
+        SourceContributionCellStatus.KNOWN,
+    )
+    assert row.source_contributions[0].weighted_contribution is None
+    assert row.source_contributions[1].weighted_contribution is None
+    assert row.source_contributions[2].weighted_contribution.magnitude == 40.0
+    assert row.blend_alkalinity is None
+    assert row.final_alkalinity is None
+    assert len(row.treatment_contributions) == 1
+    assert (
+        row.treatment_contributions[0].status
+        is TreatmentContributionCellStatus.CONTRIBUTES
+    )
+    assert row.treatment_contributions[0].contribution is not None
+
+
 def test_one_gram_per_liter_sodium_bicarbonate_adds_expected_alkalinity() -> None:
     source = _source("Zero", Alkalinity.mg_per_liter_as_caco3(0.0))
 
@@ -240,3 +279,44 @@ def test_final_alkalinity_is_compared_with_range_target() -> None:
     )
     assert comparison.alkalinity_comparison.deviation.magnitude == 0.0
     assert comparison.status is TargetProfileComparisonStatus.SATISFIED
+
+
+@pytest.mark.parametrize(
+    ("source_value", "expected_status", "expected_deviation"),
+    (
+        (90.0, TargetAlkalinityComparisonStatus.ABOVE_TARGET, 5.0),
+        (
+            85.0 + 0.5e-9,
+            TargetAlkalinityComparisonStatus.WITHIN_TARGET,
+            0.0,
+        ),
+    ),
+)
+def test_alkalinity_range_upper_boundary_and_numerical_tolerance(
+    source_value: float,
+    expected_status: TargetAlkalinityComparisonStatus,
+    expected_deviation: float,
+) -> None:
+    source = _source(
+        "Source",
+        Alkalinity.mg_per_liter_as_caco3(source_value),
+    )
+    target = TargetWaterProfile(
+        name="Alkalinity range",
+        concentrations=(),
+        alkalinity=Alkalinity.mg_per_liter_as_caco3_range(75.0, 85.0),
+    )
+
+    result = calculate_forward_water(
+        (ForwardWaterSource(source, Q_(10, "liter")),),
+        source_resolution_policy=REPORTED_ONLY,
+        target_profile=target,
+    )
+
+    comparison = result.final_target_comparison
+    assert comparison is not None
+    assert comparison.alkalinity_comparison is not None
+    assert comparison.alkalinity_comparison.status is expected_status
+    assert comparison.alkalinity_comparison.deviation.magnitude == pytest.approx(
+        expected_deviation
+    )

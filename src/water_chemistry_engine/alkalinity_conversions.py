@@ -17,14 +17,17 @@ from fermunits import Q_, Quantity
 
 from water_chemistry_engine.quantity_types import ScalarQuantity
 
-# USGS PHREEQC documentation uses approximately 50.04 g/eq for alkalinity
-# reported "as CaCO3". Its PHREEQC FAQ gives 61.0173 g/eq for alkalinity
-# reported "as HCO3". Bicarbonate carries one equivalent per mole, so the
-# ratio of these equivalent masses converts the same number of equivalents
-# between the two mass-reporting bases.
+# The project derives 50.04345 g/eq for the CaCO3 reporting basis from a
+# conventional CaCO3 formula mass of 100.0869 g/mol divided by valence 2. This
+# is consistent with the approximately 50.04 g/eq value documented by USGS
+# PHREEQC. Its FAQ gives 61.0173 g/eq for alkalinity reported "as HCO3".
+# Bicarbonate carries one equivalent per mole, so the ratio of these equivalent
+# masses converts the same number of equivalents between reporting bases.
 #
 # Sources:
-# - USGS PHREEQC SOLUTION documentation: CaCO3 equivalent mass ~50.04 g/eq
+# - CaCO3 formula mass: 100.0869 g/mol / 2 = 50.04345 g/eq
+# - USGS PHREEQC SOLUTION documentation: CaCO3 equivalent mass approximately
+#   50.04 g/eq
 # - USGS PHREEQC FAQ, question 184: HCO3 equivalent mass 61.0173 g/eq
 CACO3_EQUIVALENT_MASS_G_PER_EQ = 50.04345
 _BICARBONATE_EQUIVALENT_MASS_G_PER_EQ = 61.0173
@@ -48,7 +51,7 @@ def bicarbonate_from_bicarbonate_alkalinity_as_caco3(
     The conversion preserves equivalents:
 
         mg/L HCO3 =
-            mg/L as CaCO3 * (61.0173 g/eq HCO3 / 50.04 g/eq CaCO3)
+            mg/L as CaCO3 * (61.0173 g/eq HCO3 / 50.04345 g/eq CaCO3)
 
     The returned quantity is normalized to milligrams per liter.
     """

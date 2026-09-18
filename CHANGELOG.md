@@ -8,6 +8,15 @@ distribution and its repository milestones.
 Development of the total-alkalinity, treatment-material, profile, and
 comparison-expansion milestone is in progress.
 
+### Compatibility warning
+
+- Refined the CaCO3 equivalent-mass constant from 50.04 to 50.04345 g/eq and
+  made it the single calculation constant used by both the new alkalinity model
+  and `bicarbonate_from_bicarbonate_alkalinity_as_caco3`. For an input of
+  100 mg/L, that existing conversion now returns approximately 121.92864 rather
+  than 121.93705 mg/L HCO3. Consumers comparing exact derived values should
+  expect this small precision change.
+
 ### Added
 
 - Added optional target-profile provenance with explicit evidentiary

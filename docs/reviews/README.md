@@ -52,3 +52,12 @@ That record summarizes the independent discovery and focused release reviews,
 the README remediation follow-up, exact-candidate CI, finding dispositions,
 artifact reproducibility, clean-install results, and the remaining explicit
 owner-controlled publication gates.
+
+For the first 0.5 conservative-equivalent total-alkalinity checkpoint, read:
+
+1. `0.5-alkalinity-pass-1.md`
+
+That record preserves the independent scientific/code review of the first
+source-to-final alkalinity slice and the maintainer's finding-by-finding
+adjudication. The confirmed corrections cover equivalent-mass provenance and
+compatibility disclosure plus contribution-matrix and target-boundary tests.

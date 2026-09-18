@@ -4,8 +4,14 @@ import pytest
 from fermunits import Q_
 
 from water_chemistry_engine.alkalinity_conversions import (
+    CACO3_EQUIVALENT_MASS_G_PER_EQ,
     bicarbonate_from_bicarbonate_alkalinity_as_caco3,
 )
+
+
+def test_caco3_equivalent_mass_is_pinned_to_formula_mass_derivation() -> None:
+    assert CACO3_EQUIVALENT_MASS_G_PER_EQ == 50.04345
+    assert CACO3_EQUIVALENT_MASS_G_PER_EQ == pytest.approx(100.0869 / 2.0)
 
 
 def test_bicarbonate_alkalinity_as_caco3_converts_by_equivalent_mass() -> None:
