@@ -65,3 +65,14 @@ compatibility disclosure plus contribution-matrix and target-boundary tests.
 The follow-up independently verified every finding closed, ran the complete
 quality gate, found no new defect, and cleared the checkpoint for dependent 0.5
 development.
+
+For the one-sided-bound and total-alkalinity optimizer checkpoint, read:
+
+1. `0.5-alkalinity-optimizer-review.md`
+
+The independent review ran the complete quality gate, found no calculation or
+scientific defect, and cleared the checkpoint. It identified one documentation-
+completeness finding: the mixed ion/alkalinity objective needed an explicit
+statement that its unweighted cross-basis sum is ranking policy rather than a
+scientific equivalence claim. The finding was accepted and remediated in the
+active roadmap and consumer guide.

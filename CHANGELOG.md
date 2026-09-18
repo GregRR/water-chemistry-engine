@@ -47,6 +47,9 @@ comparison-expansion milestone is in progress.
   target comparison, contribution reporting, optimizer admission,
   post-rounding replay, public-consumer responsibilities, scientific sources,
   and explicit exclusions for carbonate speciation and calculated pH.
+- Documented that mixed ion/alkalinity optimization uses an unweighted ranking
+  across different reporting bases as a project policy, not as a claim of
+  scientific interchangeability.
 
 ## 0.4.1 - 2026-09-14
 

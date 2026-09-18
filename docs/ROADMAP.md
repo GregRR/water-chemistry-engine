@@ -244,7 +244,12 @@ Source-volume optimization instead uses one bounded continuous decision per
 caller-permitted source. The solver then
 uses lower total measured material mass as a tie-breaker. This is an explicit
 mathematical ranking policy, not a sensory or process-equivalence claim across
-ions. Every accepted plan is recalculated through the ordinary forward path.
+criteria. When a request combines ion and total-alkalinity criteria, the
+unweighted sum includes ion deviations in mg/L and alkalinity deviations in
+mg/L as CaCO3. This ranking convenience does not claim that one unit of ion
+mass deviation and one unit of equivalent-mass alkalinity deviation are
+scientifically interchangeable. Every accepted plan is recalculated through
+the ordinary forward path.
 An optionally requested no-dilution best-effort plan is independently solved
 and returned only when operationally distinct; source limits that make it
 impossible are reported explicitly. For source-volume optimization, all

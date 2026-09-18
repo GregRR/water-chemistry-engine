@@ -474,6 +474,12 @@ conceptually distinct: `Alkalinity` preserves report/target values while
 `ModeledAlkalinity` identifies calculated output and its model. Optimizer
 admission is supported when every contributing source alkalinity is resolved
 and the target supplies an exact, range, or one-sided alkalinity criterion.
+When ion and alkalinity criteria are combined, the
+`closest_absolute_mg_per_liter_v1` ranking includes ion deviations in mg/L and
+total-alkalinity deviations in mg/L as CaCO3 in the same unweighted absolute-
+deviation sum. This is an explicit ranking convenience, not a claim that ion
+mass and equivalent-mass alkalinity deviations are scientifically
+interchangeable.
 `AlkalinityBalanceResult.limitations` supplies stable
 `AlkalinityModelLimitation` codes for complete-dissolution, unmodeled-reaction,
 precipitation/dissolution, carbonate-speciation, and working-water-pH limits.
