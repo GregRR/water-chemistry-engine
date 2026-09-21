@@ -20,6 +20,7 @@ from water_chemistry_engine.treatment_ingredients import (
 from water_chemistry_engine.treatment_materials import (
     ExactMassDosedTreatmentMaterial,
     ExactMassFractionTreatmentMaterial,
+    ExactMassPerVolumeDosedSolutionTreatmentMaterial,
     ExactVolumeDosedSolutionTreatmentMaterial,
     RangedMassFractionTreatmentMaterial,
     TreatmentMaterialForm,
@@ -424,6 +425,23 @@ def test_optimizer_material_constraint_rejects_volume_dosed_solution() -> None:
         active_mass_fraction=Q_(32.5, "percent"),
         density=Q_(1.2, "gram / milliliter"),
         density_reference_temperature=Q_(20, "degree_Celsius"),
+        dose_increment=Q_(1, "milliliter"),
+    )
+
+    with pytest.raises(TypeError, match="exact-composition mass-dosed material"):
+        OptimizerMaterialConstraint(
+            material,  # type: ignore[arg-type]
+            Q_(10, "gram"),
+        )
+
+
+def test_optimizer_constraint_rejects_mass_per_volume_solution() -> None:
+    material = ExactMassPerVolumeDosedSolutionTreatmentMaterial(
+        key="calcium_chloride_mass_per_volume_solution",
+        name="100 g/L calcium chloride solution",
+        ingredient=CALCIUM_CHLORIDE_ANHYDROUS,
+        active_mass_concentration=Q_(100, "gram / liter"),
+        concentration_reference_temperature=Q_(20, "degree_Celsius"),
         dose_increment=Q_(1, "milliliter"),
     )
 

@@ -58,6 +58,10 @@ comparison-expansion milestone is in progress.
   aqueous solutions when exact density, density reference temperature, and a
   matching measurement temperature are supplied. Mismatched temperatures are
   rejected because thermal density correction is not modeled.
+- Added deterministic manual volume-dose resolution for aqueous solutions with
+  an exact active-chemical mass-per-volume concentration and stated reference
+  temperature. This basis resolves active mass directly without inferring
+  solution density; temperature mismatch and optimizer use remain unsupported.
 
 ### Documentation
 

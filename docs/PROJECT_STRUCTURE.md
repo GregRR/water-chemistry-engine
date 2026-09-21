@@ -84,9 +84,10 @@ practical dose solver for fixed blends, proportional dilution, and bounded
 source-volume selection, including ranked alternatives and an optional
 no-dilution comparison plan. Broader material authoring—including ranged
 assays and liquid concentration/density semantics—begins in 0.5 with exact and
-ranged mass-fraction materials plus exact-density manual solution-volume
-resolution. Density interpolation, ranged-composition calculation policy,
-practical-use limits, and volume-dose optimization remain subsequent work.
+ranged mass-fraction materials, exact-density manual solution-volume
+resolution, and exact mass-per-volume manual solution dosing. Thermal
+correction, ranged-composition calculation policy, practical-use limits, and
+volume-dose optimization remain subsequent work.
 
 Release 0.5 adds a separate modeled-total-alkalinity result graph across source
 resolution, blending, reviewed treatment contributions, final state, target

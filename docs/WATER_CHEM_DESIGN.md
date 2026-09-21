@@ -842,10 +842,12 @@ actually dosed. It may require:
 "Liquid" is therefore not a hydration state analogous to anhydrous or
 dihydrate. It is a material/solution containing an underlying chemical
 identity. A mass-fraction solution can be resolved from measured solution mass
-to active chemical mass without density. A volume dose requires enough
-concentration and density information to perform a defensible conversion; the
-engine must never assume that a concentrated aqueous solution has density
-1 g/mL.
+to active chemical mass without density. A volume dose requires an explicit
+basis that can defensibly resolve active mass: mass fraction additionally
+requires solution density, while an exact active-mass-per-solution-volume basis
+does not. Any volume-dependent basis must retain its applicable temperature
+condition. The engine must never assume that a concentrated aqueous solution
+has density 1 g/mL.
 
 Reported assay or concentration ranges must remain ranges. The engine must not
 silently replace a commercial specification such as 77–80% with its arithmetic
@@ -894,10 +896,11 @@ solution form. Exact fractions resolve measured material mass to active
 chemical mass and then reuse ordinary `TreatmentAddition` semantics. Ranged
 fractions preserve their endpoints and return active-mass bounds; they cannot
 produce an exact addition or silently use a midpoint. This supports mass dosing
-without density. Volume dosing remains unsupported because no density or
-reference-temperature assumption is inferred. Optional composition-source
-metadata retains the document behind a material definition separately from the
-chemical identity and from any future practical-use-limit policy.
+without density. Those mass-fraction types do not themselves permit volume
+dosing because no density or reference-temperature assumption is inferred.
+Optional composition-source metadata retains the document behind a material
+definition separately from the chemical identity and from any future
+practical-use-limit policy.
 
 The optimizer accepts exact mass-fraction materials without changing its
 measured-dose semantics. Whole increments, request maximums, and mass ranking
@@ -919,6 +922,17 @@ thermal correction. The result retains measured volume, measurement
 temperature, solution mass, active chemical mass, the ordinary treatment
 addition, and operator-facing text. Composition and density provenance remain
 separate. This is a manual resolution path and is not admitted to the optimizer.
+
+An aqueous solution specified directly as exact active chemical mass per
+solution volume has a distinct manual resolution path. It requires the
+concentration's reference temperature and a matching measurement temperature,
+then calculates active mass directly from measured volume times concentration.
+Density and total solution mass are neither required nor inferred because this
+reporting basis already relates active mass to solution volume. The result
+retains measured volume, measurement temperature, active chemical mass, the
+ordinary treatment addition, and operator-facing text. Its concentration
+source remains distinct from chemical identity. Temperature correction and
+optimizer admission remain unsupported.
 
 ### 9.17 Future TreatmentPlan
 
@@ -1435,7 +1449,8 @@ Version 1 decision variables may include:
 
 - volume or fraction of each source water;
 - mass of each supported treatment material;
-- treatment-material volume only when concentration basis and density data make conversion to mass deterministic;
+- treatment-material volume only when an explicit mass-per-volume basis or
+  mass-fraction-plus-density data make active-mass conversion deterministic;
 - optional binary variable indicating whether a treatment material is used;
 - practical rounded amount where discrete dosing is required.
 
@@ -1744,7 +1759,9 @@ The 0.5 alkalinity slice must cover at least:
 
 - Treat acids and alkalis as hazardous once supported.
 - Include practical-dose limits and clear warning codes.
-- Never infer missing concentration, concentration basis, purity/assay, hydration state, liquid density/reference temperature, or reporting basis without exposing the assumption.
+- Never infer missing concentration, concentration basis, purity/assay,
+  hydration state, liquid density, applicable volume-reference temperature, or
+  reporting basis without exposing the assumption.
 - Never replace a ranged commercial assay/concentration with an unlabeled midpoint and present it as exact.
 - Never model chalk as a fixed complete-dissolution Ca2+/carbonate addition without a validated carbonate/CO2 and dissolution/precipitation model.
 - Never silently replace reported data with calculated data.
@@ -1896,7 +1913,8 @@ Completed:
 - broader solid-material purity/assay semantics and explicit ranged-assay
   policy;
 - liquid concentration-basis semantics and mass dosing;
-- volume dosing only where density/reference-temperature data support it;
+- volume dosing only where an explicit mass-per-volume basis or exact density
+  and the applicable reference temperature support it;
 - practical-use limits and broader validated material definitions;
 - generic target/reference classification and provenance enhancements;
 - curated profiles and standards only where evidence supports their stated

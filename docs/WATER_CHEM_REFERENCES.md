@@ -215,6 +215,22 @@ Treatment-material evidence should cover where applicable:
 
 Preferred sources include NIST, PubChem, recognized chemical suppliers' technical specifications, pharmacopeial/food-grade standards, and peer-reviewed chemistry references.
 
+#### Solution concentration terminology
+
+- **IUPAC Compendium of Chemical Terminology (Gold Book), “mass
+  concentration,” term M03713**
+  - DOI: https://doi.org/10.1351/goldbook.M03713
+  - Type: authoritative chemical terminology
+  - Relevant definition: mass of a constituent divided by the volume of the
+    mixture.
+  - Use: supports the exact active-chemical-mass-per-solution-volume material
+    basis and the calculation `active mass = mass concentration × measured
+    solution volume`.
+  - Project policy: the initial engine contract requires the measurement
+    temperature to match the stated concentration reference temperature and
+    provides no thermal correction. This fail-closed condition is project
+    policy; it is not a numerical rule supplied by the IUPAC definition.
+
 #### Calcium chloride identity and material references
 
 - **PubChem CID 5284359 — Calcium chloride (`CaCl2`)**
@@ -499,8 +515,10 @@ Historical city profiles must not be labeled as a brewery's actual treated liquo
    chemical mass fractions now cover solid and aqueous-solution mass dosing;
    ranged specifications stay unresolved. Exact-density manual volume dosing
    now requires a retained reference temperature and matching measurement
-   condition. Density interpolation, volume-dose optimization, and practical-
-   use-limit policy remain to be defined before use.
+   condition. An exact active-mass-per-solution-volume basis can resolve a
+   manual volume dose directly under the same temperature-match rule without
+   inferring density. Thermal correction, volume-dose optimization, and
+   practical-use-limit policy remain to be defined before use.
 3. Implement and validate the 0.5 conservative-equivalent total-alkalinity
    model from the registered authoritative sources while preserving the
    distinction among alkalinity, bicarbonate, carbonate, and `as CaCO3`

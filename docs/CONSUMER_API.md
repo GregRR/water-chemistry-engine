@@ -102,6 +102,15 @@ density reference temperature; the engine rejects a mismatch because it has no
 thermal density-correction model. Composition and density may retain separate
 source documents. This volume-dosed type is not an optimizer material.
 
+`ExactMassPerVolumeDosedSolutionTreatmentMaterial` supports the other explicit
+volume-compatible concentration basis: active chemical mass per solution
+volume. It requires an exact mass concentration, its reference temperature,
+and the actual measurement temperature. `resolve_volume_dose` returns
+`ResolvedMassPerVolumeSolutionDose` with measured volume and active chemical
+mass; it does not claim to know total solution mass and does not infer density.
+The temperatures must match because thermal correction remains unsupported.
+This type is also manual-only and is not an optimizer material.
+
 The facade also supports the complete source-report construction graph retained
 by `SourceWaterProfile`: reported pH and disinfectants, source-document
 metadata, water and physical-source identity, observation/result context,
@@ -170,7 +179,9 @@ The exact initial facade is:
   `SIMPLE_MINERAL_INGREDIENTS`; plus
   `ExactMassDosedTreatmentMaterial`, `ExactMassFractionTreatmentMaterial`,
   `RangedMassFractionTreatmentMaterial`,
+  `ExactMassPerVolumeDosedSolutionTreatmentMaterial`,
   `ExactVolumeDosedSolutionTreatmentMaterial`,
+  `ResolvedMassPerVolumeSolutionDose`,
   `ResolvedTreatmentMaterialVolumeDose`, `TreatmentMaterialForm`, and
   `TreatmentMaterialActiveMassRange` for physical treatment materials;
 - comparison interpretation: `TargetIonComparison`,

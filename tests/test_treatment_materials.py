@@ -9,8 +9,10 @@ from water_chemistry_engine.treatment_ingredients import (
 from water_chemistry_engine.treatment_materials import (
     ExactMassDosedTreatmentMaterial,
     ExactMassFractionTreatmentMaterial,
+    ExactMassPerVolumeDosedSolutionTreatmentMaterial,
     ExactVolumeDosedSolutionTreatmentMaterial,
     RangedMassFractionTreatmentMaterial,
+    ResolvedMassPerVolumeSolutionDose,
     ResolvedTreatmentMaterialVolumeDose,
     TreatmentMaterialActiveMassRange,
     TreatmentMaterialForm,
@@ -243,6 +245,191 @@ def test_treatment_material_rejects_invalid_composition_source() -> None:
             active_mass_fraction=Q_(90, "percent"),
             dose_increment=Q_(0.1, "gram"),
             composition_source="manufacturer website",  # type: ignore[arg-type]
+        )
+
+
+def _mass_per_volume_solution() -> ExactMassPerVolumeDosedSolutionTreatmentMaterial:
+    source = SourceDocumentMetadata(
+        publisher="Example manufacturer",
+        title="Mass-per-volume solution specification",
+    )
+    return ExactMassPerVolumeDosedSolutionTreatmentMaterial(
+        key="calcium_chloride_mass_per_volume_solution",
+        name="10 g per 100 mL calcium chloride solution",
+        ingredient=CALCIUM_CHLORIDE_ANHYDROUS,
+        active_mass_concentration=Q_(10, "gram / deciliter"),
+        concentration_reference_temperature=Q_(20, "degree_Celsius"),
+        dose_increment=Q_(1, "milliliter"),
+        concentration_source=source,
+    )
+
+
+def test_mass_per_volume_solution_resolves_active_mass_directly() -> None:
+    material = _mass_per_volume_solution()
+
+    result = material.resolve_volume_dose(
+        Q_(25, "milliliter"),
+        measurement_temperature=Q_(68, "degree_Fahrenheit"),
+    )
+
+    assert isinstance(result, ResolvedMassPerVolumeSolutionDose)
+    assert material.form is TreatmentMaterialForm.AQUEOUS_SOLUTION
+    assert material.normalized_active_mass_concentration.magnitude == pytest.approx(0.1)
+    assert material.normalized_concentration_reference_temperature.magnitude == (
+        pytest.approx(20.0)
+    )
+    assert result.measured_volume.magnitude == pytest.approx(25.0)
+    assert result.measurement_temperature.magnitude == pytest.approx(20.0)
+    assert result.active_chemical_mass.magnitude == pytest.approx(2.5)
+    assert result.treatment_addition.mass.magnitude == pytest.approx(2.5)
+    assert material.concentration_source is not None
+    assert not hasattr(material, "density")
+    assert not hasattr(result, "solution_mass")
+    assert result.preparation_text == (
+        "Measure 25 mL of 10 g per 100 mL calcium chloride solution at 20 °C; "
+        "this supplies 2.5 g of Calcium chloride anhydrous (CaCl2)."
+    )
+
+
+def test_mass_per_volume_solution_normalizes_equivalent_units() -> None:
+    material = ExactMassPerVolumeDosedSolutionTreatmentMaterial(
+        key="equivalent_units",
+        name="Solution with g/L concentration",
+        ingredient=CALCIUM_CHLORIDE_ANHYDROUS,
+        active_mass_concentration=Q_(100, "gram / liter"),
+        concentration_reference_temperature=Q_(20, "degree_Celsius"),
+        dose_increment=Q_(0.001, "liter"),
+    )
+
+    result = material.resolve_volume_dose(
+        Q_(0.025, "liter"),
+        measurement_temperature=Q_(20, "degree_Celsius"),
+    )
+
+    assert material.normalized_active_mass_concentration.magnitude == pytest.approx(0.1)
+    assert material.normalized_dose_increment.magnitude == pytest.approx(1.0)
+    assert result.active_chemical_mass.magnitude == pytest.approx(2.5)
+
+
+@pytest.mark.parametrize(
+    "concentration",
+    (
+        Q_(0, "gram / liter"),
+        Q_(-1, "gram / liter"),
+        Q_(float("nan"), "gram / liter"),
+        Q_(float("inf"), "gram / liter"),
+    ),
+)
+def test_mass_per_volume_solution_rejects_invalid_concentration(
+    concentration: object,
+) -> None:
+    with pytest.raises(ValueError, match="concentration must be finite and positive"):
+        ExactMassPerVolumeDosedSolutionTreatmentMaterial(
+            key="invalid",
+            name="Invalid solution",
+            ingredient=CALCIUM_CHLORIDE_ANHYDROUS,
+            active_mass_concentration=concentration,  # type: ignore[arg-type]
+            concentration_reference_temperature=Q_(20, "degree_Celsius"),
+            dose_increment=Q_(1, "milliliter"),
+        )
+
+
+def test_mass_per_volume_solution_rejects_wrong_concentration_dimension() -> None:
+    with pytest.raises(ValueError, match="convertible to mass per volume"):
+        ExactMassPerVolumeDosedSolutionTreatmentMaterial(
+            key="invalid",
+            name="Invalid solution",
+            ingredient=CALCIUM_CHLORIDE_ANHYDROUS,
+            active_mass_concentration=Q_(100, "gram"),
+            concentration_reference_temperature=Q_(20, "degree_Celsius"),
+            dose_increment=Q_(1, "milliliter"),
+        )
+
+
+def test_mass_per_volume_solution_rejects_temperature_mismatch() -> None:
+    material = _mass_per_volume_solution()
+
+    with pytest.raises(ValueError, match="must match the concentration reference"):
+        material.resolve_volume_dose(
+            Q_(25, "milliliter"),
+            measurement_temperature=Q_(25, "degree_Celsius"),
+        )
+
+
+def test_mass_per_volume_solution_rejects_invalid_reference_temperature() -> None:
+    with pytest.raises(ValueError, match="reference temperature must be finite"):
+        ExactMassPerVolumeDosedSolutionTreatmentMaterial(
+            key="invalid",
+            name="Invalid solution",
+            ingredient=CALCIUM_CHLORIDE_ANHYDROUS,
+            active_mass_concentration=Q_(100, "gram / liter"),
+            concentration_reference_temperature=Q_(float("nan"), "degree_Celsius"),
+            dose_increment=Q_(1, "milliliter"),
+        )
+
+
+def test_mass_per_volume_solution_rejects_wrong_temperature_dimension() -> None:
+    material = _mass_per_volume_solution()
+
+    with pytest.raises(ValueError, match="convertible to temperature"):
+        material.resolve_volume_dose(
+            Q_(25, "milliliter"),
+            measurement_temperature=Q_(20, "gram"),
+        )
+
+
+@pytest.mark.parametrize(
+    "increment",
+    (
+        Q_(0, "milliliter"),
+        Q_(-1, "milliliter"),
+        Q_(float("nan"), "milliliter"),
+        Q_(float("inf"), "milliliter"),
+    ),
+)
+def test_mass_per_volume_solution_rejects_invalid_increment(increment: object) -> None:
+    with pytest.raises(ValueError, match="increment must be finite and positive"):
+        ExactMassPerVolumeDosedSolutionTreatmentMaterial(
+            key="invalid",
+            name="Invalid solution",
+            ingredient=CALCIUM_CHLORIDE_ANHYDROUS,
+            active_mass_concentration=Q_(100, "gram / liter"),
+            concentration_reference_temperature=Q_(20, "degree_Celsius"),
+            dose_increment=increment,  # type: ignore[arg-type]
+        )
+
+
+def test_mass_per_volume_solution_allows_zero_measured_volume() -> None:
+    material = _mass_per_volume_solution()
+
+    result = material.resolve_volume_dose(
+        Q_(0, "milliliter"),
+        measurement_temperature=Q_(20, "degree_Celsius"),
+    )
+
+    assert result.active_chemical_mass.magnitude == pytest.approx(0.0)
+
+
+def test_mass_per_volume_solution_rejects_negative_measured_volume() -> None:
+    material = _mass_per_volume_solution()
+
+    with pytest.raises(ValueError, match="finite and nonnegative"):
+        material.resolve_volume_dose(
+            Q_(-1, "milliliter"),
+            measurement_temperature=Q_(20, "degree_Celsius"),
+        )
+
+
+def test_mass_per_volume_solution_rejects_invalid_concentration_source() -> None:
+    with pytest.raises(TypeError, match="concentration source must be"):
+        ExactMassPerVolumeDosedSolutionTreatmentMaterial(
+            key="invalid",
+            name="Invalid solution",
+            ingredient=CALCIUM_CHLORIDE_ANHYDROUS,
+            active_mass_concentration=Q_(100, "gram / liter"),
+            concentration_reference_temperature=Q_(20, "degree_Celsius"),
+            dose_increment=Q_(1, "milliliter"),
+            concentration_source="product label",  # type: ignore[arg-type]
         )
 
 

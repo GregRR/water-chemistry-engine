@@ -513,10 +513,12 @@ real material a user measures and adds.
   unlabeled percentage whose meaning could be mass fraction, mass/volume, or
   another convention.
 - Mass-based dosing of aqueous solutions is supported when an exact mass
-  fraction is supplied. Manual volume dosing is supported only with exact
-  density, density reference temperature, and a matching measurement
-  temperature. Thermal density correction and volume-dose optimization remain
-  unsupported.
+  fraction is supplied. Manual volume dosing is supported either when exact
+  mass fraction, density, density reference temperature, and a matching
+  measurement temperature are supplied, or when an exact active-mass-per-
+  solution-volume concentration and matching reference/measurement
+  temperatures are supplied. Thermal correction and volume-dose optimization
+  remain unsupported.
 - Density is retained with its reference temperature and may carry separate
   source-document provenance. The engine never assumes a concentrated aqueous
   treatment solution has density 1 g/mL.
