@@ -199,6 +199,48 @@ def test_target_profile_provenance_uses_only_package_root_imports() -> None:
     assert target.provenance is provenance
 
 
+def test_volume_dosed_solution_flows_through_package_root_forward_api() -> None:
+    """A resolved physical volume dose becomes an ordinary forward addition."""
+    material = wce.ExactVolumeDosedSolutionTreatmentMaterial(
+        key="calcium_chloride_solution",
+        name="Exact calcium chloride solution",
+        ingredient=wce.CALCIUM_CHLORIDE_ANHYDROUS,
+        active_mass_fraction=Q_(32.5, "percent"),
+        density=Q_(1.2, "gram / milliliter"),
+        density_reference_temperature=Q_(20, "degree_Celsius"),
+        dose_increment=Q_(1, "milliliter"),
+    )
+    resolved = material.resolve_volume_dose(
+        Q_(10, "milliliter"),
+        measurement_temperature=Q_(20, "degree_Celsius"),
+    )
+    source = wce.SourceWaterProfile(
+        name="Source",
+        concentrations=(
+            wce.IonConcentration.mg_per_liter(wce.Ion.CALCIUM, 0.0),
+            wce.IonConcentration.mg_per_liter(wce.Ion.CHLORIDE, 0.0),
+        ),
+    )
+
+    result = wce.calculate_forward_water(
+        (wce.ForwardWaterSource(source, Q_(10, "liter")),),
+        source_resolution_policy=wce.SourceResolutionPolicy(
+            allow_exact_range_midpoints=False
+        ),
+        treatment_additions=(resolved.treatment_addition,),
+    )
+
+    moles = 3.9 / 110.978
+    calcium = result.final_state.concentration_for(wce.Ion.CALCIUM)
+    chloride = result.final_state.concentration_for(wce.Ion.CHLORIDE)
+    assert calcium is not None
+    assert chloride is not None
+    assert resolved.solution_mass.magnitude == pytest.approx(12.0)
+    assert resolved.active_chemical_mass.magnitude == pytest.approx(3.9)
+    assert calcium.magnitude == pytest.approx(moles * 40.078 * 100.0)
+    assert chloride.magnitude == pytest.approx(moles * 2 * 35.45 * 100.0)
+
+
 def test_complete_forward_workflow_uses_only_package_root_imports() -> None:
     """A consumer can construct and interpret the proven workflow via the facade."""
     source_a = wce.SourceWaterProfile(
