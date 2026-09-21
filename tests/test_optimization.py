@@ -13,10 +13,14 @@ from water_chemistry_engine.optimization import (
 )
 from water_chemistry_engine.profiles import SourceWaterProfile
 from water_chemistry_engine.reported_values import SourceResolutionPolicy
-from water_chemistry_engine.treatment_ingredients import GYPSUM
+from water_chemistry_engine.treatment_ingredients import (
+    CALCIUM_CHLORIDE_ANHYDROUS,
+    GYPSUM,
+)
 from water_chemistry_engine.treatment_materials import (
     ExactMassDosedTreatmentMaterial,
     ExactMassFractionTreatmentMaterial,
+    ExactVolumeDosedSolutionTreatmentMaterial,
     RangedMassFractionTreatmentMaterial,
     TreatmentMaterialForm,
 )
@@ -409,6 +413,24 @@ def test_optimizer_material_constraint_rejects_ranged_mass_fraction() -> None:
         OptimizerMaterialConstraint(
             material,  # type: ignore[arg-type]
             Q_(1, "gram"),
+        )
+
+
+def test_optimizer_material_constraint_rejects_volume_dosed_solution() -> None:
+    material = ExactVolumeDosedSolutionTreatmentMaterial(
+        key="calcium_chloride_solution",
+        name="Exact calcium chloride solution",
+        ingredient=CALCIUM_CHLORIDE_ANHYDROUS,
+        active_mass_fraction=Q_(32.5, "percent"),
+        density=Q_(1.2, "gram / milliliter"),
+        density_reference_temperature=Q_(20, "degree_Celsius"),
+        dose_increment=Q_(1, "milliliter"),
+    )
+
+    with pytest.raises(TypeError, match="exact-composition mass-dosed material"):
+        OptimizerMaterialConstraint(
+            material,  # type: ignore[arg-type]
+            Q_(10, "gram"),
         )
 
 
