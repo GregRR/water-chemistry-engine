@@ -88,3 +88,13 @@ generic forward preparation instructions be stated directly on those types,
 especially when nested under an optimizer plan whose physical measured dose is
 different. The finding was accepted and remediated in the code-surface
 docstrings.
+
+For the exact-solution manual volume-dosing checkpoint, read:
+
+1. `0.5-volume-dosing-review.md`
+
+The independent review ran the complete quality gate, found no correctness,
+unit, fail-closed, or public-API safety defect, and cleared the checkpoint
+without remediation. It independently verified the mass calculation,
+unit-normalization and temperature-match boundaries, provenance separation,
+package-root forward workflow, and explicit optimizer rejection.
