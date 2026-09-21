@@ -76,3 +76,15 @@ completeness finding: the mixed ion/alkalinity objective needed an explicit
 statement that its unweighted cross-basis sum is ranking policy rather than a
 scientific equivalence claim. The finding was accepted and remediated in the
 active roadmap and consumer guide.
+
+For the anhydrous-calcium-chloride and mass-fraction-material checkpoint, read:
+
+1. `0.5-treatment-materials-review.md`
+
+The independent review ran the complete quality gate and cleared the
+implementation without a correctness, safety, or API-integrity defect. Its one
+documentation-locality finding asked that the active-chemical meaning of
+generic forward preparation instructions be stated directly on those types,
+especially when nested under an optimizer plan whose physical measured dose is
+different. The finding was accepted and remediated in the code-surface
+docstrings.

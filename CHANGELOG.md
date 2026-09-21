@@ -65,6 +65,9 @@ comparison-expansion milestone is in progress.
 - Documented that mixed ion/alkalinity optimization uses an unweighted ranking
   across different reporting bases as a project policy, not as a claim of
   scientific interchangeability.
+- Clarified directly on the generic forward preparation-instruction types that
+  their treatment mass is resolved active chemical mass and may differ from an
+  optimizer plan's operator-facing measured material dose.
 
 ## 0.4.1 - 2026-09-14
 

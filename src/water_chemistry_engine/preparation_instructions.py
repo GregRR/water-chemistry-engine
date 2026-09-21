@@ -84,7 +84,14 @@ class BlendPreparationInstruction:
 
 @dataclass(frozen=True, slots=True)
 class TreatmentPreparationInstruction:
-    """One positive-mass mineral addition in requested treatment order."""
+    """One positive active-chemical addition in requested treatment order.
+
+    ``mass`` and ``text`` describe the resolved ``TreatmentAddition`` used by
+    the forward calculation. When this result is nested in an optimizer plan
+    for a mass-fraction material, they are not the physical material dose; use
+    ``OptimizerMaterialAddition.preparation_text`` and its structured measured-
+    mass fields for operator-facing instructions.
+    """
 
     treatment_index: int
     addition: TreatmentAddition
@@ -92,7 +99,7 @@ class TreatmentPreparationInstruction:
 
     @property
     def text(self) -> str:
-        """Return a concise human-readable mineral-addition instruction."""
+        """Describe active chemical mass, which may differ from material mass."""
         ingredient = self.addition.ingredient
         return (
             f"Add {_format_grams(self.mass)} of {ingredient.name} "
@@ -102,7 +109,11 @@ class TreatmentPreparationInstruction:
 
 @dataclass(frozen=True, slots=True)
 class WaterPreparationInstructions:
-    """Structured fixed-blend and treatment instructions for one calculation."""
+    """Structured fixed-blend and active-chemical instructions for one calculation.
+
+    Optimizer plans using mass-fraction materials expose their physical dosing
+    instructions through ``OptimizerMaterialAddition`` instead.
+    """
 
     blend: BlendPreparationInstruction
     treatments: tuple[TreatmentPreparationInstruction, ...]
