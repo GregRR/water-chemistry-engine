@@ -174,7 +174,9 @@ from water_chemistry_engine.treatment_ingredients import (
 from water_chemistry_engine.treatment_materials import (
     ExactMassDosedTreatmentMaterial,
     ExactMassFractionTreatmentMaterial,
+    ExactVolumeDosedSolutionTreatmentMaterial,
     RangedMassFractionTreatmentMaterial,
+    ResolvedTreatmentMaterialVolumeDose,
     TreatmentMaterialActiveMassRange,
     TreatmentMaterialForm,
 )
@@ -215,6 +217,7 @@ __all__ = [
     "ExactConcentrationEndpoint",
     "ExactMassDosedTreatmentMaterial",
     "ExactMassFractionTreatmentMaterial",
+    "ExactVolumeDosedSolutionTreatmentMaterial",
     "FinalAlkalinityResult",
     "ForwardCalculationNotice",
     "ForwardNoticeCode",
@@ -265,6 +268,7 @@ __all__ = [
     "ResolvedSourceAlkalinity",
     "ResolvedSourceIon",
     "ResolvedTreatmentIon",
+    "ResolvedTreatmentMaterialVolumeDose",
     "ResultCoverage",
     "ScalarQuantity",
     "SourceAlkalinityContribution",

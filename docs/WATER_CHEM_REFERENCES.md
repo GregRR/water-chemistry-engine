@@ -497,8 +497,10 @@ Historical city profiles must not be labeled as a brewery's actual treated liquo
    checked formula-mass and ion-yield cases.
 2. Continue validating treatment-material semantics. Exact and ranged active-
    chemical mass fractions now cover solid and aqueous-solution mass dosing;
-   ranged specifications stay unresolved. Density-supported volume dosing and
-   practical-use-limit policy remain to be defined before use.
+   ranged specifications stay unresolved. Exact-density manual volume dosing
+   now requires a retained reference temperature and matching measurement
+   condition. Density interpolation, volume-dose optimization, and practical-
+   use-limit policy remain to be defined before use.
 3. Implement and validate the 0.5 conservative-equivalent total-alkalinity
    model from the registered authoritative sources while preserving the
    distinction among alkalinity, bicarbonate, carbonate, and `as CaCO3`

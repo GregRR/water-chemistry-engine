@@ -92,6 +92,16 @@ fields) for operator dosing. The nested forward calculation's generic
 treatment instructions intentionally describe the resolved active chemical
 used for calculation replay, not the physical material mass.
 
+`ExactVolumeDosedSolutionTreatmentMaterial` supports manual volume dosing of
+an exact mass-fraction aqueous solution only when the caller supplies density,
+the density reference temperature, and the actual measurement temperature.
+`resolve_volume_dose` converts volume to solution mass and then to active
+chemical mass, returning `ResolvedTreatmentMaterialVolumeDose` with all three
+quantities and operator-facing text. The measurement temperature must match the
+density reference temperature; the engine rejects a mismatch because it has no
+thermal density-correction model. Composition and density may retain separate
+source documents. This volume-dosed type is not an optimizer material.
+
 The facade also supports the complete source-report construction graph retained
 by `SourceWaterProfile`: reported pH and disinfectants, source-document
 metadata, water and physical-source identity, observation/result context,
@@ -159,8 +169,10 @@ The exact initial facade is:
   `SODIUM_BICARBONATE`, `POTASSIUM_CHLORIDE`, and
   `SIMPLE_MINERAL_INGREDIENTS`; plus
   `ExactMassDosedTreatmentMaterial`, `ExactMassFractionTreatmentMaterial`,
-  `RangedMassFractionTreatmentMaterial`, `TreatmentMaterialForm`, and
-  `TreatmentMaterialActiveMassRange` for physical mass-dosed materials;
+  `RangedMassFractionTreatmentMaterial`,
+  `ExactVolumeDosedSolutionTreatmentMaterial`,
+  `ResolvedTreatmentMaterialVolumeDose`, `TreatmentMaterialForm`, and
+  `TreatmentMaterialActiveMassRange` for physical treatment materials;
 - comparison interpretation: `TargetIonComparison`,
   `TargetIonComparisonStatus`, `TargetIonCalculationBasis`,
   `TargetIonClosenessStatus`,

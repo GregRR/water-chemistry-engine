@@ -9,7 +9,9 @@ from water_chemistry_engine.treatment_ingredients import (
 from water_chemistry_engine.treatment_materials import (
     ExactMassDosedTreatmentMaterial,
     ExactMassFractionTreatmentMaterial,
+    ExactVolumeDosedSolutionTreatmentMaterial,
     RangedMassFractionTreatmentMaterial,
+    ResolvedTreatmentMaterialVolumeDose,
     TreatmentMaterialActiveMassRange,
     TreatmentMaterialForm,
 )
@@ -241,4 +243,216 @@ def test_treatment_material_rejects_invalid_composition_source() -> None:
             active_mass_fraction=Q_(90, "percent"),
             dose_increment=Q_(0.1, "gram"),
             composition_source="manufacturer website",  # type: ignore[arg-type]
+        )
+
+
+def _volume_dosed_solution() -> ExactVolumeDosedSolutionTreatmentMaterial:
+    specification = SourceDocumentMetadata(
+        publisher="Example manufacturer",
+        title="Solution specification",
+    )
+    density_source = SourceDocumentMetadata(
+        publisher="Example manufacturer",
+        title="Solution density table",
+    )
+    return ExactVolumeDosedSolutionTreatmentMaterial(
+        key="calcium_chloride_solution",
+        name="Exact calcium chloride solution",
+        ingredient=CALCIUM_CHLORIDE_ANHYDROUS,
+        active_mass_fraction=Q_(32.5, "percent"),
+        density=Q_(1.2, "gram / milliliter"),
+        density_reference_temperature=Q_(20, "degree_Celsius"),
+        dose_increment=Q_(1, "milliliter"),
+        composition_source=specification,
+        density_source=density_source,
+    )
+
+
+def test_exact_volume_dose_resolves_solution_and_active_mass() -> None:
+    material = _volume_dosed_solution()
+
+    result = material.resolve_volume_dose(
+        Q_(10, "milliliter"),
+        measurement_temperature=Q_(68, "degree_Fahrenheit"),
+    )
+
+    assert isinstance(result, ResolvedTreatmentMaterialVolumeDose)
+    assert material.form is TreatmentMaterialForm.AQUEOUS_SOLUTION
+    assert material.normalized_density.magnitude == pytest.approx(1.2)
+    assert material.normalized_density_reference_temperature.magnitude == (
+        pytest.approx(20.0)
+    )
+    assert result.measured_volume.magnitude == pytest.approx(10.0)
+    assert result.measurement_temperature.magnitude == pytest.approx(20.0)
+    assert result.solution_mass.magnitude == pytest.approx(12.0)
+    assert result.active_chemical_mass.magnitude == pytest.approx(3.9)
+    assert result.treatment_addition.mass.magnitude == pytest.approx(3.9)
+    assert material.composition_source is not None
+    assert material.density_source is not None
+    assert result.preparation_text == (
+        "Measure 10 mL of Exact calcium chloride solution at 20 °C; this is "
+        "12 g of solution and supplies 3.9 g of Calcium chloride anhydrous "
+        "(CaCl2)."
+    )
+
+
+def test_volume_dose_rejects_temperature_without_density_correction() -> None:
+    material = _volume_dosed_solution()
+
+    with pytest.raises(ValueError, match="must match the density reference"):
+        material.resolve_volume_dose(
+            Q_(10, "milliliter"),
+            measurement_temperature=Q_(25, "degree_Celsius"),
+        )
+
+
+def test_volume_dosed_solution_normalizes_equivalent_density_units() -> None:
+    material = ExactVolumeDosedSolutionTreatmentMaterial(
+        key="equivalent_density_units",
+        name="Solution with kg/L density",
+        ingredient=CALCIUM_CHLORIDE_ANHYDROUS,
+        active_mass_fraction=Q_(25, "percent"),
+        density=Q_(1.2, "kilogram / liter"),
+        density_reference_temperature=Q_(20, "degree_Celsius"),
+        dose_increment=Q_(0.001, "liter"),
+    )
+
+    result = material.resolve_volume_dose(
+        Q_(0.01, "liter"),
+        measurement_temperature=Q_(20, "degree_Celsius"),
+    )
+
+    assert material.normalized_density.magnitude == pytest.approx(1.2)
+    assert material.normalized_dose_increment.magnitude == pytest.approx(1.0)
+    assert result.solution_mass.magnitude == pytest.approx(12.0)
+    assert result.active_chemical_mass.magnitude == pytest.approx(3.0)
+
+
+@pytest.mark.parametrize(
+    "density",
+    (
+        Q_(0, "gram / milliliter"),
+        Q_(-1, "gram / milliliter"),
+        Q_(float("nan"), "gram / milliliter"),
+        Q_(float("inf"), "gram / milliliter"),
+    ),
+)
+def test_volume_dosed_solution_rejects_invalid_density(density: object) -> None:
+    with pytest.raises(ValueError, match="density must be finite and positive"):
+        ExactVolumeDosedSolutionTreatmentMaterial(
+            key="invalid",
+            name="Invalid solution",
+            ingredient=CALCIUM_CHLORIDE_ANHYDROUS,
+            active_mass_fraction=Q_(32.5, "percent"),
+            density=density,  # type: ignore[arg-type]
+            density_reference_temperature=Q_(20, "degree_Celsius"),
+            dose_increment=Q_(1, "milliliter"),
+        )
+
+
+def test_volume_dosed_solution_rejects_density_with_wrong_dimension() -> None:
+    with pytest.raises(ValueError, match="convertible to mass per volume"):
+        ExactVolumeDosedSolutionTreatmentMaterial(
+            key="invalid",
+            name="Invalid solution",
+            ingredient=CALCIUM_CHLORIDE_ANHYDROUS,
+            active_mass_fraction=Q_(32.5, "percent"),
+            density=Q_(1.2, "gram"),
+            density_reference_temperature=Q_(20, "degree_Celsius"),
+            dose_increment=Q_(1, "milliliter"),
+        )
+
+
+def test_volume_dosed_solution_rejects_invalid_reference_temperature() -> None:
+    with pytest.raises(ValueError, match="reference temperature must be finite"):
+        ExactVolumeDosedSolutionTreatmentMaterial(
+            key="invalid",
+            name="Invalid solution",
+            ingredient=CALCIUM_CHLORIDE_ANHYDROUS,
+            active_mass_fraction=Q_(32.5, "percent"),
+            density=Q_(1.2, "gram / milliliter"),
+            density_reference_temperature=Q_(float("nan"), "degree_Celsius"),
+            dose_increment=Q_(1, "milliliter"),
+        )
+
+
+def test_volume_dosed_solution_rejects_wrong_temperature_dimension() -> None:
+    with pytest.raises(ValueError, match="convertible to temperature"):
+        ExactVolumeDosedSolutionTreatmentMaterial(
+            key="invalid",
+            name="Invalid solution",
+            ingredient=CALCIUM_CHLORIDE_ANHYDROUS,
+            active_mass_fraction=Q_(32.5, "percent"),
+            density=Q_(1.2, "gram / milliliter"),
+            density_reference_temperature=Q_(20, "gram"),
+            dose_increment=Q_(1, "milliliter"),
+        )
+
+
+def test_volume_dose_rejects_wrong_measurement_temperature_dimension() -> None:
+    material = _volume_dosed_solution()
+
+    with pytest.raises(ValueError, match="convertible to temperature"):
+        material.resolve_volume_dose(
+            Q_(10, "milliliter"),
+            measurement_temperature=Q_(20, "gram"),
+        )
+
+
+def test_volume_dosed_solution_rejects_nonvolume_increment() -> None:
+    with pytest.raises(ValueError, match="convertible to volume"):
+        ExactVolumeDosedSolutionTreatmentMaterial(
+            key="invalid",
+            name="Invalid solution",
+            ingredient=CALCIUM_CHLORIDE_ANHYDROUS,
+            active_mass_fraction=Q_(32.5, "percent"),
+            density=Q_(1.2, "gram / milliliter"),
+            density_reference_temperature=Q_(20, "degree_Celsius"),
+            dose_increment=Q_(1, "gram"),
+        )
+
+
+@pytest.mark.parametrize(
+    "increment",
+    (
+        Q_(0, "milliliter"),
+        Q_(-1, "milliliter"),
+        Q_(float("nan"), "milliliter"),
+        Q_(float("inf"), "milliliter"),
+    ),
+)
+def test_volume_dosed_solution_rejects_invalid_increment(increment: object) -> None:
+    with pytest.raises(ValueError, match="increment must be finite and positive"):
+        ExactVolumeDosedSolutionTreatmentMaterial(
+            key="invalid",
+            name="Invalid solution",
+            ingredient=CALCIUM_CHLORIDE_ANHYDROUS,
+            active_mass_fraction=Q_(32.5, "percent"),
+            density=Q_(1.2, "gram / milliliter"),
+            density_reference_temperature=Q_(20, "degree_Celsius"),
+            dose_increment=increment,  # type: ignore[arg-type]
+        )
+
+
+def test_volume_dose_rejects_negative_measured_volume() -> None:
+    material = _volume_dosed_solution()
+
+    with pytest.raises(ValueError, match="finite and nonnegative"):
+        material.resolve_volume_dose(
+            Q_(-1, "milliliter"),
+            measurement_temperature=Q_(20, "degree_Celsius"),
+        )
+
+
+def test_volume_dosed_solution_rejects_invalid_density_source() -> None:
+    with pytest.raises(TypeError, match="density source must be"):
+        ExactVolumeDosedSolutionTreatmentMaterial(
+            key="invalid",
+            name="Invalid solution",
+            ingredient=CALCIUM_CHLORIDE_ANHYDROUS,
+            active_mass_fraction=Q_(32.5, "percent"),
+            density=Q_(1.2, "gram / milliliter"),
+            density_reference_temperature=Q_(20, "degree_Celsius"),
+            dose_increment=Q_(1, "milliliter"),
+            density_source="density table",  # type: ignore[arg-type]
         )

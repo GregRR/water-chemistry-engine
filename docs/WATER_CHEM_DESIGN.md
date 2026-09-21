@@ -910,6 +910,16 @@ from measured material mass plus resolved active mass; nested forward
 preparation instructions remain an audit description of the active chemical
 replay and are not substituted for the physical-material dose.
 
+An exact mass-fraction aqueous solution may also be resolved from a measured
+volume when exact density and its reference temperature are supplied. The
+caller must provide the actual measurement temperature; it must match the
+density reference condition after unit conversion. A mismatch is unsupported
+because the engine does not interpolate density tables or apply an inferred
+thermal correction. The result retains measured volume, measurement
+temperature, solution mass, active chemical mass, the ordinary treatment
+addition, and operator-facing text. Composition and density provenance remain
+separate. This is a manual resolution path and is not admitted to the optimizer.
+
 ### 9.17 Future TreatmentPlan
 
 A complete plan should contain:

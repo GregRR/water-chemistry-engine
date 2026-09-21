@@ -54,6 +54,10 @@ comparison-expansion milestone is in progress.
   compositions remain rejected. Plan additions provide measured-material
   preparation text so consumers do not mistake replay-active mass for the
   operator dose.
+- Added deterministic manual volume-dose resolution for exact mass-fraction
+  aqueous solutions when exact density, density reference temperature, and a
+  matching measurement temperature are supplied. Mismatched temperatures are
+  rejected because thermal density correction is not modeled.
 
 ### Documentation
 

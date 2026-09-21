@@ -4,12 +4,16 @@
 stoichiometry.  This module represents what an operator measures.  Exact mass
 fractions can resolve a measured material mass to active chemical mass without
 density.  Ranged fractions remain ranges and deliberately cannot produce one
-exact ``TreatmentAddition`` without a future explicit resolution policy.
+exact ``TreatmentAddition`` without a future explicit resolution policy. Exact
+solution volume dosing additionally requires density, its reference
+temperature, and a matching measurement temperature.
 """
+
+from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
-from math import isfinite
+from math import isclose, isfinite
 
 from fermunits import Q_, Quantity
 
@@ -52,6 +56,16 @@ def _validate_composition_source(
         )
 
 
+def _validate_density_source(density_source: SourceDocumentMetadata | None) -> None:
+    if density_source is not None and not isinstance(
+        density_source,
+        SourceDocumentMetadata,
+    ):
+        raise TypeError(
+            "Treatment material density source must be SourceDocumentMetadata or None."
+        )
+
+
 def _normalized_positive_mass(value: ScalarQuantity, *, label: str) -> Quantity[float]:
     try:
         normalized = value.to("gram")
@@ -76,6 +90,66 @@ def _normalized_nonnegative_mass(
     if not isfinite(magnitude) or magnitude < 0:
         raise ValueError(f"{label} must be finite and nonnegative.")
     return Q_(magnitude, "gram")
+
+
+def _normalized_positive_volume(
+    value: ScalarQuantity,
+    *,
+    label: str,
+) -> Quantity[float]:
+    try:
+        normalized = value.to("milliliter")
+    except Exception as exc:
+        raise ValueError(f"{label} must be convertible to volume.") from exc
+    magnitude = float(normalized.magnitude)
+    if not isfinite(magnitude) or magnitude <= 0:
+        raise ValueError(f"{label} must be finite and positive.")
+    return Q_(magnitude, "milliliter")
+
+
+def _normalized_nonnegative_volume(
+    value: ScalarQuantity,
+    *,
+    label: str,
+) -> Quantity[float]:
+    try:
+        normalized = value.to("milliliter")
+    except Exception as exc:
+        raise ValueError(f"{label} must be convertible to volume.") from exc
+    magnitude = float(normalized.magnitude)
+    if not isfinite(magnitude) or magnitude < 0:
+        raise ValueError(f"{label} must be finite and nonnegative.")
+    return Q_(magnitude, "milliliter")
+
+
+def _normalized_positive_density(
+    value: ScalarQuantity,
+    *,
+    label: str,
+) -> Quantity[float]:
+    try:
+        normalized = value.to("gram / milliliter")
+    except Exception as exc:
+        raise ValueError(f"{label} must be convertible to mass per volume.") from exc
+    magnitude = float(normalized.magnitude)
+    if not isfinite(magnitude) or magnitude <= 0:
+        raise ValueError(f"{label} must be finite and positive.")
+    return Q_(magnitude, "gram / milliliter")
+
+
+def _normalized_temperature(
+    value: ScalarQuantity,
+    *,
+    label: str,
+) -> Quantity[float]:
+    try:
+        normalized = value.to("degree_Celsius")
+    except Exception as exc:
+        raise ValueError(f"{label} must be convertible to temperature.") from exc
+    magnitude = float(normalized.magnitude)
+    if not isfinite(magnitude):
+        raise ValueError(f"{label} must be finite.")
+    return Q_(magnitude, "degree_Celsius")
 
 
 def _normalized_mass_fraction(
@@ -120,6 +194,32 @@ class TreatmentMaterialActiveMassRange:
             raise ValueError(
                 "Minimum active ingredient mass cannot exceed the maximum."
             )
+
+
+@dataclass(frozen=True, slots=True)
+class ResolvedTreatmentMaterialVolumeDose:
+    """One exact solution-volume dose resolved at its density condition."""
+
+    material: ExactVolumeDosedSolutionTreatmentMaterial
+    measured_volume: Quantity[float]
+    measurement_temperature: Quantity[float]
+    solution_mass: Quantity[float]
+    active_chemical_mass: Quantity[float]
+    treatment_addition: TreatmentAddition
+
+    @property
+    def preparation_text(self) -> str:
+        """Describe physical volume and resolved solution/chemical masses."""
+        volume = format(float(self.measured_volume.magnitude), ".12g")
+        temperature = format(float(self.measurement_temperature.magnitude), ".12g")
+        solution_mass = format(float(self.solution_mass.magnitude), ".12g")
+        active_mass = format(float(self.active_chemical_mass.magnitude), ".12g")
+        ingredient = self.treatment_addition.ingredient
+        return (
+            f"Measure {volume} mL of {self.material.name} at {temperature} °C; "
+            f"this is {solution_mass} g of solution and supplies {active_mass} g "
+            f"of {ingredient.name} ({ingredient.formula})."
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -313,4 +413,134 @@ class RangedMassFractionTreatmentMaterial:
         return TreatmentMaterialActiveMassRange(
             minimum=Q_(measured_grams * minimum, "gram"),
             maximum=Q_(measured_grams * maximum, "gram"),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class ExactVolumeDosedSolutionTreatmentMaterial:
+    """An exact mass-fraction solution dosed by volume at a known density.
+
+    Density is valid only at ``density_reference_temperature``. Dose resolution
+    therefore requires the actual measurement temperature and rejects a
+    mismatch rather than inventing a thermal density correction. The active
+    mass fraction remains mass/mass; density converts measured solution volume
+    to solution mass before the fraction is applied.
+    """
+
+    key: str
+    name: str
+    ingredient: TreatmentIngredient
+    active_mass_fraction: ScalarQuantity
+    density: ScalarQuantity
+    density_reference_temperature: ScalarQuantity
+    dose_increment: ScalarQuantity
+    composition_source: SourceDocumentMetadata | None = None
+    density_source: SourceDocumentMetadata | None = None
+
+    def __post_init__(self) -> None:
+        _validate_identity(self.key, self.name, self.ingredient)
+        _normalized_mass_fraction(
+            self.active_mass_fraction,
+            label="Treatment material active mass fraction",
+            allow_zero=False,
+        )
+        _normalized_positive_density(
+            self.density,
+            label="Treatment material density",
+        )
+        _normalized_temperature(
+            self.density_reference_temperature,
+            label="Treatment material density reference temperature",
+        )
+        _normalized_positive_volume(
+            self.dose_increment,
+            label="Treatment material volume dose increment",
+        )
+        _validate_composition_source(self.composition_source)
+        _validate_density_source(self.density_source)
+
+    @property
+    def form(self) -> TreatmentMaterialForm:
+        """Return the physical form required by this volume-dosed contract."""
+        return TreatmentMaterialForm.AQUEOUS_SOLUTION
+
+    @property
+    def normalized_active_mass_fraction(self) -> Quantity[float]:
+        """Return the exact solution mass fraction on a zero-to-one basis."""
+        return _normalized_mass_fraction(
+            self.active_mass_fraction,
+            label="Treatment material active mass fraction",
+            allow_zero=False,
+        )
+
+    @property
+    def normalized_density(self) -> Quantity[float]:
+        """Return density in canonical grams per milliliter."""
+        return _normalized_positive_density(
+            self.density,
+            label="Treatment material density",
+        )
+
+    @property
+    def normalized_density_reference_temperature(self) -> Quantity[float]:
+        """Return the density reference temperature in degrees Celsius."""
+        return _normalized_temperature(
+            self.density_reference_temperature,
+            label="Treatment material density reference temperature",
+        )
+
+    @property
+    def normalized_dose_increment(self) -> Quantity[float]:
+        """Return the measured-solution increment in canonical milliliters."""
+        return _normalized_positive_volume(
+            self.dose_increment,
+            label="Treatment material volume dose increment",
+        )
+
+    def resolve_volume_dose(
+        self,
+        measured_volume: ScalarQuantity,
+        *,
+        measurement_temperature: ScalarQuantity,
+    ) -> ResolvedTreatmentMaterialVolumeDose:
+        """Resolve volume to active mass when the density condition matches."""
+        volume = _normalized_nonnegative_volume(
+            measured_volume,
+            label="Measured treatment material volume",
+        )
+        temperature = _normalized_temperature(
+            measurement_temperature,
+            label="Treatment material measurement temperature",
+        )
+        reference_temperature = self.normalized_density_reference_temperature
+        if not isclose(
+            float(temperature.magnitude),
+            float(reference_temperature.magnitude),
+            rel_tol=0.0,
+            abs_tol=1e-9,
+        ):
+            raise ValueError(
+                "Treatment material measurement temperature must match the "
+                "density reference temperature; temperature correction is "
+                "unsupported."
+            )
+
+        volume_ml = float(volume.magnitude)
+        solution_mass = Q_(
+            volume_ml * float(self.normalized_density.magnitude),
+            "gram",
+        )
+        active_mass = Q_(
+            float(solution_mass.magnitude)
+            * float(self.normalized_active_mass_fraction.magnitude),
+            "gram",
+        )
+        addition = TreatmentAddition(self.ingredient, active_mass)
+        return ResolvedTreatmentMaterialVolumeDose(
+            material=self,
+            measured_volume=volume,
+            measurement_temperature=temperature,
+            solution_mass=solution_mass,
+            active_chemical_mass=active_mass,
+            treatment_addition=addition,
         )
