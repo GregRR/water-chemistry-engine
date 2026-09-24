@@ -37,18 +37,26 @@ Potential future non-additive or reactive treatment workflows include:
 Do not force these into one universal `TreatmentOperation` abstraction until
 multiple implemented workflows demonstrate the common contract.
 
-## Advanced brewing and fermentation chemistry
+## Advanced generic aqueous chemistry and reactive treatment
 
-- Recipe-aware mash-pH prediction.
-- Grain buffering models.
-- Acid and alkali additions.
-- Separate mash and sparge optimization.
-- Deeper carbonate/bicarbonate and CO2 equilibrium behavior.
-- Equilibrium, precipitation, saturation, solubility, and dissolution behavior
-  where validated and practically useful, including carbonate/chalk systems.
-- Purpose-aware brewery process-water workflows beyond the first validated uses.
-- Spirit-proofing-specific guidance where scientifically supported.
-- Brewery-scale service/dilution/process-water calculations where appropriate.
+Potential reusable chemistry primitives include:
+
+- carbonate speciation from a sufficiently complete chemical state;
+- state-based aqueous equilibrium calculations;
+- acid/base dose to a target **water** pH;
+- a general buffer-system/equilibrium solver if a defensible domain-neutral
+  contract can be established;
+- charge-balance and report-consistency diagnostics;
+- comparison of reported hardness with hardness reconstructed from known ions;
+- deeper carbonate/bicarbonate and CO2 equilibrium behavior;
+- equilibrium, precipitation, saturation, solubility, and dissolution behavior
+  where validated and practically useful, including carbonate/chalk systems;
+- ordered process-state and order-of-addition chemistry; and
+- reaction kinetics where time materially changes a validated result.
+
+These capabilities must remain expressed in terms of water/solution chemistry.
+They should not require malt, grain bills, beer styles, coffee extraction,
+dough behavior, or other domain-specific inputs.
 
 ## Structured import and validation boundaries
 
@@ -83,36 +91,43 @@ web framework, or user-review system.
 - Experimental water datasets from peer-reviewed food/beverage studies.
 - Versioned profile history rather than silent replacement or averaging.
 
-## Domain-specific food and beverage science
+## Domain-specific consumer science enabled by the engine
 
-Early profile/reference data may appear before these models. The following are
-reserved for deeper domain-specific calculation, prediction, or guidance:
+The following are useful product/domain capabilities, but they are not Engine
+backlog items. They belong in Water Chemistry Designer or another domain
+consumer and may compose generic Engine calculations:
 
+- recipe-aware mash-pH prediction;
+- malt/grain buffering and titration models;
+- Kolbach residual-alkalinity interpretation and Z-alkalinity mash models;
+- mash-versus-sparge recommendations and beer-style guidance;
 - coffee extraction and sensory models;
-- coffee equipment scaling/corrosion constraints where useful;
+- coffee equipment scaling/corrosion policy where it is purpose-specific;
 - tea infusion/extraction models;
 - bread and pizza dough behavior;
 - sourdough starter establishment and maintenance;
-- fermentation/yeast effects of chlorine/chloramine and mineral composition;
+- fermentation/yeast interpretation of chlorine/chloramine and mineral
+  composition;
 - alkaline noodles and kansui;
 - cheesemaking;
 - lacto-fermented vegetables;
-- other fermented foods and beverages;
-- sensory-water research that cannot be represented as a simple target profile.
+- other fermented foods and beverages; and
+- sensory-water research that cannot be represented as generic water chemistry
+  or a simple target/reference profile.
 
-## Selected industrial water applications
+If several domains need the same lower-level chemistry, extract that common
+piece into the Engine rather than duplicating it in each consumer.
 
-Potential long-term areas include:
+## Selected industrial consumers
 
-- laboratory preparation water;
-- cleaning and rinsing water;
-- boiler/steam feedwater;
-- cooling water;
-- selected manufacturing/process-water applications.
+Potential long-term consumers include laboratory preparation water, cleaning
+and rinsing water, boiler/steam feedwater, cooling water, and selected
+manufacturing/process-water applications.
 
-Industrial support requires dedicated safety, regulatory,
-materials-compatibility, treatment, and validation work. It must not be created
-by relabeling food-oriented calculations.
+The Engine may add generic chemistry or treatment primitives these consumers
+need when they are reusable. Industrial safety, regulatory,
+materials-compatibility, operating-policy, and process-specific guidance remain
+outside the Engine and require dedicated domain validation.
 
 ## Research/data principles that remain in force
 
@@ -121,5 +136,7 @@ by relabeling food-oriented calculations.
 - Do not relabel regional/reference water as an experimentally optimized target.
 - Keep reported, derived, predicted, and measured data distinct.
 - Keep source-water identity separate from intended use.
+- Keep reusable water chemistry in the Engine and domain-specific interpretation
+  in consumers or separate domain libraries.
 - Preserve unknowns, censoring, and reporting bases.
 - Keep pH logarithmic and model-derived pH explicitly versioned.

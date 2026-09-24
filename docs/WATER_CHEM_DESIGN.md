@@ -107,13 +107,13 @@ FermentationJSON ───┘
 Responsibilities are intentionally separated:
 
 - **FermUnits** supplies quantity representation, dimensional validation, unit conversion, equivalent chemistry conversions, explicit unit definitions, the semantic `PHValue` used by reported and target pH, and the exact definitional transform between pH and dimensionless hydrogen-ion activity.
-- **Water Chemistry Engine** supplies water-chemistry semantics, reported-value semantics, blending, stoichiometry, comparison, optimization, warnings, and structured results.
+- **Water Chemistry Engine** supplies reusable water-chemistry semantics, reported-value semantics, blending, stoichiometry, aqueous/treatment calculations, comparison, optimization, warnings, and structured results.
 - **BeerJSON/FermentationJSON adapters** translate external interchange documents to and from engine boundary/domain models.
-- **Consumer applications** supply persistence, users, forms, visual presentation, document ingestion/review workflows, and product-specific interaction.
+- **Consumer applications or separate domain libraries** supply domain-specific interpretation/prediction, persistence, users, forms, visual presentation, document ingestion/review workflows, and product-specific interaction.
 
-The shared water representation and deterministic water-chemistry capabilities must not acquire coffee-, bread-, or other domain-specific sensory assumptions merely because products may later use the same engine. Future domain capabilities should depend on the shared water core rather than forcing the core to depend on a particular product domain.
+The shared water representation and deterministic water-chemistry capabilities must not acquire brewing-, coffee-, bread-, or other domain-specific predictive/sensory assumptions merely because products may later use the same engine. Domain models should depend on the shared water core rather than forcing the core to depend on a particular product domain.
 
-When real application use exposes a missing chemistry, water-domain interpretation, validation, optimization, or calculation-semantic capability, that capability belongs in the engine. Presentation, persistence, authentication, workflow, and interaction state remain application responsibilities.
+When real application use exposes missing **reusable water chemistry**, treatment mechanics, measurement semantics, validation, optimization, or calculation semantics, that capability belongs in the engine. Recipe interpretation, malt/grain models, beer-style guidance, coffee extraction models, dough behavior, presentation, persistence, authentication, workflow, and interaction state remain consumer/domain responsibilities.
 
 The engine never imports a consumer application, database ORM, or product-specific presentation framework.
 
@@ -571,7 +571,7 @@ Calculated pH must obey these rules:
 6. The calculation must not imply precision unsupported by the model or inputs.
 7. The reusable pH capability belongs in `water-chemistry-engine`; consumer applications only construct/select the state and request the calculation.
 
-Working-water pH is distinct from **recipe-aware mash-pH prediction**. Mash pH additionally depends on grain buffering and mash-specific chemistry and remains a later advanced feature even though it may ultimately reuse lower-level acid/base or equilibrium components.
+Working-water pH is distinct from **recipe-aware mash-pH prediction**. Mash pH additionally depends on grain buffering and mash-specific chemistry and is a consumer/domain feature, not an Engine feature. A brewing consumer may ultimately build that model by composing lower-level Engine acid/base, carbonate, equilibrium, or generic buffer-system primitives with malt/grain-specific data.
 
 ### 9.8 Reported statistic semantics
 
@@ -772,7 +772,7 @@ treated-water targets may be represented without inventing a publication.
 
 Historical brewing-city tables such as Pilsen, Burton-on-Trent, Dublin, Munich, London, Dortmund, Edinburgh, Vienna, Antwerp, and Cologne are **target/reference profiles**, not claims about present-day municipal source water. Each published version must retain its own source/reference attribution; conflicting published profiles should not be silently merged into one supposedly canonical city profile.
 
-Well-sourced coffee, tea, bread, sourdough, or pizza target/reference **data** may therefore be added before complete domain-specific scientific engines. Domain-specific prediction or sensory/process guidance remains a separate later capability.
+Well-sourced coffee, tea, bread, sourdough, or pizza target/reference **data** may therefore be added without adding domain-specific scientific models to the Engine. Domain-specific prediction or sensory/process guidance belongs in consumers or separate domain libraries that may compose generic Engine calculations.
 
 ### 9.15 WaterBlend
 
@@ -1341,68 +1341,77 @@ Coffee is the strongest early candidate because formal published water standards
 
 ### 16.4 Deliberately deferred from the Version 1 critical path
 
-- recipe-dependent mash-pH prediction;
-- grain buffering models;
+Engine work deferred from Version 1 includes:
+
 - acid and alkali optimization;
-- recipe-aware separate mash/sparge optimization;
-- general-purpose geochemical equilibrium, precipitation, and solubility modeling beyond focused validated needs;
+- general-purpose aqueous equilibrium, precipitation, saturation, and
+  solubility modeling beyond focused validated needs;
+- generic acid-dose-to-target-water-pH calculation;
+- generic buffer-system/equilibrium solving if a defensible reusable contract
+  can be established;
 - robust uncertainty propagation through optimization;
-- sophisticated cost or multi-batch planning beyond reusable caller-supplied constraints;
-- a generalized non-additive `TreatmentOperation` framework for activated carbon, ion exchange, modeled reverse osmosis, deaeration, softening, and similar processes.
+- sophisticated cost or multi-batch planning beyond reusable caller-supplied
+  constraints; and
+- a generalized non-additive `TreatmentOperation` framework for activated
+  carbon, ion exchange, modeled reverse osmosis, deaeration, softening, and
+  similar processes.
+
+Recipe-dependent mash-pH prediction, malt/grain buffering models, residual-
+alkalinity interpretation for brewing, recipe-aware mash/sparge optimization,
+and other purpose-specific models are not merely deferred Engine features;
+they belong in consumers or separate domain libraries that compose generic
+Engine primitives.
 
 Product-owned document extraction/review, persistence, accounts, and user-interface milestones are outside the engine roadmap.
 
-## 17. Version 2.0 — advanced brewing-water chemistry
+## 17. Version 2.0 — advanced generic aqueous and reactive chemistry
 
-Version 2 adds capabilities that require deeper chemistry models or materially different optimization constraints:
+Version 2 may add capabilities that require deeper chemistry models or
+materially different optimization constraints while retaining a domain-neutral
+contract:
 
 - acid additions;
 - alkali additions;
 - alkalinity neutralization;
-- recipe-aware separate mash and sparge treatment;
-- recipe-aware mash-pH prediction;
-- deeper carbonate/bicarbonate and CO2 equilibrium chemistry beyond the focused working-water pH capability;
-- precipitation, saturation, solubility, and dissolution behavior where practical and validated, including the chemistry needed before chalk can be modeled as an actionable treatment;
+- acid dose to a target water pH where validated;
+- deeper carbonate/bicarbonate and CO2 equilibrium chemistry beyond the focused
+  working-water pH capability;
+- reusable carbonate-speciation and equilibrium-state calculations;
+- a general buffer-system/equilibrium solver only if it can be expressed
+  without malt, grain, beer-style, coffee, dough, or other domain assumptions;
+- precipitation, saturation, solubility, and dissolution behavior where
+  practical and validated, including the chemistry needed before chalk can be
+  modeled as an actionable treatment;
+- ordered treatment/process-state effects where chemistry depends on sequence;
+- reaction-time/kinetic behavior where validated and necessary;
 - uncertainty propagation;
 - optimization using uncertain or ranged source-water reports;
 - sensitivity and worst-case plans;
 - Pareto-front exploration;
-- optional treatment-cost inputs;
-- optional inventory integration;
-- expanded brewery-scale workflows.
+- optional treatment-cost inputs; and
+- broader reusable process-water workflows.
 
-Purpose-aware brewery guidance may begin in an early post-1.0 release using existing validated treatment capabilities; deeper recipe-aware chemistry remains Version 2 work.
+A domain consumer may use these primitives to implement recipe-aware mash-pH,
+coffee extraction, dough behavior, or another specialized model. Those domain
+models and their interpretation remain outside the Engine.
 
-Mash-pH prediction must clearly separate predicted, calculated, and measured pH and use versioned validated models.
+## 18. Version 3.0 — broader generic treatment models
 
-## 18. Version 3.0 — domain-specific food and beverage applications
+Version 3 may add non-additive/reactive treatment models after concrete
+validated workflows establish reusable contracts, including activated carbon,
+dechlorination, reverse osmosis, ion exchange, softening/dealkalization,
+deaeration, and membrane processes.
 
-Version 3 is reserved for genuine domain-specific scientific models, not merely for adding well-sourced target/reference data to the generic calculator. Potential independently validated modules include:
+A generalized non-additive `TreatmentOperation` abstraction should be
+introduced only after multiple implemented workflows demonstrate the common
+contract, not to anticipate a particular consumer domain.
 
-- coffee extraction/sensory guidance;
-- tea infusion/extraction guidance;
-- bread;
-- sourdough;
-- pizza dough;
-- alkaline noodles;
-- ramen/kansui;
-- cheesemaking;
-- lacto-fermented vegetables;
-- other fermented foods and beverages.
+## 19. Version 4.0 — advanced generic process-water modeling
 
-These modules may share source-water composition, blending, source-attribution metadata, treatment, target/reference, and optimization infrastructure while retaining their own constituents, targets, treatment rules, sensory/process priorities, warnings, references, and validation suites. Consumer applications may expose whichever validated domains they need without forcing domain-specific assumptions into the shared water core.
-
-The project must not imply that one generic ion-matching score predicts sensory quality across all foods or beverages.
-
-A generalized non-additive `TreatmentOperation` abstraction may be introduced when concrete validated brewing, coffee, or other workflows demonstrate the need. It should not be built merely to anticipate filtration, dechlorination, reverse osmosis, ion exchange, softening, or deaeration.
-
-## 19. Version 4.0 — selected industrial applications
-
-Selected non-food process-water modules may be considered only after dedicated safety, regulatory, materials-compatibility, treatment, and validation research.
-
-Possible areas include laboratory preparation water, cleaning/rinsing, boiler/steam feedwater, cooling water, and selected manufacturing processes.
-
-Industrial support must not be created by simply relabeling the food-oriented optimizer.
+Broader process-water calculations may be considered when they can be expressed
+through reusable water-state, treatment, and validation contracts. Industrial,
+food, beverage, and other consumers retain their own safety, regulatory,
+materials-compatibility, sensory, and process-specific guidance.
 
 ## 20. Optimization design
 
@@ -1956,8 +1965,10 @@ A weak pH approximation is not a release requirement; unsupported derived pH may
 
 ### Early post-1.0
 
-- purpose-aware brewery-water guidance using request context;
-- additional treatment chains as concrete validated requirements justify them.
+- reusable process-state and ordered-treatment context where chemistry requires
+  it;
+- additional generic treatment chains as concrete validated requirements
+  justify them.
 
 ## 28. Open design questions
 
@@ -1976,8 +1987,12 @@ A weak pH approximation is not a release requirement; unsupported derived pH may
 12. How regulatory/reference thresholds should be represented when preserved for report fidelity without contaminating chemistry models.
 13. Exact aqueous equilibrium/activity model, validated reference data, and minimum chemical-state inputs for the reusable `calculate_ph(...)` capability.
 14. Exact reusable representation for reported disinfectants and other non-optimization analytes once chlorine/chloramine support expands beyond the first concrete cases.
-15. First validated set of intended-water-use values for early post-1.0 purpose-aware guidance versus deeper Version 2 models.
+15. Exact reusable process-state and treatment-sequence contract needed before
+    order-of-addition or other stateful treatment chemistry is implemented.
 16. Exact generic metadata vocabulary for target versus reference profile classification without overfitting to coffee, tea, or dough.
+17. Whether a genuinely domain-neutral buffer-system/equilibrium solver can be
+    specified and validated without importing malt, grain, coffee, dough, or
+    other purpose-specific assumptions.
 
 ## 29. Versioning policy
 
@@ -2006,15 +2021,17 @@ through a deliberate supported API.
 Consumer applications should normally depend on a released, pinned engine
 distribution; release-candidate testing may use an exact commit or built
 artifact. Their development is expected to pressure-test the engine and reveal
-useful improvements, but the ownership boundary is strict: chemistry,
-water-domain interpretation, validation, optimization, calculation semantics,
-and scientific notices belong in the engine; presentation, persistence,
-authentication, workflow, and interaction state belong in the application.
+useful improvements, but the ownership boundary is strict: reusable water
+chemistry, treatment mechanics, measurement semantics, validation,
+optimization, calculation semantics, and scientific notices belong in the
+engine. Domain-specific interpretation, prediction, recommendations,
+presentation, persistence, authentication, workflow, and interaction state
+belong in the consuming domain.
 
 Version 1 will provide a reusable, explainable water-chemistry engine for supported beer, mead, and distilling workflows while keeping the underlying water core generic. It preserves real-world source-report semantics—including exact values, ranges, bounds, `ND`, qualified endpoints, named statistics, reporting bases, timing, water identity, sampling context, source-document metadata, and source-reported disinfectants such as chlorine/chloramine—while supporting multiple sources, exact and ranged targets/references, practical mineral additions, final-state comparison, automatic and ranked treatment plans, contribution data, source/reference attribution, and stable consumer contracts. Intended water use remains calculation/request context rather than part of source-water identity.
 
 The engine deliberately distinguishes reported from derived chemistry. Linear ranges may use an on-demand midpoint only when no reported average exists, both endpoints are exact, and the caller explicitly enables midpoint resolution through `SourceResolutionPolicy`. Qualified ranges do not receive an automatic representative value. pH is explicitly excluded from generic linear averaging because it is logarithmic: range endpoints are preserved, reported averages are trusted only when actually reported, and any derived pH calculation uses an explicit scientifically documented aqueous model. A missing derived-pH model must not block otherwise valid forward treatment calculations.
 
-Well-sourced coffee, tea, bread, sourdough, or pizza target/reference data may be added early when the generic water machinery can represent it. This does not imply that a complete domain-specific predictive engine exists. Regional, historical, practitioner, experimental, standard, and optimized profiles must retain distinct evidentiary classifications.
+Well-sourced coffee, tea, bread, sourdough, or pizza target/reference data may be added early when the generic water machinery can represent it. This does not imply that the Engine contains a domain-specific predictive model. Regional, historical, practitioner, experimental, standard, and optimized profiles must retain distinct evidentiary classifications; consumer applications own the domain-specific interpretation of those profiles.
 
 BeerJSON and FermentationJSON adapters are intentionally later engine milestones so they do not block the supported forward-calculation API. FermentationJSON remains the intended richer long-term interchange representation without constraining the internal engine model or diminishing BeerJSON compatibility. Product-owned AI/document extraction and review workflows remain outside the engine repository.

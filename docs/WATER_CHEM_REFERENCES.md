@@ -24,6 +24,12 @@ For every calculation implemented from a source, record:
 
 Where an authoritative ASBC method, table, or formula is known to exist but cannot yet be checked directly, mark the item **ASBC verification pending** and record the method or table identifier when known.
 
+Domain-specific sources may motivate reusable Engine chemistry, but a brewing,
+coffee, tea, dough, industrial, or other purpose-specific model should not be
+moved into the Engine merely because its chemistry is discussed here. Extract
+the domain-neutral primitive and leave interpretation/prediction in the
+consumer or separate domain library.
+
 ## 2. Foundational brewing-water sources
 
 ### Brewer World overview
@@ -70,11 +76,48 @@ Where an authoritative ASBC method, table, or formula is known to exist but cann
   - The review identifies CaSO4 and CaCl2 additions as noncarbonate-hardness treatments and notes practical control problems from the poor solubility of calcium sulfate, supporting explicit treatment-model limits rather than assuming every mineral behaves like highly soluble calcium chloride.
   - The review formulates brewing residual alkalinity from total alkalinity and
     calcium/magnesium hardness on an equivalent basis. This supports total
-    alkalinity as the actionable generic calculation axis while keeping
-    residual alkalinity a later brewing-purpose calculation rather than a
-    source-water identity.
+    alkalinity as the actionable generic Engine calculation axis while keeping
+    residual-alkalinity interpretation in a brewing consumer rather than
+    treating it as source-water identity or a generic Engine recommendation.
   - Non-additive treatment processes exist, but a generalized treatment-operation abstraction is not required for Version 1.
 - **Caution:** The paper's numerical water-requirement tables are the authors' recommendations in an industrial-brewery context; they are not assumed to be universal standards for every brewery or product.
+
+### Palmer and Kaminski (2013)
+
+- **Authors:** John Palmer; Colin Kaminski
+- **Title:** *Water: A Comprehensive Guide for Brewers*
+- **Publisher:** Brewers Publications
+- **Year:** 2013
+- **Type:** Specialist technical book from a recognized brewing publisher
+- **Reviewed material:** Chapters 3–7 and Appendices B–D.
+- **Relevant topics:** Water-report interpretation; alkalinity and hardness;
+  carbonate equilibrium; residual alkalinity; malt buffering and mash pH;
+  acid/base treatment; salt and acid stoichiometry; phosphoric-acid/calcium
+  interactions; charge balance; carbonate-species distribution.
+- **Design implications:**
+  - Chapter 3 supports preserving report-native analyte/method semantics and
+    keeping alkalinity, hardness, bicarbonate, and carbonate as distinct
+    concepts rather than interchangeable labels.
+  - Chapters 4–6 show why generic aqueous carbonate/acid-base chemistry can be
+    reusable while mash-pH prediction also requires malt/grain-specific
+    buffering and process inputs. Mash-pH and residual-alkalinity
+    interpretation therefore belong in a brewing consumer, not the Engine.
+  - Chapter 6 and Appendix B support future generic acid/base, target-water-pH,
+    precipitation, and order-of-addition primitives, provided equations and
+    numerical constants are independently validated before implementation.
+  - Appendix C supports explicit hydration state, mass-fraction, concentration,
+    density, and equivalent-basis semantics for treatment materials.
+  - Appendix D supports charge balance as a report-quality diagnostic. An
+    imbalance may reflect missing ions, reporting basis, speciation, or
+    measurement/reporting error; the Engine must not force balance by inventing
+    or altering source values.
+  - Chapter 7 reinforces coupled-ion treatment constraints and the distinction
+    between a published recommendation/reference profile and a scientifically
+    established optimum.
+- **Verification rule:** OCR is used for navigation/prose only. Equations,
+  tables, numerical constants, and any implementation logic must be checked
+  against the scanned page; where practical, implementation claims should also
+  be cross-checked against an independent authoritative source.
 
 ### Sutea et al. (2025)
 
@@ -105,7 +148,10 @@ Where an authoritative ASBC method, table, or formula is known to exist but cann
   - Leave room for constituents beyond the initial brewing-ion panel.
   - Keep sensory annotations evidence-based and domain-specific.
   - Do not claim direct prediction of taste from a generic ion-match score.
-- **Roadmap:** Supports early generic target/reference data where defensible; domain-specific sensory/process modeling remains later work.
+- **Roadmap:** Supports early generic target/reference data where defensible;
+  domain-specific sensory/process modeling belongs in consumers or separate
+  domain libraries, with reusable chemistry extracted into the Engine when a
+  common primitive emerges.
 
 ### Food Science Toolbox overview
 
@@ -457,9 +503,15 @@ These use cases must remain distinct. A profile suitable for fermentation is not
   independently validating increment counts, bounds, objective nonnegativity,
   and agreement with the ordinary forward calculation.
 
-## 5. Cross-domain profile and domain-model research queues
+## 5. Cross-domain profile and consumer-model research queues
 
-Research now has two distinct purposes: (1) admit well-sourced target/reference data that the generic engine can already use, and (2) prepare later domain-specific predictive/guidance models. Coffee is the strongest early profile-data candidate; deeper coffee, tea, and dough science remains separate later work. Create separate research notes as needed:
+Research now has two distinct purposes: (1) admit well-sourced target/reference
+data that the generic Engine can already use, and (2) inform consumer/domain
+models while identifying any lower-level chemistry that is genuinely reusable
+enough to extract into the Engine. Coffee is the strongest early profile-data
+candidate; deeper coffee, tea, dough, and brewing-process science remains
+consumer/domain work unless a common chemistry primitive emerges. Create
+separate research notes as needed:
 
 - `research/coffee.md`
 - `research/tea.md`
@@ -519,13 +571,15 @@ Historical city profiles must not be labeled as a brewery's actual treated liquo
    manual volume dose directly under the same temperature-match rule without
    inferring density. Thermal correction, volume-dose optimization, and
    practical-use-limit policy remain to be defined before use.
-3. Implement and validate the 0.5 conservative-equivalent total-alkalinity
-   model from the registered authoritative sources while preserving the
-   distinction among alkalinity, bicarbonate, carbonate, and `as CaCO3`
-   reporting.
+3. Complete the 0.5 total-alkalinity source semantics by preserving supplied
+   analytical context (alkalinity versus ANC, method/endpoint, sample state,
+   original analyte wording/unit) and document that the conservative-equivalent
+   model is not a laboratory-titration simulator.
 4. Identify defensible initial beer, mead, and distilling target profiles with redistribution rights.
 5. Identify the first defensible coffee target/reference profiles and classify each as standard, recommendation, practitioner reference, experimental reference, or optimized target as appropriate.
 6. Identify tea and dough/bread/pizza reference profiles only where the evidence and redistribution status support admission; do not manufacture optimal profiles from regional analyses.
-7. Find primary or authoritative water-blending and charge-balance references.
+7. Find primary or authoritative references for charge-balance diagnostics,
+   hardness reconciliation, carbonate speciation, and reusable aqueous
+   equilibrium calculations.
 8. Catalogue unverified water-treatment formulas and claims encountered during research and compare them against stronger sources.
 9. Define a citation, evidentiary-classification, and versioning format for bundled reference data.
