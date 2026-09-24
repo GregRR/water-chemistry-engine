@@ -10,7 +10,15 @@ from water_chemistry_engine.concentrations import (
     IonConcentrationRange,
 )
 from water_chemistry_engine.ions import Ion
-from water_chemistry_engine.reported_properties import Alkalinity
+from water_chemistry_engine.reported_properties import (
+    Alkalinity,
+    AlkalinityAnalyticalContext,
+    AlkalinityResultIdentity,
+)
+from water_chemistry_engine.reported_statistics import (
+    ReportedStatistic,
+    ReportedStatisticKind,
+)
 from water_chemistry_engine.source_document import SourceDocumentMetadata
 from water_chemistry_engine.target_profiles import (
     TargetProfileClassification,
@@ -76,6 +84,34 @@ def test_target_profile_preserves_one_sided_alkalinity_bound() -> None:
     assert profile.alkalinity is alkalinity
     assert profile.alkalinity.minimum is None
     assert profile.alkalinity.maximum is not None
+
+
+@pytest.mark.parametrize(
+    "alkalinity",
+    (
+        Alkalinity.mg_per_liter_as_caco3(
+            40.0,
+            reported_statistic=ReportedStatistic(
+                kind=ReportedStatisticKind.REPORTED_AVERAGE
+            ),
+        ),
+        Alkalinity.mg_per_liter_as_caco3(
+            40.0,
+            analytical_context=AlkalinityAnalyticalContext(
+                result_identity=AlkalinityResultIdentity.TOTAL_ALKALINITY,
+            ),
+        ),
+    ),
+)
+def test_target_profile_rejects_source_only_alkalinity_metadata(
+    alkalinity: Alkalinity,
+) -> None:
+    with pytest.raises(ValueError, match="source-only"):
+        TargetWaterProfile(
+            name="Invalid alkalinity target",
+            concentrations=(),
+            alkalinity=alkalinity,
+        )
 
 
 def test_missing_target_ion_returns_none() -> None:

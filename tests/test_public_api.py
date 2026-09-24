@@ -12,9 +12,11 @@ import water_chemistry_engine as wce
 EXPECTED_PUBLIC_API = {
     "AqueousChemicalState",
     "Alkalinity",
+    "AlkalinityAnalyticalContext",
     "AlkalinityBalanceResult",
     "AlkalinityContributionMatrixRow",
     "AlkalinityModelLimitation",
+    "AlkalinityResultIdentity",
     "AppliedTreatment",
     "BlendIonContribution",
     "BlendIonResolution",
@@ -149,6 +151,7 @@ EXPECTED_PUBLIC_API = {
     "WaterType",
     "ResultCoverage",
     "ScalarQuantity",
+    "SampleFiltrationState",
     "__version__",
     "calculate_forward_water",
     "optimize_treatment",
@@ -530,6 +533,15 @@ def test_complete_source_reporting_contract_uses_package_root_imports() -> None:
     statistic = wce.ReportedStatistic(
         kind=wce.ReportedStatisticKind.REPORTED_AVERAGE,
     )
+    alkalinity_analytical_context = wce.AlkalinityAnalyticalContext(
+        result_identity=wce.AlkalinityResultIdentity.TOTAL_ALKALINITY,
+        sample_filtration_state=wce.SampleFiltrationState.FILTERED,
+        original_analyte_label="Alkalinity, Total",
+        original_unit_label="mg/L as CaCO3",
+        analytical_method="Example laboratory titration",
+        method_code="EXAMPLE-ALK-1",
+        titration_endpoint=PHValue(4.5),
+    )
     source_document = wce.SourceDocumentMetadata(
         publisher="Example Water Utility",
         analysis_provider="Example Laboratory",
@@ -581,6 +593,8 @@ def test_complete_source_reporting_contract_uses_package_root_imports() -> None:
             value=Q_(105.0, "milligram / liter"),
             basis=wce.ReportingBasis.AS_CACO3,
             result_context=context,
+            reported_statistic=statistic,
+            analytical_context=alkalinity_analytical_context,
         ),
         total_hardness=wce.TotalHardness(
             value=Q_(140.0, "milligram / liter"),
@@ -609,6 +623,8 @@ def test_complete_source_reporting_contract_uses_package_root_imports() -> None:
     assert profile.ph.calculation_value == PHValue(7.4)
     assert profile.alkalinity is not None
     assert profile.alkalinity.basis is wce.ReportingBasis.AS_CACO3
+    assert profile.alkalinity.reported_statistic is statistic
+    assert profile.alkalinity.analytical_context is alkalinity_analytical_context
     assert profile.total_hardness is not None
     assert profile.total_dissolved_solids is not None
     assert profile.conductivity is not None

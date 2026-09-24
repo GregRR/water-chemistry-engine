@@ -107,9 +107,12 @@ from water_chemistry_engine.reported_disinfectants import (
 )
 from water_chemistry_engine.reported_properties import (
     Alkalinity,
+    AlkalinityAnalyticalContext,
+    AlkalinityResultIdentity,
     Conductivity,
     ReportedPH,
     ReportingBasis,
+    SampleFiltrationState,
     TotalDissolvedSolids,
     TotalHardness,
 )
@@ -202,9 +205,11 @@ __all__ = [
     "SODIUM_BICARBONATE",
     "SODIUM_CHLORIDE",
     "Alkalinity",
+    "AlkalinityAnalyticalContext",
     "AlkalinityBalanceResult",
     "AlkalinityContributionMatrixRow",
     "AlkalinityModelLimitation",
+    "AlkalinityResultIdentity",
     "AppliedTreatment",
     "AqueousChemicalState",
     "BlendIonContribution",
@@ -274,6 +279,7 @@ __all__ = [
     "ResolvedTreatmentIon",
     "ResolvedTreatmentMaterialVolumeDose",
     "ResultCoverage",
+    "SampleFiltrationState",
     "ScalarQuantity",
     "SourceAlkalinityContribution",
     "SourceAlkalinityResolution",

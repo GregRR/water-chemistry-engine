@@ -164,8 +164,10 @@ The exact initial facade is:
   `WaterType`, `PhysicalWaterSource`, `PhysicalSourceType`,
   `ObservationPeriod`, `ReportedResultContext`, `ResultCoverage`, `WaterStage`,
   `ReportedStatistic`, `ReportedStatisticKind`, `ReportedPH`,
-  `ReportedDisinfectant`, `DisinfectantKind`, `Alkalinity`, `TotalHardness`,
-  `TotalDissolvedSolids`, `Conductivity`, and `ReportingBasis`;
+  `ReportedDisinfectant`, `DisinfectantKind`, `Alkalinity`,
+  `AlkalinityAnalyticalContext`, `AlkalinityResultIdentity`,
+  `SampleFiltrationState`, `TotalHardness`, `TotalDissolvedSolids`,
+  `Conductivity`, and `ReportingBasis`;
 - shared scalar quantity typing: `ScalarQuantity`;
 - ions and reported concentration forms: `Ion`, `IonConcentration`,
   `IonConcentrationRange`, `IonConcentrationUpperBound`,
@@ -242,6 +244,8 @@ from fermunits import PHValue, Q_
 
 from water_chemistry_engine import (
     Alkalinity,
+    AlkalinityAnalyticalContext,
+    AlkalinityResultIdentity,
     DisinfectantKind,
     Ion,
     IonConcentration,
@@ -251,7 +255,10 @@ from water_chemistry_engine import (
     ReportedDisinfectant,
     ReportedPH,
     ReportedResultContext,
+    ReportedStatistic,
+    ReportedStatisticKind,
     ResultCoverage,
+    SampleFiltrationState,
     SourceDocumentMetadata,
     SourceWaterProfile,
     WaterIdentity,
@@ -298,6 +305,18 @@ source = SourceWaterProfile(
     alkalinity=Alkalinity(
         value=Q_(105.0, "milligram / liter"),
         result_context=context,
+        reported_statistic=ReportedStatistic(
+            kind=ReportedStatisticKind.REPORTED_AVERAGE,
+        ),
+        analytical_context=AlkalinityAnalyticalContext(
+            result_identity=AlkalinityResultIdentity.TOTAL_ALKALINITY,
+            sample_filtration_state=SampleFiltrationState.FILTERED,
+            original_analyte_label="Alkalinity, Total",
+            original_unit_label="mg/L as CaCO3",
+            analytical_method="Example laboratory titration",
+            method_code="EXAMPLE-ALK-1",
+            titration_endpoint=PHValue(4.5),
+        ),
     ),
     disinfectants=(
         ReportedDisinfectant.mg_per_liter(
@@ -531,6 +550,27 @@ interchangeable.
 `AlkalinityBalanceResult.limitations` supplies stable
 `AlkalinityModelLimitation` codes for complete-dissolution, unmodeled-reaction,
 precipitation/dissolution, carbonate-speciation, and working-water-pH limits.
+
+Source `Alkalinity` values may preserve a `ReportedStatistic` and an
+`AlkalinityAnalyticalContext`. The analytical context can retain the source's
+original analyte and unit labels, controlled total-alkalinity-versus-ANC
+identity, controlled filtered/unfiltered sample state, analytical method,
+method code, and a source-reported titration endpoint represented by `PHValue`.
+Omitted fields remain unknown; the engine does not manufacture analytical
+metadata from a numeric value. This source-only metadata is rejected on an
+`Alkalinity` value used in `TargetWaterProfile`.
+
+For compatibility, an existing `Alkalinity` value with no explicit analytical
+identity continues to follow the total-alkalinity calculation contract while
+its identity metadata remains absent. A value explicitly identified as
+`AlkalinityResultIdentity.ACID_NEUTRALIZING_CAPACITY` is preserved but does not
+resolve as total alkalinity under this model. Its source resolution reports
+`UnresolvedSourceAlkalinityReason.ACID_NEUTRALIZING_CAPACITY_UNSUPPORTED`, so a
+positive-volume ANC source leaves blend and final alkalinity unresolved. The
+model also reports
+`AlkalinityModelLimitation.LABORATORY_TITRATION_NOT_SIMULATED`: preserving a
+method or endpoint does not make the conservative equivalent balance reproduce
+a particular laboratory titration result.
 
 Sodium bicarbonate may participate in optimization only when starting
 alkalinity is resolved and the request contains an appropriate supported total-

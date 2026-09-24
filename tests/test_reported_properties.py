@@ -6,11 +6,18 @@ from fermunits import Q_, PHValue
 
 from water_chemistry_engine.reported_properties import (
     Alkalinity,
+    AlkalinityAnalyticalContext,
+    AlkalinityResultIdentity,
     Conductivity,
     ReportedPH,
     ReportingBasis,
+    SampleFiltrationState,
     TotalDissolvedSolids,
     TotalHardness,
+)
+from water_chemistry_engine.reported_statistics import (
+    ReportedStatistic,
+    ReportedStatisticKind,
 )
 from water_chemistry_engine.reported_values import SourceResolutionPolicy
 
@@ -26,6 +33,111 @@ def test_exact_alkalinity_preserves_as_caco3_basis() -> None:
     assert measurement.reported_average is None
     assert measurement.value.to("milligram / liter").magnitude == 108.0
     assert measurement.calculation_value is measurement.value
+
+
+def test_alkalinity_preserves_reported_statistic_and_analytical_context() -> None:
+    statistic = ReportedStatistic(
+        kind=ReportedStatisticKind.REPORTED_AVERAGE,
+        label="Average of monthly results",
+    )
+    analytical_context = AlkalinityAnalyticalContext(
+        result_identity=AlkalinityResultIdentity.TOTAL_ALKALINITY,
+        sample_filtration_state=SampleFiltrationState.FILTERED,
+        original_analyte_label="Alkalinity, Total",
+        original_unit_label="mg/L as CaCO3",
+        analytical_method="Example laboratory titration",
+        method_code="EXAMPLE-ALK-1",
+        titration_endpoint=PHValue(4.5),
+    )
+
+    measurement = Alkalinity.mg_per_liter_as_caco3(
+        108.0,
+        reported_statistic=statistic,
+        analytical_context=analytical_context,
+    )
+
+    assert measurement.reported_statistic is statistic
+    assert measurement.analytical_context is analytical_context
+    assert measurement.analytical_context.result_identity is (
+        AlkalinityResultIdentity.TOTAL_ALKALINITY
+    )
+    assert measurement.analytical_context.titration_endpoint == PHValue(4.5)
+
+
+def test_alkalinity_analytical_context_rejects_empty_context() -> None:
+    with pytest.raises(ValueError, match="requires at least one reported field"):
+        AlkalinityAnalyticalContext()
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    (
+        ("original_analyte_label", " ", "analyte label cannot be empty"),
+        ("original_unit_label", "", "unit label cannot be empty"),
+        ("analytical_method", "\t", "analytical method cannot be empty"),
+        ("method_code", " ", "method code cannot be empty"),
+    ),
+)
+def test_alkalinity_analytical_context_rejects_empty_text(
+    field: str,
+    value: str,
+    message: str,
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        AlkalinityAnalyticalContext(**{field: value})
+
+
+def test_alkalinity_analytical_context_requires_phvalue_endpoint() -> None:
+    with pytest.raises(TypeError, match="must use fermunits.PHValue"):
+        AlkalinityAnalyticalContext(titration_endpoint=4.5)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    (
+        (
+            "result_identity",
+            "total_alkalinity",
+            "must use AlkalinityResultIdentity",
+        ),
+        (
+            "sample_filtration_state",
+            "filtered",
+            "must use SampleFiltrationState",
+        ),
+        ("analytical_method", 2320, "must be text"),
+    ),
+)
+def test_alkalinity_analytical_context_rejects_untyped_metadata(
+    field: str,
+    value: object,
+    message: str,
+) -> None:
+    with pytest.raises(TypeError, match=message):
+        AlkalinityAnalyticalContext(**{field: value})  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    (
+        ("reported_statistic", "average", "must use ReportedStatistic"),
+        (
+            "analytical_context",
+            {"result_identity": "total_alkalinity"},
+            "must use AlkalinityAnalyticalContext",
+        ),
+    ),
+)
+def test_alkalinity_rejects_untyped_source_metadata(
+    field: str,
+    value: object,
+    message: str,
+) -> None:
+    with pytest.raises(TypeError, match=message):
+        Alkalinity(  # type: ignore[arg-type]
+            value=Q_(108.0, "milligram / liter"),
+            **{field: value},
+        )
 
 
 def test_reported_property_preserves_decimal_magnitude() -> None:

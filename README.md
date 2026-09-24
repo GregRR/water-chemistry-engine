@@ -69,7 +69,11 @@ curated reference data, target-comparison interpretation, and a named
 conservative-equivalent total-alkalinity balance. The in-progress alkalinity
 workflow now covers source resolution, blending, reviewed sodium-bicarbonate
 contributions, final modeled alkalinity, target comparison, and contribution
-reporting. Optimizer support now spans fixed blends, proportional dilution, and
+reporting. Report-native alkalinity can preserve its statistic, original labels,
+total-alkalinity-versus-ANC identity, filtration state, method, and titration
+endpoint. Explicit ANC remains unresolved rather than being silently treated as
+total alkalinity, and the balance does not claim to simulate a laboratory
+titration. Optimizer support now spans fixed blends, proportional dilution, and
 bounded source-volume selection when alkalinity is resolvable and an appropriate
 criterion is present. Unreleased 0.5 work should be consumed only from an exact
 commit or locally built artifact; ordinary applications should continue to pin

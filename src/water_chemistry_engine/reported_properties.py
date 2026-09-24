@@ -7,6 +7,7 @@ from math import isfinite
 from fermunits import Q_, PHValue
 
 from water_chemistry_engine.quantity_types import ScalarQuantity
+from water_chemistry_engine.reported_statistics import ReportedStatistic
 from water_chemistry_engine.reported_values import (
     SourceResolutionPolicy,
     linear_calculation_value,
@@ -16,6 +17,90 @@ from water_chemistry_engine.reporting_context import ReportedResultContext
 
 class ReportingBasis(StrEnum):
     AS_CACO3 = "as_caco3"
+
+
+class AlkalinityResultIdentity(StrEnum):
+    """Identity explicitly assigned to a reported neutralizing-capacity result."""
+
+    TOTAL_ALKALINITY = "total_alkalinity"
+    ACID_NEUTRALIZING_CAPACITY = "acid_neutralizing_capacity"
+
+
+class SampleFiltrationState(StrEnum):
+    """Whether the source explicitly identifies the analyzed sample as filtered."""
+
+    FILTERED = "filtered"
+    UNFILTERED = "unfiltered"
+
+
+def _validate_optional_text(value: str | None, label: str) -> None:
+    if value is not None and not isinstance(value, str):
+        raise TypeError(f"{label} must be text.")
+    if value is not None and not value.strip():
+        raise ValueError(f"{label} cannot be empty.")
+
+
+@dataclass(frozen=True, slots=True)
+class AlkalinityAnalyticalContext:
+    """Optional report-native analytical semantics for alkalinity or ANC.
+
+    These fields describe what a source actually reported. They do not select a
+    calculation model, manufacture missing method details, or apply to modeled
+    or target alkalinity.
+    """
+
+    result_identity: AlkalinityResultIdentity | None = None
+    sample_filtration_state: SampleFiltrationState | None = None
+    original_analyte_label: str | None = None
+    original_unit_label: str | None = None
+    analytical_method: str | None = None
+    method_code: str | None = None
+    titration_endpoint: PHValue | None = None
+
+    def __post_init__(self) -> None:
+        if self.result_identity is not None and not isinstance(
+            self.result_identity,
+            AlkalinityResultIdentity,
+        ):
+            raise TypeError(
+                "Alkalinity result identity must use AlkalinityResultIdentity."
+            )
+        if self.sample_filtration_state is not None and not isinstance(
+            self.sample_filtration_state,
+            SampleFiltrationState,
+        ):
+            raise TypeError(
+                "Alkalinity sample filtration state must use SampleFiltrationState."
+            )
+        if self.titration_endpoint is not None and not isinstance(
+            self.titration_endpoint,
+            PHValue,
+        ):
+            raise TypeError("Alkalinity titration endpoint must use fermunits.PHValue.")
+
+        for value, label in (
+            (self.original_analyte_label, "Original alkalinity analyte label"),
+            (self.original_unit_label, "Original alkalinity unit label"),
+            (self.analytical_method, "Alkalinity analytical method"),
+            (self.method_code, "Alkalinity method code"),
+        ):
+            _validate_optional_text(value, label)
+
+        if all(
+            value is None
+            for value in (
+                self.result_identity,
+                self.sample_filtration_state,
+                self.original_analyte_label,
+                self.original_unit_label,
+                self.analytical_method,
+                self.method_code,
+                self.titration_endpoint,
+            )
+        ):
+            raise ValueError(
+                "Alkalinity analytical context requires at least one reported field."
+            )
 
 
 def _validate_quantity(
@@ -127,8 +212,23 @@ class Alkalinity:
     basis: ReportingBasis = ReportingBasis.AS_CACO3
 
     result_context: ReportedResultContext | None = None
+    reported_statistic: ReportedStatistic | None = None
+    analytical_context: AlkalinityAnalyticalContext | None = None
 
     def __post_init__(self) -> None:
+        if self.reported_statistic is not None and not isinstance(
+            self.reported_statistic,
+            ReportedStatistic,
+        ):
+            raise TypeError("Alkalinity reported_statistic must use ReportedStatistic.")
+        if self.analytical_context is not None and not isinstance(
+            self.analytical_context,
+            AlkalinityAnalyticalContext,
+        ):
+            raise TypeError(
+                "Alkalinity analytical_context must use AlkalinityAnalyticalContext."
+            )
+
         if (self.minimum is None) == (self.maximum is None):
             _validate_reported_values(
                 value=self.value,
@@ -182,8 +282,20 @@ class Alkalinity:
         )
 
     @classmethod
-    def mg_per_liter_as_caco3(cls, value: float) -> Alkalinity:
-        return cls(value=Q_(value, "milligram / liter"))
+    def mg_per_liter_as_caco3(
+        cls,
+        value: float,
+        *,
+        result_context: ReportedResultContext | None = None,
+        reported_statistic: ReportedStatistic | None = None,
+        analytical_context: AlkalinityAnalyticalContext | None = None,
+    ) -> Alkalinity:
+        return cls(
+            value=Q_(value, "milligram / liter"),
+            result_context=result_context,
+            reported_statistic=reported_statistic,
+            analytical_context=analytical_context,
+        )
 
     @classmethod
     def mg_per_liter_as_caco3_range(
@@ -192,6 +304,9 @@ class Alkalinity:
         maximum: float,
         *,
         reported_average: float | None = None,
+        result_context: ReportedResultContext | None = None,
+        reported_statistic: ReportedStatistic | None = None,
+        analytical_context: AlkalinityAnalyticalContext | None = None,
     ) -> Alkalinity:
         return cls(
             minimum=Q_(minimum, "milligram / liter"),
@@ -201,15 +316,42 @@ class Alkalinity:
                 if reported_average is None
                 else Q_(reported_average, "milligram / liter")
             ),
+            result_context=result_context,
+            reported_statistic=reported_statistic,
+            analytical_context=analytical_context,
         )
 
     @classmethod
-    def mg_per_liter_as_caco3_lower_bound(cls, minimum: float) -> Alkalinity:
-        return cls(minimum=Q_(minimum, "milligram / liter"))
+    def mg_per_liter_as_caco3_lower_bound(
+        cls,
+        minimum: float,
+        *,
+        result_context: ReportedResultContext | None = None,
+        reported_statistic: ReportedStatistic | None = None,
+        analytical_context: AlkalinityAnalyticalContext | None = None,
+    ) -> Alkalinity:
+        return cls(
+            minimum=Q_(minimum, "milligram / liter"),
+            result_context=result_context,
+            reported_statistic=reported_statistic,
+            analytical_context=analytical_context,
+        )
 
     @classmethod
-    def mg_per_liter_as_caco3_upper_bound(cls, maximum: float) -> Alkalinity:
-        return cls(maximum=Q_(maximum, "milligram / liter"))
+    def mg_per_liter_as_caco3_upper_bound(
+        cls,
+        maximum: float,
+        *,
+        result_context: ReportedResultContext | None = None,
+        reported_statistic: ReportedStatistic | None = None,
+        analytical_context: AlkalinityAnalyticalContext | None = None,
+    ) -> Alkalinity:
+        return cls(
+            maximum=Q_(maximum, "milligram / liter"),
+            result_context=result_context,
+            reported_statistic=reported_statistic,
+            analytical_context=analytical_context,
+        )
 
 
 @dataclass(frozen=True, slots=True)

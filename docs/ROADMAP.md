@@ -407,28 +407,30 @@ type. Its initial assumptions are:
   alkalinity, while reactions such as calcium-carbonate precipitation can and
   remain explicit limitations.
 
-When a source supplies them, the report-native record should also preserve the
+When a source supplies them, the report-native record preserves the
 original analyte wording and unit, reported-result identity as total alkalinity
 or acid-neutralizing capacity (ANC), reported statistic, analytical method,
 titration endpoint or method code, filtered/unfiltered sample state, sampling
 context, and document provenance. These are source semantics and must not be
 manufactured for calculated or target values.
 
-Before 0.5.0 release, the public source-reporting model must expose enough
-optional analytical context to retain those supplied semantics rather than only
-the normalized `as CaCO3` value. Missing method, endpoint, sample-state, or
-alkalinity/ANC identity remains unknown; the engine must not infer it from the
-number alone.
-
-The public representation should keep this optional source-only analytical
+The public `AlkalinityAnalyticalContext` keeps this optional source-only
 metadata cohesive rather than overloading `ReportedResultContext`, whose purpose
-is timing and sampling context. Result identity and filtered/unfiltered state
-should use explicit controlled values; original analyte/unit wording, method
-name, and method code should remain source-faithful text; and an explicitly
-reported titration endpoint should use `PHValue`. Reported alkalinity should also
-support the existing `ReportedStatistic` concept. Exact public class and field
-names remain an implementation decision, but calculated and target alkalinity
-must not acquire this source-only metadata.
+is timing and sampling context. `AlkalinityResultIdentity` and
+`SampleFiltrationState` provide controlled values; original analyte/unit
+wording, method name, and method code remain source-faithful text; and an
+explicitly reported titration endpoint uses `PHValue`. Reported alkalinity also
+supports the existing `ReportedStatistic` concept. Missing method, endpoint,
+sample state, or result identity remains unknown, and calculated and target
+alkalinity do not acquire this source-only metadata.
+
+For compatibility, a legacy `Alkalinity` value without an explicit analytical
+identity continues through the existing total-alkalinity calculation contract;
+the engine does not fill in the missing identity metadata. An explicitly
+identified ANC result is preserved but is unresolved under
+`conservative_equivalent_alkalinity_v1`, with the stable reason
+`ACID_NEUTRALIZING_CAPACITY_UNSUPPORTED`. The model does not silently equate ANC
+with total alkalinity.
 
 The supported public API returns:
 
@@ -475,9 +477,9 @@ and must not be presented as equilibrium final bicarbonate concentration.
 
 `conservative_equivalent_alkalinity_v1` is not a simulator for the exact result
 of a particular laboratory titration procedure. Analytical endpoint and method
-can affect a reported alkalinity result. The calculation contract should expose
-that limitation explicitly rather than hard-code an endpoint-specific correction
-into the generic equivalent balance.
+can affect a reported alkalinity result. The calculation contract exposes this
+as `LABORATORY_TITRATION_NOT_SIMULATED` rather than hard-coding an endpoint-
+specific correction into the generic equivalent balance.
 
 Consumer applications may proceed against Engine 0.4.1 with report-native
 total-alkalinity and pH entry, independent preservation of explicitly reported

@@ -120,6 +120,14 @@ class TargetWaterProfile:
             Alkalinity,
         ):
             raise TypeError("Target water profile alkalinity must use Alkalinity.")
+        if self.alkalinity is not None and (
+            self.alkalinity.reported_statistic is not None
+            or self.alkalinity.analytical_context is not None
+        ):
+            raise ValueError(
+                "Target water profile alkalinity cannot carry source-only "
+                "reported statistic or analytical context."
+            )
 
         if any(not style.strip() for style in self.style_associations):
             raise ValueError("Target water profile style associations cannot be empty.")

@@ -405,7 +405,7 @@ status, contribution records, and applicable stable limitation codes. A target
 criterion must express target meaning rather than reinterpreting a
 source-reported average as a preferred value.
 
-The report-native representation should preserve, when supplied, the original
+The report-native representation preserves, when supplied, the original
 analyte wording and unit, reported-result identity as total alkalinity or acid-
 neutralizing capacity (ANC), named reported statistic, analytical method,
 titration endpoint or method code, filtered/unfiltered sample state,
@@ -413,14 +413,22 @@ result/sampling context, and source-document provenance. Calculated and target
 representations must not acquire invented analytical metadata merely to share
 an API shape with reported data.
 
-These optional source-only fields should form one cohesive analytical-context
-concept rather than being added to `ReportedResultContext`, which remains the
-timing and sampling-context model. Result identity and filtered/unfiltered state
-should use explicit controlled values. Original analyte/unit wording, method
-name, and method code should preserve source text, while an explicitly reported
-titration endpoint should use `PHValue`. Reported alkalinity should additionally
-support the existing `ReportedStatistic` concept. This design does not mandate a
-particular public class name before implementation.
+These optional source-only fields use the cohesive public
+`AlkalinityAnalyticalContext` rather than extending `ReportedResultContext`,
+which remains the timing and sampling-context model. Result identity uses
+`AlkalinityResultIdentity`, filtered/unfiltered state uses
+`SampleFiltrationState`, original analyte/unit wording and method identifiers
+preserve source text, and an explicitly reported titration endpoint uses
+`PHValue`. Reported alkalinity also supports the existing `ReportedStatistic`
+concept. `TargetWaterProfile` rejects this source-only analytical metadata.
+
+For backward compatibility, an `Alkalinity` value with no explicit analytical
+identity retains the existing total-alkalinity calculation behavior while the
+identity metadata remains unknown. When a source explicitly identifies its
+result as ANC, the record is preserved but
+`conservative_equivalent_alkalinity_v1` leaves source alkalinity unresolved with
+`ACID_NEUTRALIZING_CAPACITY_UNSUPPORTED`; the model does not silently equate ANC
+with total alkalinity.
 
 The canonical internal calculation axis is equivalents per volume. Values may
 be presented as `mg/L as CaCO3`, where `as CaCO3` is a reporting-equivalent
@@ -480,6 +488,11 @@ admission covers fixed blends, proportional dilution, and bounded source-volume
 selection. Sodium bicarbonate is selectable only with resolved starting
 alkalinity and an alkalinity criterion, and every chosen practical dose is
 replayed through the ordinary forward workflow before acceptance.
+
+`AlkalinityBalanceResult.limitations` includes
+`LABORATORY_TITRATION_NOT_SIMULATED`. Analytical context can preserve a source's
+method and endpoint, but the conservative equivalent balance does not claim to
+reproduce the exact result of that laboratory procedure.
 
 ### 9.7 pH is a logarithmic scientific invariant
 

@@ -20,7 +20,12 @@ from water_chemistry_engine.forward_calculator import (
 )
 from water_chemistry_engine.ions import Ion
 from water_chemistry_engine.profiles import SourceWaterProfile
-from water_chemistry_engine.reported_properties import Alkalinity
+from water_chemistry_engine.reported_properties import (
+    Alkalinity,
+    AlkalinityAnalyticalContext,
+    AlkalinityResultIdentity,
+    SampleFiltrationState,
+)
 from water_chemistry_engine.reported_values import SourceResolutionPolicy
 from water_chemistry_engine.target_comparison import (
     TargetAlkalinityComparisonStatus,
@@ -73,6 +78,58 @@ def test_exact_source_alkalinity_resolves_without_deriving_bicarbonate() -> None
     assert result.final_alkalinity is not None
     assert result.final_alkalinity.concentration.magnitude == pytest.approx(108.0)
     assert result.final_state.concentration_for(Ion.BICARBONATE).magnitude == 125.0
+
+
+def test_explicit_total_alkalinity_identity_resolves_and_is_preserved() -> None:
+    analytical_context = AlkalinityAnalyticalContext(
+        result_identity=AlkalinityResultIdentity.TOTAL_ALKALINITY,
+        original_analyte_label="Alkalinity, Total",
+    )
+    source = _source(
+        "Reported source",
+        Alkalinity.mg_per_liter_as_caco3(
+            108.0,
+            analytical_context=analytical_context,
+        ),
+    )
+
+    result = calculate_forward_water(
+        (ForwardWaterSource(source, Q_(10, "liter")),),
+        source_resolution_policy=REPORTED_ONLY,
+    )
+
+    resolution = result.source_results[0].resolution.alkalinity_resolution
+    assert isinstance(resolution, ResolvedSourceAlkalinity)
+    assert resolution.source_result.analytical_context is analytical_context
+    assert result.final_alkalinity is not None
+
+
+def test_explicit_anc_is_preserved_but_not_used_as_total_alkalinity() -> None:
+    analytical_context = AlkalinityAnalyticalContext(
+        result_identity=AlkalinityResultIdentity.ACID_NEUTRALIZING_CAPACITY,
+        sample_filtration_state=SampleFiltrationState.UNFILTERED,
+    )
+    source = _source(
+        "Reported ANC source",
+        Alkalinity.mg_per_liter_as_caco3(
+            108.0,
+            analytical_context=analytical_context,
+        ),
+    )
+
+    result = calculate_forward_water(
+        (ForwardWaterSource(source, Q_(10, "liter")),),
+        source_resolution_policy=REPORTED_ONLY,
+    )
+
+    resolution = result.source_results[0].resolution.alkalinity_resolution
+    assert isinstance(resolution, UnresolvedSourceAlkalinity)
+    assert resolution.source_result is not None
+    assert resolution.source_result.analytical_context is analytical_context
+    assert resolution.reason is (
+        UnresolvedSourceAlkalinityReason.ACID_NEUTRALIZING_CAPACITY_UNSUPPORTED
+    )
+    assert result.final_alkalinity is None
 
 
 def test_source_alkalinity_range_requires_explicit_midpoint_policy() -> None:
@@ -230,6 +287,7 @@ def test_one_gram_per_liter_sodium_bicarbonate_adds_expected_alkalinity() -> Non
         AlkalinityModelLimitation.UNMODELED_REACTIONS_NOT_CALCULATED,
         AlkalinityModelLimitation.CARBONATE_SPECIATION_NOT_CALCULATED,
         AlkalinityModelLimitation.WORKING_WATER_PH_NOT_CALCULATED,
+        AlkalinityModelLimitation.LABORATORY_TITRATION_NOT_SIMULATED,
     )
     assert result.final_alkalinity.concentration.magnitude == pytest.approx(
         595.7144,

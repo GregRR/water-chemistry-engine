@@ -16,6 +16,14 @@ comparison-expansion milestone is in progress.
   100 mg/L, that existing conversion now returns approximately 121.92864 rather
   than 121.93705 mg/L HCO3. Consumers comparing exact derived values should
   expect this small precision change.
+- Source results explicitly identified as acid-neutralizing capacity (ANC) are
+  now preserved but remain unresolved under the total-alkalinity calculation
+  model. Consumers that previously stored ANC in `Alkalinity` without an
+  explicit identity continue to receive the legacy total-alkalinity behavior;
+  adding the ANC identity intentionally enables the stricter result.
+- `TargetWaterProfile` rejects alkalinity values carrying the new source-only
+  reported-statistic or analytical-context metadata. Targets must express a
+  target criterion rather than masquerading as a reported laboratory result.
 
 ### Added
 
@@ -31,6 +39,13 @@ comparison-expansion milestone is in progress.
   policy-controlled source resolution, unknown-preserving blend calculation,
   reviewed sodium-bicarbonate treatment contributions, modeled final
   alkalinity, target comparison, and a structured contribution-matrix row.
+- Added report-native alkalinity analytical metadata for original analyte and
+  unit labels, total-alkalinity-versus-ANC identity, filtered/unfiltered sample
+  state, method, method code, and titration endpoint, plus the existing
+  `ReportedStatistic` contract. Missing metadata remains unknown.
+- Added stable diagnostics for an explicitly reported ANC input that cannot be
+  used as total alkalinity and for the model limitation that a conservative
+  equivalent balance does not simulate a particular laboratory titration.
 - Added one-sided lower/upper total-alkalinity values. They remain unresolved
   when used as source reports and act as supported numeric bounds when used as
   target criteria.

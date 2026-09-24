@@ -21,7 +21,11 @@ from water_chemistry_engine.alkalinity_conversions import (
 )
 from water_chemistry_engine.blending import WaterBlendResult
 from water_chemistry_engine.profiles import SourceWaterProfile
-from water_chemistry_engine.reported_properties import Alkalinity, ReportingBasis
+from water_chemistry_engine.reported_properties import (
+    Alkalinity,
+    AlkalinityResultIdentity,
+    ReportingBasis,
+)
 from water_chemistry_engine.reported_values import SourceResolutionPolicy
 from water_chemistry_engine.treatment_application import (
     TreatmentAddition,
@@ -46,6 +50,7 @@ class AlkalinityModelLimitation(StrEnum):
     UNMODELED_REACTIONS_NOT_CALCULATED = "unmodeled_reactions_not_calculated"
     CARBONATE_SPECIATION_NOT_CALCULATED = "carbonate_speciation_not_calculated"
     WORKING_WATER_PH_NOT_CALCULATED = "working_water_ph_not_calculated"
+    LABORATORY_TITRATION_NOT_SIMULATED = "laboratory_titration_not_simulated"
 
 
 CONSERVATIVE_EQUIVALENT_ALKALINITY_LIMITATIONS = (
@@ -54,6 +59,7 @@ CONSERVATIVE_EQUIVALENT_ALKALINITY_LIMITATIONS = (
     AlkalinityModelLimitation.UNMODELED_REACTIONS_NOT_CALCULATED,
     AlkalinityModelLimitation.CARBONATE_SPECIATION_NOT_CALCULATED,
     AlkalinityModelLimitation.WORKING_WATER_PH_NOT_CALCULATED,
+    AlkalinityModelLimitation.LABORATORY_TITRATION_NOT_SIMULATED,
 )
 
 
@@ -72,6 +78,7 @@ class UnresolvedSourceAlkalinityReason(StrEnum):
     EXACT_RANGE_MIDPOINT_NOT_PERMITTED = "exact_range_midpoint_not_permitted"
     LOWER_BOUND = "lower_bound"
     UPPER_BOUND = "upper_bound"
+    ACID_NEUTRALIZING_CAPACITY_UNSUPPORTED = "acid_neutralizing_capacity_unsupported"
 
 
 @dataclass(frozen=True, slots=True)
@@ -205,6 +212,18 @@ def resolve_source_alkalinity(
         return UnresolvedSourceAlkalinity(
             source_result=None,
             reason=UnresolvedSourceAlkalinityReason.NOT_REPORTED,
+        )
+
+    if (
+        reported.analytical_context is not None
+        and reported.analytical_context.result_identity
+        is AlkalinityResultIdentity.ACID_NEUTRALIZING_CAPACITY
+    ):
+        return UnresolvedSourceAlkalinity(
+            source_result=reported,
+            reason=(
+                UnresolvedSourceAlkalinityReason.ACID_NEUTRALIZING_CAPACITY_UNSUPPORTED
+            ),
         )
 
     if reported.value is not None:
