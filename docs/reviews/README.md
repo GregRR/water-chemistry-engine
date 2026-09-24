@@ -98,3 +98,14 @@ unit, fail-closed, or public-API safety defect, and cleared the checkpoint
 without remediation. It independently verified the mass calculation,
 unit-normalization and temperature-match boundaries, provenance separation,
 package-root forward workflow, and explicit optimizer rejection.
+
+For the mass-per-volume solution-dosing checkpoint, read:
+
+1. `0.5-mass-per-volume-dosing-review.md`
+
+The independent review ran the complete quality gate and cleared the
+implementation without a correctness, unit, fail-closed, or public-API safety
+defect. Its one low-severity finding identified missing direct tests for
+wrong-dimension volume inputs. The existing validation already failed closed;
+the finding was accepted and remediated with symmetric regression coverage for
+both manual volume-dose material models.

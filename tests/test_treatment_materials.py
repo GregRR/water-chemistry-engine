@@ -399,6 +399,18 @@ def test_mass_per_volume_solution_rejects_invalid_increment(increment: object) -
         )
 
 
+def test_mass_per_volume_solution_rejects_nonvolume_increment() -> None:
+    with pytest.raises(ValueError, match="convertible to volume"):
+        ExactMassPerVolumeDosedSolutionTreatmentMaterial(
+            key="invalid",
+            name="Invalid solution",
+            ingredient=CALCIUM_CHLORIDE_ANHYDROUS,
+            active_mass_concentration=Q_(100, "gram / liter"),
+            concentration_reference_temperature=Q_(20, "degree_Celsius"),
+            dose_increment=Q_(1, "gram"),
+        )
+
+
 def test_mass_per_volume_solution_allows_zero_measured_volume() -> None:
     material = _mass_per_volume_solution()
 
@@ -416,6 +428,16 @@ def test_mass_per_volume_solution_rejects_negative_measured_volume() -> None:
     with pytest.raises(ValueError, match="finite and nonnegative"):
         material.resolve_volume_dose(
             Q_(-1, "milliliter"),
+            measurement_temperature=Q_(20, "degree_Celsius"),
+        )
+
+
+def test_mass_per_volume_solution_rejects_nonvolume_measurement() -> None:
+    material = _mass_per_volume_solution()
+
+    with pytest.raises(ValueError, match="convertible to volume"):
+        material.resolve_volume_dose(
+            Q_(1, "gram"),
             measurement_temperature=Q_(20, "degree_Celsius"),
         )
 
@@ -627,6 +649,16 @@ def test_volume_dose_rejects_negative_measured_volume() -> None:
     with pytest.raises(ValueError, match="finite and nonnegative"):
         material.resolve_volume_dose(
             Q_(-1, "milliliter"),
+            measurement_temperature=Q_(20, "degree_Celsius"),
+        )
+
+
+def test_density_based_volume_dose_rejects_nonvolume_measurement() -> None:
+    material = _volume_dosed_solution()
+
+    with pytest.raises(ValueError, match="convertible to volume"):
+        material.resolve_volume_dose(
+            Q_(1, "gram"),
             measurement_temperature=Q_(20, "degree_Celsius"),
         )
 
