@@ -339,8 +339,8 @@ silently approximated.
 - retaining existing manual additions as optimizer inputs;
 - pH or mash-chemistry optimization;
 - ranged-assay uncertainty optimization;
-- arbitrary liquid-volume dosing without sufficient concentration and density
-  information;
+- arbitrary liquid-volume dosing without either an exact mass-per-volume basis
+  or sufficient mass-fraction, density, and applicable-condition information;
 - universal close/far or UI color thresholds;
 - a large built-in target library;
 - arbitrary non-additive treatment operations;
@@ -408,17 +408,27 @@ type. Its initial assumptions are:
   remain explicit limitations.
 
 When a source supplies them, the report-native record should also preserve the
-original analyte wording and unit, explicit identity as total alkalinity,
-reported statistic, analytical method, titration endpoint or method code,
-filtered/unfiltered sample state, alkalinity-versus-acid-neutralizing-capacity
-identity, sampling context, and document provenance. These are source semantics
-and must not be manufactured for calculated or target values.
+original analyte wording and unit, reported-result identity as total alkalinity
+or acid-neutralizing capacity (ANC), reported statistic, analytical method,
+titration endpoint or method code, filtered/unfiltered sample state, sampling
+context, and document provenance. These are source semantics and must not be
+manufactured for calculated or target values.
 
 Before 0.5.0 release, the public source-reporting model must expose enough
 optional analytical context to retain those supplied semantics rather than only
 the normalized `as CaCO3` value. Missing method, endpoint, sample-state, or
 alkalinity/ANC identity remains unknown; the engine must not infer it from the
 number alone.
+
+The public representation should keep this optional source-only analytical
+metadata cohesive rather than overloading `ReportedResultContext`, whose purpose
+is timing and sampling context. Result identity and filtered/unfiltered state
+should use explicit controlled values; original analyte/unit wording, method
+name, and method code should remain source-faithful text; and an explicitly
+reported titration endpoint should use `PHValue`. Reported alkalinity should also
+support the existing `ReportedStatistic` concept. Exact public class and field
+names remain an implementation decision, but calculated and target alkalinity
+must not acquire this source-only metadata.
 
 The supported public API returns:
 
@@ -600,14 +610,19 @@ Conceptually, reusable primitives may eventually include operations such as:
 
 ```text
 calculate_ph(chemical_state)
-carbonate_speciation(chemical_state)
 charge_balance(chemical_state)
-equilibrium_state(chemical_state)
+reconcile_hardness(chemical_state)
 ```
 
 The exact public API names are not committed by this roadmap. The important
 boundary is that these operations describe water chemistry rather than a beer,
 coffee, tea, dough, or other domain process.
+
+This milestone does not establish a general carbonate-speciation or aqueous-
+equilibrium solver. Those deeper capabilities remain Version 2 work. A bounded
+working-water-pH implementation may use validated internal equilibrium
+calculations necessary for that result without publishing a general solver or
+claiming broader speciation support.
 
 The same capabilities may evaluate source, blended, or final treated-water
 states. They must:

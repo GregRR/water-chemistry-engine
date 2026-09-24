@@ -406,12 +406,21 @@ criterion must express target meaning rather than reinterpreting a
 source-reported average as a preferred value.
 
 The report-native representation should preserve, when supplied, the original
-analyte wording and unit, identity as total alkalinity, named reported
-statistic, analytical method, titration endpoint or method code,
-filtered/unfiltered sample state, distinction between alkalinity and
-acid-neutralizing capacity, result/sampling context, and source-document
-provenance. Calculated and target representations must not acquire invented
-analytical metadata merely to share an API shape with reported data.
+analyte wording and unit, reported-result identity as total alkalinity or acid-
+neutralizing capacity (ANC), named reported statistic, analytical method,
+titration endpoint or method code, filtered/unfiltered sample state,
+result/sampling context, and source-document provenance. Calculated and target
+representations must not acquire invented analytical metadata merely to share
+an API shape with reported data.
+
+These optional source-only fields should form one cohesive analytical-context
+concept rather than being added to `ReportedResultContext`, which remains the
+timing and sampling-context model. Result identity and filtered/unfiltered state
+should use explicit controlled values. Original analyte/unit wording, method
+name, and method code should preserve source text, while an explicitly reported
+titration endpoint should use `PHValue`. Reported alkalinity should additionally
+support the existing `ReportedStatistic` concept. This design does not mandate a
+particular public class name before implementation.
 
 The canonical internal calculation axis is equivalents per volume. Values may
 be presented as `mg/L as CaCO3`, where `as CaCO3` is a reporting-equivalent
@@ -1262,7 +1271,10 @@ Reported/derived semantics are resolved before a calculation uses a representati
 The planned pH capability must be reusable and state-based. Once a validated
 model and input contract exist, any consumer should be able to request pH for a
 source, blended-water, or final treated-water state through one calculation
-rather than product-specific variants.
+rather than product-specific variants. The Version 1 milestone may use bounded
+internal equilibrium calculations required for working-water pH, but it does
+not publish a general carbonate-speciation or aqueous-equilibrium solver; those
+remain Version 2 capabilities.
 
 ## 16. Version 1.0 scope and release sequence
 
@@ -1325,7 +1337,10 @@ reported and target pH. Generalized treatment-ingredient authoring remains a
 separate 0.4 contract decision. Focused external follow-up reviews verified the
 result and source-input remediations before release validation began.
 
-Convenience helpers should be driven by real consumer friction. They must not erase reported-value semantics, silently choose representative values, or move scientific/domain policy into an application.
+Convenience helpers should be driven by real consumer friction. They must not
+erase reported-value semantics, silently choose representative values, or move
+reusable water-chemistry policy into an application. Purpose-specific
+interpretation and prediction remain consumer/domain responsibilities.
 
 ### 16.3 Version 1 reference data
 

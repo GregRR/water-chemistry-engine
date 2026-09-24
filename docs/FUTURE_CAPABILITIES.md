@@ -1,8 +1,9 @@
 # Water Chemistry Engine Future Capabilities
 
 This document preserves useful engine ideas intentionally outside the active
-near-term release path in `docs/ROADMAP.md`. Inclusion here is not a promise for
-a particular release.
+near-term release path in `docs/ROADMAP.md` and records related domain
+capabilities that are deliberately owned by consumers. Inclusion here is not a
+promise for a particular release.
 
 Product-owned ideas such as accounts, browser workflows, AI document review,
 mobile UI, persistence, purchasing, and application history belong in consumer

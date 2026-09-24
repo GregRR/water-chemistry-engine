@@ -126,10 +126,14 @@ future native clients.
 Applications own presentation, persistence, accounts, navigation, workflow
 state, document-upload/review workflows, and product-specific interaction.
 
-No chemistry equation, source-report interpretation, optimization rule,
-scientific validation rule, or treatment model should exist only in a consumer
-application. When real application use exposes a missing scientific/domain
-capability, that capability should be implemented in the engine.
+No reusable water-chemistry equation, source-report measurement semantic,
+generic validation rule, treatment model, or optimization rule should exist
+only in a consumer application. When real application use exposes a missing
+reusable water-chemistry capability, it should be implemented in the engine.
+Purpose-specific interpretation and prediction--including recipe-aware mash-pH,
+malt/grain buffering, beer-style guidance, coffee extraction, or dough
+behavior--belong in consumers or separate domain libraries that may compose
+engine primitives.
 
 ## FermUnits
 

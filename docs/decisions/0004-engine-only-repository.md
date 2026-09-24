@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted
+Accepted. The repository-separation decision remains active; the ownership
+boundary below is refined by ADR 0007.
 
 ## Context
 
@@ -24,7 +25,7 @@ conformance material.
 End-user products are separate projects. The first known product is a separate web application, and future native
 applications are also separate.
 
-The ownership boundary is:
+The ownership boundary at the time of this decision was:
 
 - chemistry, water-domain interpretation, validation, optimization,
   calculation semantics, scientific notices, and structured scientific results
@@ -36,6 +37,10 @@ The ownership boundary is:
 Real application use is expected to reveal missing engine capabilities. Those
 capabilities must be added to the engine when they are scientific/domain logic
 rather than implemented only in a consumer.
+
+ADR 0007 subsequently distinguishes reusable water chemistry from purpose-
+specific interpretation and prediction. The latter may be scientific domain
+logic while still belonging in a consumer or separate domain library.
 
 The 0.2 web scaffold is removed before the 0.2.0 release so the repository
 structure matches this decision.

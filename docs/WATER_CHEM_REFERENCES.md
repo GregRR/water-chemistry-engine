@@ -118,6 +118,20 @@ consumer or separate domain library.
   tables, numerical constants, and any implementation logic must be checked
   against the scanned page; where practical, implementation claims should also
   be cross-checked against an independent authoritative source.
+- **Known source cautions:**
+  - Appendix D page 275 incorrectly describes the non-bicarbonate share at pH 7
+    as carbonate and treats a dissolved-inorganic-carbon species fraction as a
+    fraction of total alkalinity. Its own Table 28 on page 277 instead assigns
+    that share to carbonic acid and rounds carbonate to zero. Carbonic acid is
+    not an alkalinity term, so the illustrated division of bicarbonate by its
+    species fraction does not calculate total alkalinity.
+  - Appendix C page 269 illustrates estimating dilute-acid density by a simple
+    concentration ratio. That shortcut is not accepted as an Engine material
+    rule; volume dosing requires an exact supported mass-per-volume basis or
+    independently sourced density and applicable-condition data.
+  - The verified correction, bounded audit calculation, authoritative
+    cross-checks, and future implementation rules are recorded in
+    [`docs/research/carbonate-speciation-source-audit.md`](research/carbonate-speciation-source-audit.md).
 
 ### Sutea et al. (2025)
 
