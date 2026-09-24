@@ -73,7 +73,10 @@ reporting. Report-native alkalinity can preserve its statistic, original labels,
 total-alkalinity-versus-ANC identity, filtration state, method, and titration
 endpoint. Explicit ANC remains unresolved rather than being silently treated as
 total alkalinity, and the balance does not claim to simulate a laboratory
-titration. Optimizer support now spans fixed blends, proportional dilution, and
+titration. Curated target/reference collections can use an explicitly versioned
+catalog that requires evidence-based per-profile provenance and exact version
+selection without silently merging conflicting sources. Optimizer support now
+spans fixed blends, proportional dilution, and
 bounded source-volume selection when alkalinity is resolvable and an appropriate
 criterion is present. Unreleased 0.5 work should be consumed only from an exact
 commit or locally built artifact; ordinary applications should continue to pin

@@ -115,6 +115,7 @@ EXPECTED_PUBLIC_API = {
     "TargetIonClosenessStatus",
     "TargetPHComparison",
     "TargetPHComparisonStatus",
+    "TargetProfileCatalog",
     "TargetProfileClassification",
     "TargetProfileComparison",
     "TargetProfileComparisonStatus",
@@ -202,6 +203,28 @@ def test_target_profile_provenance_uses_only_package_root_imports() -> None:
     )
 
     assert target.provenance is provenance
+
+
+def test_curated_target_profile_catalog_uses_package_root_imports() -> None:
+    profile = wce.TargetWaterProfile(
+        name="Example published recommendation",
+        concentrations=(wce.IonConcentration.mg_per_liter(wce.Ion.CALCIUM, 50.0),),
+        provenance=wce.TargetProfileProvenance(
+            classification=wce.TargetProfileClassification.PUBLISHED_RECOMMENDATION,
+            source_document=wce.SourceDocumentMetadata(
+                publisher="Example Standards Organization",
+            ),
+            profile_key="example-published-recommendation",
+            profile_version="1",
+        ),
+    )
+    catalog = wce.TargetProfileCatalog(
+        catalog_key="example-catalog",
+        catalog_version="2026.1",
+        profiles=(profile,),
+    )
+
+    assert catalog.profile_for("example-published-recommendation", "1") is profile
 
 
 def test_volume_dosed_solution_flows_through_package_root_forward_api() -> None:

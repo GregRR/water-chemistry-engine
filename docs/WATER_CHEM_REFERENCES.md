@@ -596,4 +596,7 @@ Historical city profiles must not be labeled as a brewery's actual treated liquo
    hardness reconciliation, carbonate speciation, and reusable aqueous
    equilibrium calculations.
 8. Catalogue unverified water-treatment formulas and claims encountered during research and compare them against stronger sources.
-9. Define a citation, evidentiary-classification, and versioning format for bundled reference data.
+9. Extend the implemented `TargetProfileCatalog` domain boundary into a
+   machine-readable bundled-data format that also records citation,
+   redistribution/licensing, verification, and review status. Catalog identity
+   validation alone is not sufficient for admission.

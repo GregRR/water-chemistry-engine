@@ -765,6 +765,15 @@ Current target profiles support:
   classification, document attribution, and paired stable key/version;
 - duplicate-ion protection.
 
+Curated collections use `TargetProfileCatalog`, which has an explicit catalog
+key/version and admits only evidence-based, document-attributed profiles with a
+complete, unique profile key/version and at least one represented criterion.
+Exact lookup prevents the engine from silently selecting a latest version.
+Conflicting sourced profiles must retain distinct identities or versions rather
+than overwrite or merge one another. The catalog is a runtime validation and
+selection boundary; repository admission still separately requires verified
+sources, redistribution rights, licensing records, and review.
+
 Near-term generic target/reference semantics may additionally add:
 
 - stable profile identifier/version;

@@ -149,6 +149,7 @@ from water_chemistry_engine.target_comparison import (
     TargetProfileComparisonStatus,
     UnsupportedTargetIonReason,
 )
+from water_chemistry_engine.target_profile_catalog import TargetProfileCatalog
 from water_chemistry_engine.target_profiles import (
     TargetProfileClassification,
     TargetProfileProvenance,
@@ -304,6 +305,7 @@ __all__ = [
     "TargetIonComparisonStatus",
     "TargetPHComparison",
     "TargetPHComparisonStatus",
+    "TargetProfileCatalog",
     "TargetProfileClassification",
     "TargetProfileComparison",
     "TargetProfileComparisonStatus",

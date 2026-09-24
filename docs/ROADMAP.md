@@ -384,6 +384,15 @@ attributed source document.
 Source water remains structurally represented by `SourceWaterProfile`; it is
 not inferred from or duplicated in the target/reference classification.
 
+The public `TargetProfileCatalog` adds a versioned curated-collection boundary.
+It admits only evidence-based target/reference classifications with document
+attribution, exact profile key/version identity, and at least one represented
+criterion. Duplicate identities fail rather than overwrite one another, and
+lookup always requests an exact version; the engine does not select “latest” or
+merge conflicting references. Bundled entries still require separate source
+verification, redistribution permission, licensing records, and review before
+admission.
+
 ### Conservative-equivalent total-alkalinity balance
 
 Promote total alkalinity from a preserved-only source/target property into the

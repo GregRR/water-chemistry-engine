@@ -202,6 +202,12 @@ approved for inclusion in the engine project.
 Every included dataset must retain provenance, licensing information, and
 appropriate scientific references.
 
+The public `TargetProfileCatalog` validates catalog and profile version
+identity, evidence classification, document attribution, represented criteria,
+and duplicate rejection after profiles are constructed. It does not replace
+the repository-level licensing, redistribution, source-verification, or review
+records required before data is added here.
+
 ### `schemas/water/`
 
 Machine-readable schemas for project-specific water data and adapters under

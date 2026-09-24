@@ -27,6 +27,10 @@ comparison-expansion milestone is in progress.
 
 ### Added
 
+- Added `TargetProfileCatalog`, an explicitly versioned curated-profile
+  boundary that requires evidence-based versioned provenance, at least one
+  represented criterion, and unique exact profile key/version identities. It
+  deliberately provides no implicit latest-version or conflict-merging policy.
 - Added optional target-profile provenance with explicit evidentiary
   classification, source-document attribution, and paired stable key/version;
   unclassified profiles remain unclassified, while classifications that make

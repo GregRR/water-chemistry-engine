@@ -148,8 +148,8 @@ The exact initial facade is:
   `BlendPreparationInstruction`, `SourceVolumeInstruction`, and
   `TreatmentPreparationInstruction`;
 - source and target inputs: `SourceWaterProfile`, `SourceResolutionPolicy`,
-  `TargetWaterProfile`, `TargetProfileClassification`, and
-  `TargetProfileProvenance`;
+  `TargetWaterProfile`, `TargetProfileCatalog`,
+  `TargetProfileClassification`, and `TargetProfileProvenance`;
 - optimizer entry point and request: `optimize_treatment`, `OptimizerRequest`,
   `OptimizerSource`, `OptimizerMaterialConstraint`,
   `ExactMassDosedTreatmentMaterial`, and `OptimizerBlendPolicy`;
@@ -230,6 +230,25 @@ Pint dependency merely to use the quantities returned by this API.
 whose magnitude is an `int`, `float`, `Decimal`, or `Fraction`. Consumers may
 use it to type reported-value fields and return values without reproducing the
 engine's scalar-magnitude policy or importing `quantity_types` directly.
+
+## Curated target-profile catalogs
+
+`TargetProfileCatalog` is the versioned public boundary for a curated
+collection of target/reference profiles. A catalog has its own stable key and
+version. Every entry must:
+
+- be a `TargetWaterProfile` with at least one represented criterion;
+- carry explicit `TargetProfileProvenance`;
+- use an evidence-based classification rather than `USER_TARGET` or
+  `PREVIOUSLY_ACHIEVED_TREATED_WATER`;
+- carry both `profile_key` and `profile_version`; and
+- have a unique `(profile_key, profile_version)` identity within the catalog.
+
+`profile_for(profile_key, profile_version)` performs exact lookup. The catalog
+does not choose a “latest” version, merge conflicting references, or infer that
+one sourced profile is preferable or optimal. Catalog validation is not a
+substitute for the repository's source-verification, redistribution-rights,
+licensing, and review requirements for bundled data.
 
 ## Source reporting and provenance example
 
