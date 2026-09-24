@@ -452,7 +452,10 @@ All eleven items are implemented. Sodium bicarbonate is automatically
 selectable only under the named conservative-equivalent model when starting
 alkalinity is resolved and a supported total-alkalinity criterion is present.
 Every selected dose is replayed through the ordinary forward calculation before
-the plan is accepted.
+the plan is accepted. Forward-result notices expose a policy-authorized source
+range midpoint or a reported alkalinity/ANC result that remains unresolved;
+omitted alkalinity and zero-volume sources remain quiet unless another result,
+such as target comparison, makes the missing value relevant.
 
 If any positive-volume source has missing or unresolved alkalinity, blended
 and final total alkalinity remain unresolved. Known source and treatment

@@ -1,6 +1,10 @@
 import pytest
 from fermunits import Q_, PHValue
 
+from water_chemistry_engine.alkalinity_balance import (
+    SourceAlkalinityResolutionMethod,
+    UnresolvedSourceAlkalinityReason,
+)
 from water_chemistry_engine.blending import BlendSource, blend_waters
 from water_chemistry_engine.concentrations import (
     ExactConcentrationEndpoint,
@@ -15,7 +19,11 @@ from water_chemistry_engine.forward_notices import (
 )
 from water_chemistry_engine.ions import Ion
 from water_chemistry_engine.profiles import SourceWaterProfile
-from water_chemistry_engine.reported_properties import Alkalinity
+from water_chemistry_engine.reported_properties import (
+    Alkalinity,
+    AlkalinityAnalyticalContext,
+    AlkalinityResultIdentity,
+)
 from water_chemistry_engine.reported_values import SourceResolutionPolicy
 from water_chemistry_engine.source_resolution import resolve_source_profile
 from water_chemistry_engine.target_comparison import compare_state_to_target
@@ -108,6 +116,75 @@ def test_unresolved_positive_volume_source_is_exposed_as_warning() -> None:
     assert notice.reason == "exact_range_midpoint_not_permitted"
 
 
+def test_alkalinity_midpoint_policy_is_exposed_as_assumption() -> None:
+    profile = SourceWaterProfile(
+        name="Ranged alkalinity source",
+        concentrations=(),
+        alkalinity=Alkalinity.mg_per_liter_as_caco3_range(80.0, 120.0),
+    )
+    resolution = resolve_source_profile(profile, policy=ALLOW_MIDPOINTS)
+    blend = _blend_for((resolution,), (10.0,))
+    treatment = apply_treatment_additions(blend.state, blend.total_volume, ())
+
+    notices = build_forward_notices((resolution,), blend, treatment, None)
+
+    assert len(notices) == 1
+    notice = notices[0]
+    assert notice.code is (ForwardNoticeCode.SOURCE_ALKALINITY_RANGE_MIDPOINT_USED)
+    assert notice.level is ForwardNoticeLevel.ASSUMPTION
+    assert notice.ion is None
+    assert notice.source_index == 0
+    assert notice.source_name == "Ranged alkalinity source"
+    assert notice.reason == (
+        SourceAlkalinityResolutionMethod.DERIVED_EXACT_RANGE_MIDPOINT.value
+    )
+
+
+@pytest.mark.parametrize(
+    ("alkalinity", "expected_reason"),
+    (
+        (
+            Alkalinity.mg_per_liter_as_caco3_range(80.0, 120.0),
+            UnresolvedSourceAlkalinityReason.EXACT_RANGE_MIDPOINT_NOT_PERMITTED,
+        ),
+        (
+            Alkalinity.mg_per_liter_as_caco3(
+                100.0,
+                analytical_context=AlkalinityAnalyticalContext(
+                    result_identity=(
+                        AlkalinityResultIdentity.ACID_NEUTRALIZING_CAPACITY
+                    ),
+                ),
+            ),
+            UnresolvedSourceAlkalinityReason.ACID_NEUTRALIZING_CAPACITY_UNSUPPORTED,
+        ),
+    ),
+)
+def test_reported_unresolved_alkalinity_is_exposed_as_warning(
+    alkalinity: Alkalinity,
+    expected_reason: UnresolvedSourceAlkalinityReason,
+) -> None:
+    profile = SourceWaterProfile(
+        name="Unresolved alkalinity source",
+        concentrations=(),
+        alkalinity=alkalinity,
+    )
+    resolution = resolve_source_profile(profile, policy=REPORTED_ONLY)
+    blend = _blend_for((resolution,), (10.0,))
+    treatment = apply_treatment_additions(blend.state, blend.total_volume, ())
+
+    notices = build_forward_notices((resolution,), blend, treatment, None)
+
+    assert len(notices) == 1
+    notice = notices[0]
+    assert notice.code is ForwardNoticeCode.SOURCE_ALKALINITY_UNRESOLVED
+    assert notice.level is ForwardNoticeLevel.WARNING
+    assert notice.ion is None
+    assert notice.source_index == 0
+    assert notice.source_name == "Unresolved alkalinity source"
+    assert notice.reason == expected_reason.value
+
+
 def test_zero_volume_source_resolution_does_not_create_noise() -> None:
     known = resolve_source_profile(
         _profile("Used", calcium=50.0),
@@ -123,6 +200,25 @@ def test_zero_volume_source_resolution_does_not_create_noise() -> None:
     treatment = apply_treatment_additions(blend.state, blend.total_volume, ())
 
     assert build_forward_notices((known, unused), blend, treatment, None) == ()
+
+
+def test_zero_volume_unresolved_alkalinity_does_not_create_noise() -> None:
+    used = resolve_source_profile(
+        _profile("Used", calcium=50.0),
+        policy=REPORTED_ONLY,
+    )
+    unused = resolve_source_profile(
+        SourceWaterProfile(
+            name="Unused alkalinity",
+            concentrations=(),
+            alkalinity=Alkalinity.mg_per_liter_as_caco3_range(80.0, 120.0),
+        ),
+        policy=REPORTED_ONLY,
+    )
+    blend = _blend_for((used, unused), (10.0, 0.0))
+    treatment = apply_treatment_additions(blend.state, blend.total_volume, ())
+
+    assert build_forward_notices((used, unused), blend, treatment, None) == ()
 
 
 def test_multi_source_carbonate_species_blend_surfaces_approximation() -> None:

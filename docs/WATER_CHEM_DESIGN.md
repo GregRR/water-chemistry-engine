@@ -489,6 +489,11 @@ selection. Sodium bicarbonate is selectable only with resolved starting
 alkalinity and an alkalinity criterion, and every chosen practical dose is
 replayed through the ordinary forward workflow before acceptance.
 
+Forward-result notices include stable codes for a policy-authorized source-
+alkalinity range midpoint and for a reported alkalinity/ANC value that remains
+unresolved. They do not warn merely because alkalinity was omitted, and an
+unresolved zero-volume source does not create notice noise.
+
 `AlkalinityBalanceResult.limitations` includes
 `LABORATORY_TITRATION_NOT_SIMULATED`. Analytical context can preserve a source's
 method and endpoint, but the conservative equivalent balance does not claim to

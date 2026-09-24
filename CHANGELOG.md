@@ -46,6 +46,10 @@ comparison-expansion milestone is in progress.
 - Added stable diagnostics for an explicitly reported ANC input that cannot be
   used as total alkalinity and for the model limitation that a conservative
   equivalent balance does not simulate a particular laboratory titration.
+- Added forward-result notices for policy-authorized source-alkalinity range
+  midpoints and explicitly reported alkalinity/ANC results that remain
+  unresolved. Omitted alkalinity and zero-volume sources do not create notice
+  noise.
 - Added one-sided lower/upper total-alkalinity values. They remain unresolved
   when used as source reports and act as supported numeric bounds when used as
   target criteria.

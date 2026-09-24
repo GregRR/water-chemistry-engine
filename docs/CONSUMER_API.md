@@ -572,6 +572,14 @@ model also reports
 method or endpoint does not make the conservative equivalent balance reproduce
 a particular laboratory titration result.
 
+`ForwardCalculationNotice` surfaces source-alkalinity resolution decisions
+without requiring consumers to inspect and reinterpret nested result types.
+`SOURCE_ALKALINITY_RANGE_MIDPOINT_USED` records an explicit policy-authorized
+range midpoint, while `SOURCE_ALKALINITY_UNRESOLVED` reports the stable
+`UnresolvedSourceAlkalinityReason` for a reported range, bound, or ANC result
+that cannot be used. A source that omits alkalinity does not produce this source
+notice, and neither does an unresolved source whose blend volume is zero.
+
 Sodium bicarbonate may participate in optimization only when starting
 alkalinity is resolved and the request contains an appropriate supported total-
 alkalinity criterion. Its sodium contribution remains ordinary ion chemistry;

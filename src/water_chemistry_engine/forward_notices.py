@@ -15,6 +15,11 @@ and blend target comparisons remain available on their own structured results.
 from dataclasses import dataclass
 from enum import StrEnum
 
+from water_chemistry_engine.alkalinity_balance import (
+    ResolvedSourceAlkalinity,
+    SourceAlkalinityResolutionMethod,
+    UnresolvedSourceAlkalinity,
+)
 from water_chemistry_engine.blending import WaterBlendResult
 from water_chemistry_engine.calculation_policy import CARBONATE_SYSTEM_IONS
 from water_chemistry_engine.ions import Ion
@@ -47,6 +52,8 @@ class ForwardNoticeCode(StrEnum):
 
     SOURCE_RANGE_MIDPOINT_USED = "source_range_midpoint_used"
     SOURCE_ION_UNRESOLVED = "source_ion_unresolved"
+    SOURCE_ALKALINITY_RANGE_MIDPOINT_USED = "source_alkalinity_range_midpoint_used"
+    SOURCE_ALKALINITY_UNRESOLVED = "source_alkalinity_unresolved"
     CARBONATE_BLEND_APPROXIMATION = "carbonate_blend_approximation"
     CARBONATE_SYSTEM_MODEL_LIMITATION = "carbonate_system_model_limitation"
     TREATMENT_COMPLETE_DISSOLUTION_MODEL = "treatment_complete_dissolution_model"
@@ -135,6 +142,45 @@ def _source_notices(
                         reason=resolution.reason.value,
                     )
                 )
+
+        alkalinity_resolution = resolution_result.alkalinity_resolution
+        if isinstance(alkalinity_resolution, ResolvedSourceAlkalinity):
+            if (
+                alkalinity_resolution.method
+                is SourceAlkalinityResolutionMethod.DERIVED_EXACT_RANGE_MIDPOINT
+            ):
+                notices.append(
+                    ForwardCalculationNotice(
+                        code=(ForwardNoticeCode.SOURCE_ALKALINITY_RANGE_MIDPOINT_USED),
+                        level=ForwardNoticeLevel.ASSUMPTION,
+                        message=(
+                            f"{blended_source.name} total alkalinity uses the "
+                            "midpoint of an exact reported range under the "
+                            "supplied source-resolution policy."
+                        ),
+                        source_index=source_index,
+                        source_name=blended_source.name,
+                        reason=alkalinity_resolution.method.value,
+                    )
+                )
+        elif (
+            isinstance(alkalinity_resolution, UnresolvedSourceAlkalinity)
+            and alkalinity_resolution.source_result is not None
+        ):
+            notices.append(
+                ForwardCalculationNotice(
+                    code=ForwardNoticeCode.SOURCE_ALKALINITY_UNRESOLVED,
+                    level=ForwardNoticeLevel.WARNING,
+                    message=(
+                        f"{blended_source.name} reported alkalinity or ANC result "
+                        "could not be resolved as total alkalinity for calculation "
+                        f"({alkalinity_resolution.reason.value})."
+                    ),
+                    source_index=source_index,
+                    source_name=blended_source.name,
+                    reason=alkalinity_resolution.reason.value,
+                )
+            )
 
     return tuple(notices)
 
@@ -341,8 +387,10 @@ def build_forward_notices(
     """Build presentation notices from existing forward-stage results.
 
     Zero-volume sources are excluded because their unresolved report values do
-    not affect the calculated blend.  Source notices preserve midpoint-policy
-    assumptions and unresolved reported values.  A multi-source blend that
+    not affect the calculated blend. Source notices preserve midpoint-policy
+    assumptions and unresolved reported ion and alkalinity values. Omitted
+    alkalinity remains quiet unless a target comparison makes it relevant. A
+    multi-source blend that
     actually computes bicarbonate or carbonate receives the documented linear-
     blending approximation notice.  Positive mineral additions surface the
     current complete-dissolution mass-balance assumption. Any resulting
