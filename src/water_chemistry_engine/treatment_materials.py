@@ -32,6 +32,11 @@ class TreatmentMaterialForm(StrEnum):
     AQUEOUS_SOLUTION = "aqueous_solution"
 
 
+def _validate_required_text(value: str, *, label: str) -> None:
+    if not value.strip():
+        raise ValueError(f"{label} cannot be empty.")
+
+
 def _validate_identity(
     key: str,
     name: str,
@@ -154,6 +159,21 @@ def _normalized_positive_mass_concentration(
     return Q_(magnitude, "gram / milliliter")
 
 
+def _normalized_positive_material_use_rate(
+    value: ScalarQuantity,
+    *,
+    label: str,
+) -> Quantity[float]:
+    try:
+        normalized = value.to("gram / liter")
+    except Exception as exc:
+        raise ValueError(f"{label} must be convertible to mass per volume.") from exc
+    magnitude = float(normalized.magnitude)
+    if not isfinite(magnitude) or magnitude <= 0:
+        raise ValueError(f"{label} must be finite and positive.")
+    return Q_(magnitude, "gram / liter")
+
+
 def _normalized_temperature(
     value: ScalarQuantity,
     *,
@@ -189,6 +209,74 @@ def _normalized_mass_fraction(
         )
         raise ValueError(f"{label} must be finite and {interval}.")
     return Q_(magnitude, "dimensionless")
+
+
+@dataclass(frozen=True, slots=True)
+class TreatmentMaterialUseLimit:
+    """One sourced, caller-selected practical material-use policy.
+
+    The maximum is measured material mass per optimizer total water volume,
+    not active-chemical mass. ``applicability`` states the conditions under
+    which the cited limit is intended to be used. Selecting this policy does
+    not make it a universal safety, sensory, solubility, or regulatory limit.
+    """
+
+    key: str
+    version: str
+    material_key: str
+    description: str
+    applicability: str
+    maximum_measured_mass_per_volume: ScalarQuantity
+    source_document: SourceDocumentMetadata
+
+    def __post_init__(self) -> None:
+        _validate_required_text(self.key, label="Treatment material use-limit key")
+        _validate_required_text(
+            self.version,
+            label="Treatment material use-limit version",
+        )
+        _validate_required_text(
+            self.material_key,
+            label="Treatment material use-limit material key",
+        )
+        _validate_required_text(
+            self.description,
+            label="Treatment material use-limit description",
+        )
+        _validate_required_text(
+            self.applicability,
+            label="Treatment material use-limit applicability",
+        )
+        _normalized_positive_material_use_rate(
+            self.maximum_measured_mass_per_volume,
+            label="Treatment material use-limit maximum",
+        )
+        if not isinstance(self.source_document, SourceDocumentMetadata):
+            raise TypeError(
+                "Treatment material use-limit source_document must be "
+                "SourceDocumentMetadata."
+            )
+
+    @property
+    def normalized_maximum_measured_mass_per_volume(self) -> Quantity[float]:
+        """Return the policy maximum in grams of material per liter of water."""
+        return _normalized_positive_material_use_rate(
+            self.maximum_measured_mass_per_volume,
+            label="Treatment material use-limit maximum",
+        )
+
+    def maximum_measured_mass_for(
+        self,
+        total_volume: ScalarQuantity,
+    ) -> Quantity[float]:
+        """Calculate the policy maximum material mass for a positive volume."""
+        volume_ml = _normalized_positive_volume(
+            total_volume,
+            label="Treatment material use-limit total volume",
+        )
+        volume_liters = float(volume_ml.to("liter").magnitude)
+        rate = float(self.normalized_maximum_measured_mass_per_volume.magnitude)
+        return Q_(rate * volume_liters, "gram")
 
 
 @dataclass(frozen=True, slots=True)

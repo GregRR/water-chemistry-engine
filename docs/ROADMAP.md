@@ -356,6 +356,14 @@ without requiring complete coffee-, tea-, bread-, or pizza-specific predictive
 engines. The first optimizer's exact-composition material slice expands here to
 cover additional practical preparations and evidence-backed policies.
 
+The initial practical-use-limit boundary is now implemented as a separate,
+versioned and sourced caller-selected policy bound to an exact material key.
+It scales a measured-material mass-per-water-volume maximum to the optimizer
+request volume and validates, but never silently replaces, the request's
+explicit material maximum. This structural support does not establish any
+built-in numeric limit or turn a context-specific source into a universal
+safety, sensory, solubility, or regulatory rule.
+
 ### Generic profile/data work
 
 Add enough generic metadata to distinguish the evidentiary meaning of matchable
@@ -565,7 +573,9 @@ real material a user measures and adds.
   them with an arithmetic midpoint. Any representative-value policy used for a
   calculation must be explicit and auditable.
 - Retain authoritative composition/specification evidence and validated
-  practical-use limits with reusable material definitions.
+  practical-use limits with reusable material definitions. The public policy
+  boundary and optimizer validation are implemented; admission of particular
+  numeric policies remains evidence-driven.
 - Keep the current complete-dissolution model explicit for simple supported
   additions rather than implying that every solid is fully soluble under every
   process condition.

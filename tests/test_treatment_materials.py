@@ -16,7 +16,127 @@ from water_chemistry_engine.treatment_materials import (
     ResolvedTreatmentMaterialVolumeDose,
     TreatmentMaterialActiveMassRange,
     TreatmentMaterialForm,
+    TreatmentMaterialUseLimit,
 )
+
+
+def _use_limit_source() -> SourceDocumentMetadata:
+    return SourceDocumentMetadata(
+        publisher="Example standards organization",
+        title="Example material-use guidance",
+        source_url="https://example.com/material-use-guidance",
+    )
+
+
+def test_material_use_limit_preserves_policy_and_calculates_batch_maximum() -> None:
+    source = _use_limit_source()
+    limit = TreatmentMaterialUseLimit(
+        key="example.gypsum.finished-water.v1",
+        version="1.0.0",
+        material_key="pure_gypsum",
+        description="Example upper operational dose for finished water.",
+        applicability="Only for the process and water state described by the source.",
+        maximum_measured_mass_per_volume=Q_(200, "milligram / liter"),
+        source_document=source,
+    )
+
+    assert limit.normalized_maximum_measured_mass_per_volume.magnitude == (
+        pytest.approx(0.2)
+    )
+    assert limit.maximum_measured_mass_for(Q_(5, "liter")).magnitude == (
+        pytest.approx(1.0)
+    )
+    assert limit.source_document is source
+
+
+@pytest.mark.parametrize(
+    "maximum",
+    (
+        Q_(0, "gram / liter"),
+        Q_(-1, "gram / liter"),
+        Q_(float("nan"), "gram / liter"),
+        Q_(float("inf"), "gram / liter"),
+    ),
+)
+def test_material_use_limit_rejects_nonpositive_or_nonfinite_rate(
+    maximum: object,
+) -> None:
+    with pytest.raises(ValueError, match="finite and positive"):
+        TreatmentMaterialUseLimit(
+            key="example.gypsum.finished-water.v1",
+            version="1.0.0",
+            material_key="pure_gypsum",
+            description="Example limit.",
+            applicability="Example context.",
+            maximum_measured_mass_per_volume=maximum,  # type: ignore[arg-type]
+            source_document=_use_limit_source(),
+        )
+
+
+def test_material_use_limit_rejects_wrong_dimension() -> None:
+    with pytest.raises(ValueError, match="convertible to mass per volume"):
+        TreatmentMaterialUseLimit(
+            key="example.gypsum.finished-water.v1",
+            version="1.0.0",
+            material_key="pure_gypsum",
+            description="Example limit.",
+            applicability="Example context.",
+            maximum_measured_mass_per_volume=Q_(1, "gram"),
+            source_document=_use_limit_source(),
+        )
+
+
+@pytest.mark.parametrize(
+    "field",
+    ("key", "version", "material_key", "description", "applicability"),
+)
+def test_material_use_limit_requires_nonempty_identity_and_scope(field: str) -> None:
+    values = {
+        "key": "example.gypsum.finished-water.v1",
+        "version": "1.0.0",
+        "material_key": "pure_gypsum",
+        "description": "Example limit.",
+        "applicability": "Example context.",
+    }
+    values[field] = " "
+
+    with pytest.raises(ValueError, match="cannot be empty"):
+        TreatmentMaterialUseLimit(
+            **values,
+            maximum_measured_mass_per_volume=Q_(0.2, "gram / liter"),
+            source_document=_use_limit_source(),
+        )
+
+
+def test_material_use_limit_requires_source_document_metadata() -> None:
+    with pytest.raises(TypeError, match="source_document"):
+        TreatmentMaterialUseLimit(
+            key="example.gypsum.finished-water.v1",
+            version="1.0.0",
+            material_key="pure_gypsum",
+            description="Example limit.",
+            applicability="Example context.",
+            maximum_measured_mass_per_volume=Q_(0.2, "gram / liter"),
+            source_document="citation",  # type: ignore[arg-type]
+        )
+
+
+@pytest.mark.parametrize("volume", (Q_(0, "liter"), Q_(-1, "liter")))
+def test_material_use_limit_requires_positive_calculation_volume(
+    volume: object,
+) -> None:
+    limit = TreatmentMaterialUseLimit(
+        key="example.gypsum.finished-water.v1",
+        version="1.0.0",
+        material_key="pure_gypsum",
+        description="Example limit.",
+        applicability="Example context.",
+        maximum_measured_mass_per_volume=Q_(0.2, "gram / liter"),
+        source_document=_use_limit_source(),
+    )
+
+    with pytest.raises(ValueError, match="finite and positive"):
+        limit.maximum_measured_mass_for(volume)  # type: ignore[arg-type]
 
 
 def test_exact_material_resolves_to_ordinary_treatment_addition() -> None:

@@ -21,6 +21,7 @@ from water_chemistry_engine.target_profiles import TargetWaterProfile
 from water_chemistry_engine.treatment_materials import (
     ExactMassDosedTreatmentMaterial,
     ExactMassFractionTreatmentMaterial,
+    TreatmentMaterialUseLimit,
 )
 
 if TYPE_CHECKING:
@@ -109,6 +110,8 @@ class OptimizerDiagnosticCode(StrEnum):
 
 _VOLUME_REL_TOL = 1e-12
 _VOLUME_ABS_TOL_LITERS = 1e-12
+_MASS_REL_TOL = 1e-12
+_MASS_ABS_TOL_GRAMS = 1e-12
 
 
 def _nonnegative_volume(value: ScalarQuantity, *, label: str) -> Quantity[float]:
@@ -169,11 +172,14 @@ class OptimizerMaterialConstraint:
 
     ``maximum_mass`` is an explicit operational constraint for this request. It
     prevents an unbounded recommendation but is not represented as a universal
-    safety, sensory, solubility, or regulatory limit.
+    safety, sensory, solubility, or regulatory limit. A caller may additionally
+    select a sourced ``use_limit``; request validation requires the explicit
+    maximum to comply rather than silently replacing it.
     """
 
     material: ExactMassDosedTreatmentMaterial | ExactMassFractionTreatmentMaterial
     maximum_mass: ScalarQuantity
+    use_limit: TreatmentMaterialUseLimit | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(
@@ -193,6 +199,17 @@ class OptimizerMaterialConstraint:
                 "Optimizer material maximum mass must permit at least one dose "
                 "increment."
             )
+        if self.use_limit is not None:
+            if not isinstance(self.use_limit, TreatmentMaterialUseLimit):
+                raise TypeError(
+                    "Optimizer material use_limit must be "
+                    "TreatmentMaterialUseLimit or None."
+                )
+            if self.use_limit.material_key != self.material.key:
+                raise ValueError(
+                    "Optimizer material use limit must identify the constrained "
+                    "material key."
+                )
 
 
 @dataclass(frozen=True, slots=True)
@@ -354,6 +371,40 @@ class OptimizerRequest:
             raise ValueError(
                 "Optimizer request cannot contain duplicate material keys."
             )
+        for constraint in self.material_constraints:
+            if constraint.use_limit is None:
+                continue
+            allowed = constraint.use_limit.maximum_measured_mass_for(total)
+            increment_grams = float(
+                constraint.material.normalized_dose_increment.magnitude
+            )
+            allowed_grams = float(allowed.magnitude)
+            if allowed_grams < increment_grams and not isclose(
+                allowed_grams,
+                increment_grams,
+                rel_tol=_MASS_REL_TOL,
+                abs_tol=_MASS_ABS_TOL_GRAMS,
+            ):
+                raise ValueError(
+                    "Optimizer material use limit permits no whole dose increment "
+                    "for the requested total volume."
+                )
+            maximum_grams = float(
+                _positive_mass(
+                    constraint.maximum_mass,
+                    label="Optimizer material maximum mass",
+                ).magnitude
+            )
+            if maximum_grams > allowed_grams and not isclose(
+                maximum_grams,
+                allowed_grams,
+                rel_tol=_MASS_REL_TOL,
+                abs_tol=_MASS_ABS_TOL_GRAMS,
+            ):
+                raise ValueError(
+                    "Optimizer material maximum mass exceeds the selected "
+                    "practical use limit for the requested total volume."
+                )
 
         current_total = fsum(
             float(source.current_volume.to("liter").magnitude)

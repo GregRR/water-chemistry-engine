@@ -81,6 +81,15 @@ volume dosing. Their optional `composition_source` retains manufacturer,
 standard, or other specification-document metadata without turning that source
 into an assumed universal use limit.
 
+`TreatmentMaterialUseLimit` is the separate 0.5 boundary for a sourced,
+caller-selected practical-use policy. It identifies an exact material key,
+retains a stable policy key/version, description, applicability statement, and
+source document, and expresses its maximum as measured material mass per total
+water volume. The engine uses the optimizer request's total volume to validate
+the caller's explicit `maximum_mass`; it rejects a conflicting request rather
+than silently lowering that maximum. The policy is not interpreted as a
+universal safety, sensory, solubility, or regulatory limit.
+
 `OptimizerMaterialConstraint` accepts the pure mass-for-mass material and the
 exact mass-fraction material. Optimizer increments and maximums are measured-
 material masses; ion and alkalinity coefficients use the resolved active
@@ -152,7 +161,8 @@ The exact initial facade is:
   `TargetProfileClassification`, and `TargetProfileProvenance`;
 - optimizer entry point and request: `optimize_treatment`, `OptimizerRequest`,
   `OptimizerSource`, `OptimizerMaterialConstraint`,
-  `ExactMassDosedTreatmentMaterial`, and `OptimizerBlendPolicy`;
+  `ExactMassDosedTreatmentMaterial`, `TreatmentMaterialUseLimit`, and
+  `OptimizerBlendPolicy`;
 - optimizer results: `OptimizerResult`, `OptimizerPlan`,
   `OptimizerSourceVolume`, `OptimizerMaterialAddition`,
   `OptimizerSolverReport`, `OptimizerDiagnostic`, and
@@ -185,7 +195,8 @@ The exact initial facade is:
   `ExactVolumeDosedSolutionTreatmentMaterial`,
   `ResolvedMassPerVolumeSolutionDose`,
   `ResolvedTreatmentMaterialVolumeDose`, `TreatmentMaterialForm`, and
-  `TreatmentMaterialActiveMassRange` for physical treatment materials;
+  `TreatmentMaterialActiveMassRange` for physical treatment materials, plus
+  `TreatmentMaterialUseLimit` for a sourced practical-use policy;
 - comparison interpretation: `TargetIonComparison`,
   `TargetIonComparisonStatus`, `TargetIonCalculationBasis`,
   `TargetIonClosenessStatus`,

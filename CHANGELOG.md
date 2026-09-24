@@ -27,6 +27,13 @@ comparison-expansion milestone is in progress.
 
 ### Added
 
+- Added `TreatmentMaterialUseLimit`, a versioned and sourced caller-selected
+  policy expressing a maximum measured material mass per total water volume.
+  Optimizer requests may attach it to the matching material constraint; the
+  request is rejected when its explicit mass maximum exceeds the volume-scaled
+  policy or the policy permits no whole dose increment. Limits are never
+  silently applied or presented as universal safety, sensory, solubility, or
+  regulatory claims.
 - Added `TargetProfileCatalog`, an explicitly versioned curated-profile
   boundary that requires evidence-based versioned provenance, at least one
   represented criterion, and unique exact profile key/version identities. It

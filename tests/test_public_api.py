@@ -124,6 +124,7 @@ EXPECTED_PUBLIC_API = {
     "TreatmentAddition",
     "TreatmentMaterialActiveMassRange",
     "TreatmentMaterialForm",
+    "TreatmentMaterialUseLimit",
     "TreatmentAlkalinityContribution",
     "TreatmentApplicationResult",
     "TreatmentContributionCell",
@@ -168,6 +169,27 @@ def test_public_api_exports_are_explicit_and_complete() -> None:
     assert len(wce.__all__) == len(set(wce.__all__))
     assert set(wce.__all__) == EXPECTED_PUBLIC_API
     assert all(hasattr(wce, name) for name in wce.__all__)
+
+
+def test_consumer_can_construct_sourced_material_use_limit_from_package_root() -> None:
+    source = wce.SourceDocumentMetadata(
+        publisher="Example standards organization",
+        title="Example material-use guidance",
+    )
+
+    use_limit = wce.TreatmentMaterialUseLimit(
+        key="example.gypsum.finished-water.v1",
+        version="1.0.0",
+        material_key="pure_gypsum",
+        description="Example upper operational dose for finished water.",
+        applicability="Only for the process and water state described by the source.",
+        maximum_measured_mass_per_volume=Q_(0.2, "gram / liter"),
+        source_document=source,
+    )
+
+    assert use_limit.maximum_measured_mass_for(Q_(5, "liter")).magnitude == (
+        pytest.approx(1.0)
+    )
 
 
 def test_consumer_api_inventory_matches_package_exports() -> None:

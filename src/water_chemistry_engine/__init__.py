@@ -185,6 +185,7 @@ from water_chemistry_engine.treatment_materials import (
     ResolvedTreatmentMaterialVolumeDose,
     TreatmentMaterialActiveMassRange,
     TreatmentMaterialForm,
+    TreatmentMaterialUseLimit,
 )
 from water_chemistry_engine.treatment_stoichiometry import IonContribution
 from water_chemistry_engine.water_identity import (
@@ -323,6 +324,7 @@ __all__ = [
     "TreatmentIonResolution",
     "TreatmentMaterialActiveMassRange",
     "TreatmentMaterialForm",
+    "TreatmentMaterialUseLimit",
     "TreatmentPreparationInstruction",
     "UnresolvedBlendIon",
     "UnresolvedBlendIonReason",

@@ -583,8 +583,11 @@ Historical city profiles must not be labeled as a brewery's actual treated liquo
    now requires a retained reference temperature and matching measurement
    condition. An exact active-mass-per-solution-volume basis can resolve a
    manual volume dose directly under the same temperature-match rule without
-   inferring density. Thermal correction, volume-dose optimization, and
-   practical-use-limit policy remain to be defined before use.
+   inferring density. Thermal correction and volume-dose optimization remain
+   to be defined before use. A sourced, versioned caller-selected practical-
+   use-limit policy now validates optimizer maximums structurally; actual
+   numeric policies still require authoritative evidence, applicability
+   analysis, and source registration before admission.
 3. Complete the 0.5 total-alkalinity source semantics by preserving supplied
    analytical context (alkalinity versus ANC, method/endpoint, sample state,
    original analyte wording/unit) and document that the conservative-equivalent

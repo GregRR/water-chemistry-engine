@@ -78,9 +78,12 @@ catalog that requires evidence-based per-profile provenance and exact version
 selection without silently merging conflicting sources. Optimizer support now
 spans fixed blends, proportional dilution, and
 bounded source-volume selection when alkalinity is resolvable and an appropriate
-criterion is present. Unreleased 0.5 work should be consumed only from an exact
-commit or locally built artifact; ordinary applications should continue to pin
-the 0.4.1 PyPI release.
+criterion is present. A caller may also attach a versioned, sourced practical-
+use policy to a material constraint; its batch-scaled maximum is validated
+without silently replacing the caller's explicit maximum or claiming universal
+applicability. Unreleased 0.5 work should be consumed only from an exact commit
+or locally built artifact; ordinary applications should continue to pin the
+0.4.1 PyPI release.
 
 ### Forward-calculator capabilities established in 0.2
 

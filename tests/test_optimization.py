@@ -13,6 +13,7 @@ from water_chemistry_engine.optimization import (
 )
 from water_chemistry_engine.profiles import SourceWaterProfile
 from water_chemistry_engine.reported_values import SourceResolutionPolicy
+from water_chemistry_engine.source_document import SourceDocumentMetadata
 from water_chemistry_engine.treatment_ingredients import (
     CALCIUM_CHLORIDE_ANHYDROUS,
     GYPSUM,
@@ -24,11 +25,31 @@ from water_chemistry_engine.treatment_materials import (
     ExactVolumeDosedSolutionTreatmentMaterial,
     RangedMassFractionTreatmentMaterial,
     TreatmentMaterialForm,
+    TreatmentMaterialUseLimit,
 )
 
 
 def _source(name: str = "Source") -> OptimizerSource:
     return OptimizerSource(SourceWaterProfile(name, ()), Q_(1, "liter"), Q_(2, "liter"))
+
+
+def _material_use_limit(
+    *,
+    material_key: str = "gypsum",
+    maximum: object = Q_(0.2, "gram / liter"),
+) -> TreatmentMaterialUseLimit:
+    return TreatmentMaterialUseLimit(
+        key="example.gypsum.finished-water.v1",
+        version="1.0.0",
+        material_key=material_key,
+        description="Example upper operational dose for finished water.",
+        applicability="Only for the process and water state described by the source.",
+        maximum_measured_mass_per_volume=maximum,  # type: ignore[arg-type]
+        source_document=SourceDocumentMetadata(
+            publisher="Example standards organization",
+            title="Example material-use guidance",
+        ),
+    )
 
 
 def test_optimizer_request_preserves_explicit_blend_authority() -> None:
@@ -397,6 +418,113 @@ def test_optimizer_material_constraint_accepts_exact_mass_fraction() -> None:
     constraint = OptimizerMaterialConstraint(material, Q_(1, "gram"))
 
     assert constraint.material is material
+
+
+def test_optimizer_material_constraint_retains_sourced_use_limit() -> None:
+    material = ExactMassDosedTreatmentMaterial(
+        "gypsum", "Gypsum", GYPSUM, Q_(0.1, "gram")
+    )
+    use_limit = _material_use_limit()
+
+    constraint = OptimizerMaterialConstraint(
+        material,
+        Q_(0.2, "gram"),
+        use_limit=use_limit,
+    )
+
+    assert constraint.use_limit is use_limit
+
+
+def test_optimizer_material_constraint_rejects_wrong_use_limit_type() -> None:
+    material = ExactMassDosedTreatmentMaterial(
+        "gypsum", "Gypsum", GYPSUM, Q_(0.1, "gram")
+    )
+
+    with pytest.raises(TypeError, match="TreatmentMaterialUseLimit"):
+        OptimizerMaterialConstraint(
+            material,
+            Q_(0.2, "gram"),
+            use_limit="limit",  # type: ignore[arg-type]
+        )
+
+
+def test_optimizer_material_constraint_rejects_limit_for_another_material() -> None:
+    material = ExactMassDosedTreatmentMaterial(
+        "gypsum", "Gypsum", GYPSUM, Q_(0.1, "gram")
+    )
+
+    with pytest.raises(ValueError, match="constrained material key"):
+        OptimizerMaterialConstraint(
+            material,
+            Q_(0.2, "gram"),
+            use_limit=_material_use_limit(material_key="calcium_chloride"),
+        )
+
+
+def test_optimizer_request_accepts_maximum_at_sourced_use_limit() -> None:
+    material = ExactMassDosedTreatmentMaterial(
+        "gypsum", "Gypsum", GYPSUM, Q_(0.1, "gram")
+    )
+    constraint = OptimizerMaterialConstraint(
+        material,
+        Q_(1000, "milligram"),
+        use_limit=_material_use_limit(maximum=Q_(200, "milligram / liter")),
+    )
+    source = OptimizerSource(
+        SourceWaterProfile("Source", ()),
+        Q_(5, "liter"),
+        Q_(5, "liter"),
+    )
+
+    request = OptimizerRequest(
+        Q_(5, "liter"),
+        (source,),
+        (constraint,),
+        SourceResolutionPolicy(False),
+        OptimizerBlendPolicy.FIXED,
+    )
+
+    assert request.material_constraints[0].use_limit is constraint.use_limit
+
+
+def test_optimizer_request_rejects_maximum_above_sourced_use_limit() -> None:
+    material = ExactMassDosedTreatmentMaterial(
+        "gypsum", "Gypsum", GYPSUM, Q_(0.1, "gram")
+    )
+    constraint = OptimizerMaterialConstraint(
+        material,
+        Q_(0.2, "gram"),
+        use_limit=_material_use_limit(maximum=Q_(0.1, "gram / liter")),
+    )
+
+    with pytest.raises(ValueError, match="exceeds the selected practical use limit"):
+        OptimizerRequest(
+            Q_(1, "liter"),
+            (_source(),),
+            (constraint,),
+            SourceResolutionPolicy(False),
+            OptimizerBlendPolicy.FIXED,
+        )
+
+
+def test_optimizer_request_rejects_use_limit_below_one_dose_increment() -> None:
+    material = ExactMassDosedTreatmentMaterial(
+        "gypsum", "Gypsum", GYPSUM, Q_(0.1, "gram")
+    )
+    constraint = OptimizerMaterialConstraint(
+        material,
+        Q_(0.1, "gram"),
+        use_limit=_material_use_limit(maximum=Q_(0.05, "gram / liter")),
+    )
+
+    with pytest.raises(ValueError, match="permits no whole dose increment"):
+        OptimizerRequest(
+            Q_(1, "liter"),
+            (_source(),),
+            (constraint,),
+            SourceResolutionPolicy(False),
+            OptimizerBlendPolicy.FIXED,
+        )
 
 
 def test_optimizer_material_constraint_rejects_ranged_mass_fraction() -> None:
