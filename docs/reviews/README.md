@@ -109,3 +109,14 @@ defect. Its one low-severity finding identified missing direct tests for
 wrong-dimension volume inputs. The existing validation already failed closed;
 the finding was accepted and remediated with symmetric regression coverage for
 both manual volume-dose material models.
+
+For the alkalinity analytical-context and source-notice checkpoint, read:
+
+1. `0.5-alkalinity-analytical-context-review.md`
+
+The independent review ran the complete quality gate and found no scientific,
+calculation, or public-contract defect. It cleared the checkpoint with one
+low-risk test-coverage recommendation: directly combine an ion notice and an
+alkalinity notice in one source. That recommendation was accepted and closed
+with a regression test proving both notices retain their code, level, reason,
+ion applicability, source identity, and deterministic order.

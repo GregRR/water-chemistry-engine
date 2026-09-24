@@ -185,6 +185,42 @@ def test_reported_unresolved_alkalinity_is_exposed_as_warning(
     assert notice.reason == expected_reason.value
 
 
+def test_ion_and_alkalinity_source_notices_coexist_without_interference() -> None:
+    profile = SourceWaterProfile(
+        name="Mixed-resolution source",
+        concentrations=(
+            IonConcentrationRange(
+                ion=Ion.SULFATE,
+                minimum=ExactConcentrationEndpoint.mg_per_liter(50.0),
+                maximum=UpperBoundConcentrationEndpoint.mg_per_liter(150.0),
+            ),
+        ),
+        alkalinity=Alkalinity.mg_per_liter_as_caco3_range(80.0, 120.0),
+    )
+    resolution = resolve_source_profile(profile, policy=ALLOW_MIDPOINTS)
+    blend = _blend_for((resolution,), (10.0,))
+    treatment = apply_treatment_additions(blend.state, blend.total_volume, ())
+
+    notices = build_forward_notices((resolution,), blend, treatment, None)
+
+    assert tuple(notice.code for notice in notices) == (
+        ForwardNoticeCode.SOURCE_ION_UNRESOLVED,
+        ForwardNoticeCode.SOURCE_ALKALINITY_RANGE_MIDPOINT_USED,
+    )
+    assert tuple(notice.level for notice in notices) == (
+        ForwardNoticeLevel.WARNING,
+        ForwardNoticeLevel.ASSUMPTION,
+    )
+    assert notices[0].ion is Ion.SULFATE
+    assert notices[0].reason == "qualified_range"
+    assert notices[1].ion is None
+    assert notices[1].reason == (
+        SourceAlkalinityResolutionMethod.DERIVED_EXACT_RANGE_MIDPOINT.value
+    )
+    assert all(notice.source_index == 0 for notice in notices)
+    assert all(notice.source_name == "Mixed-resolution source" for notice in notices)
+
+
 def test_zero_volume_source_resolution_does_not_create_noise() -> None:
     known = resolve_source_profile(
         _profile("Used", calcium=50.0),
