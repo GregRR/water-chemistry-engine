@@ -120,3 +120,14 @@ low-risk test-coverage recommendation: directly combine an ion notice and an
 alkalinity notice in one source. That recommendation was accepted and closed
 with a regression test proving both notices retain their code, level, reason,
 ion applicability, source identity, and deterministic order.
+
+For the sourced practical treatment-material use-limit checkpoint, read:
+
+1. `0.5-material-use-limits-review.md`
+
+The independent review ran the complete quality gate and found no correctness,
+safety, dimensional, or public-contract defect. It cleared the implementation
+with four low-severity regression-coverage recommendations, all accepted and
+closed. Its forward-looking observation that a numeric policy needs a
+machine-checkable volume basis/water stage was recorded as a mandatory gate
+before the first built-in numeric policy is admitted.

@@ -35,6 +35,7 @@ from water_chemistry_engine.optimizer_solver import optimize_treatment
 from water_chemistry_engine.profiles import SourceWaterProfile
 from water_chemistry_engine.reported_properties import Alkalinity
 from water_chemistry_engine.reported_values import SourceResolutionPolicy
+from water_chemistry_engine.source_document import SourceDocumentMetadata
 from water_chemistry_engine.target_profiles import TargetWaterProfile
 from water_chemistry_engine.treatment_application import TreatmentAddition
 from water_chemistry_engine.treatment_ingredients import (
@@ -47,6 +48,7 @@ from water_chemistry_engine.treatment_materials import (
     ExactMassDosedTreatmentMaterial,
     ExactMassFractionTreatmentMaterial,
     TreatmentMaterialForm,
+    TreatmentMaterialUseLimit,
 )
 
 _POLICY = SourceResolutionPolicy(allow_exact_range_midpoints=False)
@@ -147,7 +149,10 @@ def _available_source_with_alkalinity(
 
 
 def _gypsum_constraint(
-    *, increment_grams: float = 0.1, maximum_grams: float = 2.0
+    *,
+    increment_grams: float = 0.1,
+    maximum_grams: float = 2.0,
+    use_limit: TreatmentMaterialUseLimit | None = None,
 ) -> OptimizerMaterialConstraint:
     material = ExactMassDosedTreatmentMaterial(
         "gypsum",
@@ -155,7 +160,11 @@ def _gypsum_constraint(
         GYPSUM,
         Q_(increment_grams, "gram"),
     )
-    return OptimizerMaterialConstraint(material, Q_(maximum_grams, "gram"))
+    return OptimizerMaterialConstraint(
+        material,
+        Q_(maximum_grams, "gram"),
+        use_limit=use_limit,
+    )
 
 
 def _sodium_bicarbonate_constraint() -> OptimizerMaterialConstraint:
@@ -239,6 +248,30 @@ def test_fixed_optimizer_selects_analytically_expected_gypsum_dose() -> None:
     assert plan.solver_report.secondary_objective_grams == pytest.approx(1.0)
     assert plan.solver_report.mip_relative_gap == pytest.approx(0.0)
     assert result.solver_report is plan.solver_report
+
+
+def test_optimized_plan_retains_selected_material_use_limit() -> None:
+    use_limit = TreatmentMaterialUseLimit(
+        key="example.gypsum.finished-water.v1",
+        version="1.0.0",
+        material_key="gypsum",
+        description="Example upper operational dose for finished water.",
+        applicability="Only for the process and water state described by the source.",
+        maximum_measured_mass_per_volume=Q_(1.0, "gram / liter"),
+        source_document=SourceDocumentMetadata(
+            publisher="Example standards organization",
+            title="Example material-use guidance",
+        ),
+    )
+    request = _fixed_request(
+        source=_source(calcium=0.0, sulfate=0.0),
+        target=_target(_CALCIUM_MG_PER_LITER_PER_GYPSUM_GRAM_IN_TEN_LITERS),
+        constraints=(_gypsum_constraint(use_limit=use_limit),),
+    )
+
+    plan = optimize_treatment(request).plans[0]
+
+    assert plan.material_additions[0].constraint.use_limit is use_limit
 
 
 def test_dose_increment_is_an_integral_solver_constraint() -> None:

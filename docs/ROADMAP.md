@@ -364,6 +364,13 @@ explicit material maximum. This structural support does not establish any
 built-in numeric limit or turn a context-specific source into a universal
 safety, sensory, solubility, or regulatory rule.
 
+Before the first reusable numeric use-limit policy is admitted, replace or
+supplement the free-text applicability statement with a structured volume-
+basis/water-stage identity that can be checked against the optimizer's total-
+water-volume semantics. The controlled vocabulary requires evidence and design
+work; until then, the engine supplies the policy boundary but no built-in
+numeric limits.
+
 ### Generic profile/data work
 
 Add enough generic metadata to distinguish the evidentiary meaning of matchable

@@ -487,7 +487,80 @@ def test_optimizer_request_accepts_maximum_at_sourced_use_limit() -> None:
     assert request.material_constraints[0].use_limit is constraint.use_limit
 
 
-def test_optimizer_request_rejects_maximum_above_sourced_use_limit() -> None:
+def test_optimizer_request_accepts_maximum_below_sourced_use_limit() -> None:
+    material = ExactMassDosedTreatmentMaterial(
+        "gypsum", "Gypsum", GYPSUM, Q_(0.1, "gram")
+    )
+    constraint = OptimizerMaterialConstraint(
+        material,
+        Q_(0.3, "gram"),
+        use_limit=_material_use_limit(maximum=Q_(1.0, "gram / liter")),
+    )
+
+    request = OptimizerRequest(
+        Q_(1, "liter"),
+        (_source(),),
+        (constraint,),
+        SourceResolutionPolicy(False),
+        OptimizerBlendPolicy.FIXED,
+    )
+
+    assert request.material_constraints[0].maximum_mass == Q_(0.3, "gram")
+    assert request.material_constraints[0].use_limit is constraint.use_limit
+
+
+@pytest.mark.parametrize(
+    ("excess_grams", "accepted"),
+    ((0.5e-12, True), (2.0e-12, False)),
+)
+def test_optimizer_material_use_limit_boundary_tolerance(
+    excess_grams: float,
+    accepted: bool,
+) -> None:
+    material = ExactMassDosedTreatmentMaterial(
+        "gypsum", "Gypsum", GYPSUM, Q_(0.1, "gram")
+    )
+    constraint = OptimizerMaterialConstraint(
+        material,
+        Q_(1.0 + excess_grams, "gram"),
+        use_limit=_material_use_limit(maximum=Q_(1.0, "gram / liter")),
+    )
+
+    if not accepted:
+        with pytest.raises(
+            ValueError,
+            match="exceeds the selected practical use limit",
+        ):
+            OptimizerRequest(
+                Q_(1, "liter"),
+                (_source(),),
+                (constraint,),
+                SourceResolutionPolicy(False),
+                OptimizerBlendPolicy.FIXED,
+            )
+        return
+
+    request = OptimizerRequest(
+        Q_(1, "liter"),
+        (_source(),),
+        (constraint,),
+        SourceResolutionPolicy(False),
+        OptimizerBlendPolicy.FIXED,
+    )
+    assert request.material_constraints == (constraint,)
+
+
+@pytest.mark.parametrize(
+    "blend_policy",
+    (
+        OptimizerBlendPolicy.FIXED,
+        OptimizerBlendPolicy.PROPORTIONAL_DILUTION,
+        OptimizerBlendPolicy.SOURCE_VOLUMES,
+    ),
+)
+def test_optimizer_request_rejects_maximum_above_sourced_use_limit(
+    blend_policy: OptimizerBlendPolicy,
+) -> None:
     material = ExactMassDosedTreatmentMaterial(
         "gypsum", "Gypsum", GYPSUM, Q_(0.1, "gram")
     )
@@ -496,6 +569,13 @@ def test_optimizer_request_rejects_maximum_above_sourced_use_limit() -> None:
         Q_(0.2, "gram"),
         use_limit=_material_use_limit(maximum=Q_(0.1, "gram / liter")),
     )
+    diluent = None
+    if blend_policy is OptimizerBlendPolicy.PROPORTIONAL_DILUTION:
+        diluent = OptimizerSource(
+            SourceWaterProfile("Diluent", ()),
+            Q_(0, "liter"),
+            Q_(1, "liter"),
+        )
 
     with pytest.raises(ValueError, match="exceeds the selected practical use limit"):
         OptimizerRequest(
@@ -503,7 +583,8 @@ def test_optimizer_request_rejects_maximum_above_sourced_use_limit() -> None:
             (_source(),),
             (constraint,),
             SourceResolutionPolicy(False),
-            OptimizerBlendPolicy.FIXED,
+            blend_policy,
+            diluent_source=diluent,
         )
 
 

@@ -46,6 +46,9 @@ def test_material_use_limit_preserves_policy_and_calculates_batch_maximum() -> N
     assert limit.maximum_measured_mass_for(Q_(5, "liter")).magnitude == (
         pytest.approx(1.0)
     )
+    assert limit.maximum_measured_mass_for(Q_(5000, "milliliter")).magnitude == (
+        pytest.approx(1.0)
+    )
     assert limit.source_document is source
 
 
@@ -121,9 +124,19 @@ def test_material_use_limit_requires_source_document_metadata() -> None:
         )
 
 
-@pytest.mark.parametrize("volume", (Q_(0, "liter"), Q_(-1, "liter")))
-def test_material_use_limit_requires_positive_calculation_volume(
+@pytest.mark.parametrize(
+    ("volume", "message"),
+    (
+        (Q_(0, "liter"), "finite and positive"),
+        (Q_(-1, "liter"), "finite and positive"),
+        (Q_(float("nan"), "liter"), "finite and positive"),
+        (Q_(float("inf"), "liter"), "finite and positive"),
+        (Q_(5, "gram"), "convertible to volume"),
+    ),
+)
+def test_material_use_limit_rejects_invalid_calculation_volume(
     volume: object,
+    message: str,
 ) -> None:
     limit = TreatmentMaterialUseLimit(
         key="example.gypsum.finished-water.v1",
@@ -135,7 +148,7 @@ def test_material_use_limit_requires_positive_calculation_volume(
         source_document=_use_limit_source(),
     )
 
-    with pytest.raises(ValueError, match="finite and positive"):
+    with pytest.raises(ValueError, match=message):
         limit.maximum_measured_mass_for(volume)  # type: ignore[arg-type]
 
 
