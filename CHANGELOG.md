@@ -36,10 +36,12 @@ comparison-expansion milestone is in progress.
   regulatory claims. A required `TreatmentMaterialUseLimitVolumeBasis` makes
   the supported optimizer-total-water denominator machine-checkable instead of
   relying on free-text applicability.
-- Added `TargetProfileCatalog`, an explicitly versioned curated-profile
-  boundary that requires evidence-based versioned provenance, at least one
-  represented criterion, and unique exact profile key/version identities. It
-  deliberately provides no implicit latest-version or conflict-merging policy.
+- Added `TargetProfileCatalog`, an optional in-memory validator for a
+  consumer-supplied target/reference collection. It requires evidence-based
+  versioned provenance, at least one represented criterion, and unique exact
+  profile key/version identities. It provides no persistence, Engine-owned
+  registry, bundled profiles, implicit latest-version selection, or
+  conflict-merging policy.
 - Added optional target-profile provenance with explicit evidentiary
   classification, source-document attribution, and paired stable key/version;
   unclassified profiles remain unclassified, while classifications that make

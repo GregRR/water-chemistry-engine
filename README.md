@@ -65,7 +65,7 @@ and sodium bicarbonate until a validated model exists; deterministic manual
 sodium-bicarbonate accounting remains available with structured limitations.
 
 Version 0.5 expands practical treatment-material semantics, profile provenance,
-curated reference data, target-comparison interpretation, and a named
+target-comparison interpretation, and a named
 conservative-equivalent total-alkalinity balance. The in-progress alkalinity
 workflow now covers source resolution, blending, reviewed sodium-bicarbonate
 contributions, final modeled alkalinity, target comparison, and contribution
@@ -73,10 +73,13 @@ reporting. Report-native alkalinity can preserve its statistic, original labels,
 total-alkalinity-versus-ANC identity, filtration state, method, and titration
 endpoint. Explicit ANC remains unresolved rather than being silently treated as
 total alkalinity, and the balance does not claim to simulate a laboratory
-titration. Curated target/reference collections can use an explicitly versioned
-catalog that requires evidence-based per-profile provenance and exact version
-selection without silently merging conflicting sources. Optimizer support now
-spans fixed blends, proportional dilution, and
+titration. Consumer-supplied target/reference collections can optionally use an
+in-memory versioned catalog validator that requires evidence-based per-profile
+provenance and exact version selection without silently merging conflicting
+sources. Source and target/reference profile storage, curation, licensing
+records, and distribution belong to consumer applications such as Water
+Chemistry Designer. Optimizer support now spans fixed blends, proportional
+dilution, and
 bounded source-volume selection when alkalinity is resolvable and an appropriate
 criterion is present. A caller may also attach a versioned, sourced practical-
 use policy to a material constraint; its batch-scaled maximum is validated
@@ -108,7 +111,7 @@ release.
   explicit feasibility/deviation diagnostics, and the minimum exact-composition
   treatment-material semantics needed for safe recommendations;
 - **0.5:** conservative-equivalent total-alkalinity calculation, broader
-  practical treatment materials, curated target/reference profiles, and richer
+  practical treatment materials, target/reference provenance, and richer
   comparison semantics;
 - **0.6:** optimizer and public-contract hardening beyond the first useful
   strategy set;
@@ -127,7 +130,7 @@ repository.
     │   └── water_chemistry_engine/
     ├── tests/
     ├── docs/
-    ├── reference-data/
+    ├── reference-data/  # engine scientific validation data, not app profiles
     ├── schemas/
     ├── scripts/
     └── test-vectors/

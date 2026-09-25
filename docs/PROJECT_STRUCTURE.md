@@ -196,17 +196,21 @@ unresolved research questions.
 
 ### `reference-data/water/`
 
-Curated water profiles, ingredient definitions, and related reference data
-approved for inclusion in the engine project.
+Engine-owned scientific validation inputs and authoritative tables required to
+verify reusable calculations. This directory is not an application profile
+catalog or persistence layer. Selectable source, target/reference, and
+commercial-product records belong in consumer databases; most executable
+calculation cases belong in `test-vectors/water/`.
 
-Every included dataset must retain provenance, licensing information, and
-appropriate scientific references.
+Every included scientific dataset must be necessary to Engine behavior and
+retain provenance, licensing information, and appropriate references.
 
-The public `TargetProfileCatalog` validates catalog and profile version
-identity, evidence classification, document attribution, represented criteria,
-and duplicate rejection after profiles are constructed. It does not replace
-the repository-level licensing, redistribution, source-verification, or review
-records required before data is added here.
+The public `TargetProfileCatalog` is an optional in-memory validator for a
+consumer-supplied collection after profiles are constructed. It validates
+catalog and profile version identity, evidence classification, document
+attribution, represented criteria, and duplicate rejection. It neither loads
+this directory nor provides storage, curation, distribution, or selection
+policy.
 
 ### `schemas/water/`
 

@@ -79,7 +79,7 @@ The architecture may permit later use outside brewing, but Version 1 should opti
 10. **Prefer deterministic and reproducible behavior.** Identical versioned inputs and solver settings should produce identical results within documented numerical tolerances.
 11. **Explain infeasibility.** The engine must say why a requested target cannot be reached under supplied constraints.
 12. **Rank tradeoffs rather than claim one universal optimum.** Users may reasonably prefer accuracy, simplicity, lower dilution, fewer products, or lower total additions.
-13. **Make model versions visible.** Saved plans should identify the chemistry, optimization, and reference-data versions that produced them.
+13. **Make model versions visible.** Saved plans should identify the chemistry and optimization versions plus the exact consumer-supplied target/reference profile version that produced them.
 14. **Validate against independent reference data.** Legacy calculator code can inform the project but is never authoritative by itself.
 15. **Avoid premature abstraction.** Shared calculator infrastructure should be extracted only after concrete duplication demonstrates a stable shared requirement.
 16. **Preserve before modeling.** A source report may contain chemically or operationally relevant analytes that the current optimizer cannot yet use. Preserve supported reported data faithfully rather than discarding it merely because no calculation consumes it today.
@@ -181,7 +181,7 @@ water-chemistry-engine/
 │   ├── ROADMAP.md
 │   ├── decisions/
 │   └── research/
-├── reference-data/
+├── reference-data/        # scientific validation inputs, not app profiles
 │   └── water/
 ├── schemas/
 │   └── water/
@@ -765,14 +765,15 @@ Current target profiles support:
   classification, document attribution, and paired stable key/version;
 - duplicate-ion protection.
 
-Curated collections use `TargetProfileCatalog`, which has an explicit catalog
-key/version and admits only evidence-based, document-attributed profiles with a
-complete, unique profile key/version and at least one represented criterion.
-Exact lookup prevents the engine from silently selecting a latest version.
-Conflicting sourced profiles must retain distinct identities or versions rather
-than overwrite or merge one another. The catalog is a runtime validation and
-selection boundary; repository admission still separately requires verified
-sources, redistribution rights, licensing records, and review.
+Consumer-supplied collections may use `TargetProfileCatalog`, an optional
+in-memory validator with an explicit catalog key/version. It admits only
+evidence-based, document-attributed profiles with a complete, unique profile
+key/version and at least one represented criterion. Exact lookup prevents the
+engine from silently selecting a latest version. Conflicting sourced profiles
+must retain distinct identities or versions rather than overwrite or merge one
+another. The catalog is neither persistent storage nor an Engine-owned profile
+registry. Water Chemistry Designer and other consumers own database storage,
+curation, source/licensing records, distribution, selection, and updates.
 
 Near-term generic target/reference semantics may additionally add:
 
@@ -808,7 +809,7 @@ treated-water targets may be represented without inventing a publication.
 
 Historical brewing-city tables such as Pilsen, Burton-on-Trent, Dublin, Munich, London, Dortmund, Edinburgh, Vienna, Antwerp, and Cologne are **target/reference profiles**, not claims about present-day municipal source water. Each published version must retain its own source/reference attribution; conflicting published profiles should not be silently merged into one supposedly canonical city profile.
 
-Well-sourced coffee, tea, bread, sourdough, or pizza target/reference **data** may therefore be added without adding domain-specific scientific models to the Engine. Domain-specific prediction or sensory/process guidance belongs in consumers or separate domain libraries that may compose generic Engine calculations.
+Well-sourced coffee, tea, bread, sourdough, or pizza target/reference **data** may therefore be supplied by consumers without adding domain-specific scientific models to the Engine. Domain-specific prediction, profile persistence/curation, and sensory/process guidance belong in consumers or separate domain libraries that may compose generic Engine calculations.
 
 ### 9.15 WaterBlend
 
@@ -872,6 +873,13 @@ actually dosed. It may require:
 - reference temperature or applicable temperature conditions for density;
 - validated practical-use limits;
 - composition/specification evidence;
+
+The Engine owns this generic material model and may provide a deliberately
+small set of validated ideal chemical identities. Consumer applications own
+commercial-product catalogs, brand and supplier records, availability,
+purchasing data, licensing, and persistence. They translate a selected product
+record into the Engine's material representation rather than requiring the
+Engine to store or distribute the product catalog.
 - optional manufacturer/product metadata when it is part of a sourced material
   definition.
 
@@ -1004,7 +1012,7 @@ A complete plan should contain:
 - warnings and explanation codes;
 - assumptions;
 - solver status/tolerances;
-- chemistry, solver, and reference-data versions.
+- chemistry, solver, and conformance-data versions.
 
 Optimizer plans must reuse the ordinary blend and treatment domain semantics.
 Applying an accepted plan through the standard forward path with its practical
@@ -1331,8 +1339,8 @@ The release sequence is incremental:
 - **0.4:** first automatic optimizer with practical ranked candidate plans,
   explicit diagnostics, and the minimum exact-composition treatment-material
   semantics required for safe recommendations;
-- **0.5:** broader treatment materials, curated/classified target/reference
-  data, and richer comparison semantics;
+- **0.5:** broader treatment materials, classified target/reference semantics,
+  and richer comparison behavior;
 - **0.6:** optimizer and public-contract hardening beyond the first useful
   strategy set;
 - **0.7:** reusable working-water pH and richer diagnostics if scientifically ready;
@@ -1385,17 +1393,23 @@ erase reported-value semantics, silently choose representative values, or move
 reusable water-chemistry policy into an application. Purpose-specific
 interpretation and prediction remain consumer/domain responsibilities.
 
-### 16.3 Version 1 reference data
+### 16.3 Version 1 validation data and consumer profiles
 
-- Validated treatment chemical identities and practical material definitions, with composition/specification provenance.
-- Curated beer, mead, and distilling targets with explicit source/reference attribution.
-- Historical-city profiles clearly identified as references rather than silently canonicalized.
-- RO and distilled profiles represented explicitly rather than assumed silently.
-- Real municipal/bottled-water fixtures with source-document metadata and report semantics.
-- Independently calculated stoichiometric reference cases.
-- Well-sourced cross-domain target/reference data may be added before Version 1 when it can use the generic water machinery without requiring a new scientific engine.
+Engine-owned data is limited to what validates reusable scientific behavior:
 
-Coffee is the strongest early candidate because formal published water standards and scientific reference material exist. Tea follows evidence. Bread/pizza entries may include regional, practitioner, point-of-use, or experimental reference waters, but must not be labeled optimal unless the evidence actually establishes an optimum.
+- validated treatment chemical identities and practical material definitions,
+  with composition/specification provenance;
+- real municipal/bottled-water report fixtures that pressure-test reporting
+  semantics;
+- independently calculated stoichiometric reference cases; and
+- portable conformance vectors.
+
+Consumer applications own curated beer, mead, distilling, coffee, tea,
+bread/pizza, historical-city, regional, RO, distilled, and other selectable
+profile libraries. They preserve source/reference attribution, licensing, and
+version history in their persistence layer, then construct Engine domain
+objects at the calculation boundary. The Engine does not distribute or update
+those catalogs.
 
 ### 16.4 Deliberately deferred from the Version 1 critical path
 
@@ -1887,7 +1901,7 @@ The real-report pressure-test phase has served its immediate purpose. Additional
 
 First-class source-report preservation of chlorine/chloramine and related disinfectant reporting is now implemented. The Santa Cruz 2025 fixture pressure-tests an unqualified distribution-system `Chlorine` result as its own reported disinfectant rather than inferring free chlorine or mapping the result to chloride. Treatment/removal modeling remains deliberately out of scope for this representation layer.
 
-Release 0.2 completes the **deterministic forward treatment calculation** boundary. Validated simple treatment-ingredient identities, generic stoichiometric ion contributions, exact derived aqueous chemical states, forward application of one or more additions to a known water volume, explicit source-profile-to-derived-state resolution, fixed source-water blending by volume or fraction, structured target/reference comparison, and end-to-end orchestration across those boundaries are implemented. The forward-calculator result retains every source-resolution result, the normalized fixed-blend result, treatment-application result, explicit blend/final states, and optional source/blend/final target comparisons rather than flattening the workflow into final numbers. Blend and treatment results both preserve structured per-ion resolution outcomes and contribution detail while keeping unknown totals unknown. Target comparison preserves exact/range/bound satisfaction and signed deviation, keeps missing state ions indeterminate, refuses to reinterpret qualified ranges or `ND` as numeric targets, and retains target pH as explicitly not calculated until a validated working-water pH model exists. Boundary classification uses a 1e-9 mg/L absolute tolerance solely to suppress floating-point representation noise from otherwise exact deterministic arithmetic; it is separate from the 0.5 versioned comparison policies whose explicit absolute bands can classify an outside result as close or far. No policy means no closeness classification, and no policy uses a percentage of the target. A combined row-per-ion contribution matrix now reshapes the existing blend and treatment audit records for presentation without recalculating chemistry. It preserves each source and treatment as a stable column, distinguishes positive-volume unknown source chemistry from zero-volume sources, distinguishes noncontributing treatment ingredients from unknown data, and retains known partial source/treatment contribution subtotals without presenting them as complete totals when the blend or final concentration is unresolved. Structured preparation instructions now transform those already-calculated blend/treatment results into deterministic human-readable actions while retaining canonical quantities for consumer reformatting. Zero-volume sources and zero-mass treatment rows remain in the calculation/audit results but are omitted from actionable instruction text because they require no physical action. Forward-result notices now surface calculation assumptions and result limitations that consumers should not have to reconstruct from nested audit records: midpoint use, unresolved contributing source results, first-order carbonate-species blending, the complete-dissolution treatment model, unknown final-target actuals, unsupported final-target criteria, and deferred final-target-pH comparison. Source- and blend-stage target comparisons remain available on their own structured results rather than duplicating target notices at every stage. These notices do not change chemistry and preserve structured codes/context alongside deterministic English messages. Release 0.3 adds the reviewed supported consumer facade, complete source-reporting/provenance construction graph, and FermUnits `PHValue` boundary around these proven capabilities. After a small FermUnits 1.0 compatibility release, the next implementation focus is the first practical optimizer plus only the treatment-material semantics it requires; broader materials and curated profiles follow without blocking that vertical slice.
+Release 0.2 completes the **deterministic forward treatment calculation** boundary. Validated simple treatment-ingredient identities, generic stoichiometric ion contributions, exact derived aqueous chemical states, forward application of one or more additions to a known water volume, explicit source-profile-to-derived-state resolution, fixed source-water blending by volume or fraction, structured target/reference comparison, and end-to-end orchestration across those boundaries are implemented. The forward-calculator result retains every source-resolution result, the normalized fixed-blend result, treatment-application result, explicit blend/final states, and optional source/blend/final target comparisons rather than flattening the workflow into final numbers. Blend and treatment results both preserve structured per-ion resolution outcomes and contribution detail while keeping unknown totals unknown. Target comparison preserves exact/range/bound satisfaction and signed deviation, keeps missing state ions indeterminate, refuses to reinterpret qualified ranges or `ND` as numeric targets, and retains target pH as explicitly not calculated until a validated working-water pH model exists. Boundary classification uses a 1e-9 mg/L absolute tolerance solely to suppress floating-point representation noise from otherwise exact deterministic arithmetic; it is separate from the 0.5 versioned comparison policies whose explicit absolute bands can classify an outside result as close or far. No policy means no closeness classification, and no policy uses a percentage of the target. A combined row-per-ion contribution matrix now reshapes the existing blend and treatment audit records for presentation without recalculating chemistry. It preserves each source and treatment as a stable column, distinguishes positive-volume unknown source chemistry from zero-volume sources, distinguishes noncontributing treatment ingredients from unknown data, and retains known partial source/treatment contribution subtotals without presenting them as complete totals when the blend or final concentration is unresolved. Structured preparation instructions now transform those already-calculated blend/treatment results into deterministic human-readable actions while retaining canonical quantities for consumer reformatting. Zero-volume sources and zero-mass treatment rows remain in the calculation/audit results but are omitted from actionable instruction text because they require no physical action. Forward-result notices now surface calculation assumptions and result limitations that consumers should not have to reconstruct from nested audit records: midpoint use, unresolved contributing source results, first-order carbonate-species blending, the complete-dissolution treatment model, unknown final-target actuals, unsupported final-target criteria, and deferred final-target-pH comparison. Source- and blend-stage target comparisons remain available on their own structured results rather than duplicating target notices at every stage. These notices do not change chemistry and preserve structured codes/context alongside deterministic English messages. Release 0.3 adds the reviewed supported consumer facade, complete source-reporting/provenance construction graph, and FermUnits `PHValue` boundary around these proven capabilities. After a small FermUnits 1.0 compatibility release, the next implementation focus is the first practical optimizer plus only the treatment-material semantics it requires; broader material support and target/reference profile semantics follow without blocking that vertical slice.
 
 ## 27. Development milestones
 
@@ -1985,10 +1999,10 @@ Completed:
 - sourced, caller-selected practical-use limits and broader validated material
   definitions;
 - generic target/reference classification and provenance enhancements;
-- curated profiles and standards only where evidence supports their stated
-  meaning;
+- target/reference classification and provenance for consumer-supplied
+  profiles;
 - richer comparison policies without universal percentage thresholds; and
-- reference-data validation/versioning.
+- scientific validation cases and conformance versioning.
 
 ### Milestone 6 / release 0.6 — optimizer and contract hardening
 
@@ -2013,7 +2027,7 @@ A weak pH approximation is not a release requirement; unsupported derived pH may
 - FermentationJSON adapters when its water schema is ready;
 - stable calculation/result contracts;
 - expanded authoritative reference tests and conformance vectors;
-- chemistry model, package, optimizer, and reference-data versioning.
+- chemistry model, package, optimizer, and conformance-data versioning.
 
 ### Milestone 9 — Version 1.0 release
 
@@ -2037,19 +2051,18 @@ A weak pH approximation is not a release requirement; unsupported derived pH may
 3. Whether SciPy's MILP support is sufficient for all Version 1 discrete policies.
 4. Authoritative chemical-identity and treatment-material sources for each supported addition, including hydration state, commercial assay/concentration conventions, density where required, and validated practical-use limits.
 5. Exact supported calculation policy for ranged commercial assay or solution concentration specifications when a deterministic representative value is required.
-6. Redistribution/licensing policy for historical city, brewery, and style targets.
-7. Exact BeerJSON water adapter behavior and structured loss-report schema.
-8. Exact FermentationJSON water-profile and treatment-plan adapter contract once its schema is stable enough to implement.
-9. Whether additional alkalinity normalization belongs partly in FermUnits or entirely in engine semantics.
-10. How target-match scores should be normalized and explained.
-11. Whether charge-balance diagnostics should only warn or may optionally suggest likely missing information without altering source data.
-12. How regulatory/reference thresholds should be represented when preserved for report fidelity without contaminating chemistry models.
-13. Exact aqueous equilibrium/activity model, validated reference data, and minimum chemical-state inputs for the reusable `calculate_ph(...)` capability.
-14. Exact reusable representation for reported disinfectants and other non-optimization analytes once chlorine/chloramine support expands beyond the first concrete cases.
-15. Exact reusable process-state and treatment-sequence contract needed before
+6. Exact BeerJSON water adapter behavior and structured loss-report schema.
+7. Exact FermentationJSON water-profile and treatment-plan adapter contract once its schema is stable enough to implement.
+8. Whether additional alkalinity normalization belongs partly in FermUnits or entirely in engine semantics.
+9. How target-match scores should be normalized and explained.
+10. Whether charge-balance diagnostics should only warn or may optionally suggest likely missing information without altering source data.
+11. How regulatory/reference thresholds should be represented when preserved for report fidelity without contaminating chemistry models.
+12. Exact aqueous equilibrium/activity model, validated reference data, and minimum chemical-state inputs for the reusable `calculate_ph(...)` capability.
+13. Exact reusable representation for reported disinfectants and other non-optimization analytes once chlorine/chloramine support expands beyond the first concrete cases.
+14. Exact reusable process-state and treatment-sequence contract needed before
     order-of-addition or other stateful treatment chemistry is implemented.
-16. Exact generic metadata vocabulary for target versus reference profile classification without overfitting to coffee, tea, or dough.
-17. Whether a genuinely domain-neutral buffer-system/equilibrium solver can be
+15. Exact generic metadata vocabulary for target versus reference profile classification without overfitting to coffee, tea, or dough.
+16. Whether a genuinely domain-neutral buffer-system/equilibrium solver can be
     specified and validated without importing malt, grain, coffee, dough, or
     other purpose-specific assumptions.
 
@@ -2061,7 +2074,7 @@ Version independently where appropriate:
 - chemistry-model revisions;
 - measurement-semantics revisions;
 - optimization-policy revisions;
-- bundled reference datasets;
+- scientific validation and conformance datasets;
 - BeerJSON adapter compatibility;
 - FermentationJSON adapter/schema compatibility;
 - cross-platform conformance-vector versions.
@@ -2091,6 +2104,6 @@ Version 1 will provide a reusable, explainable water-chemistry engine for suppor
 
 The engine deliberately distinguishes reported from derived chemistry. Linear ranges may use an on-demand midpoint only when no reported average exists, both endpoints are exact, and the caller explicitly enables midpoint resolution through `SourceResolutionPolicy`. Qualified ranges do not receive an automatic representative value. pH is explicitly excluded from generic linear averaging because it is logarithmic: range endpoints are preserved, reported averages are trusted only when actually reported, and any derived pH calculation uses an explicit scientifically documented aqueous model. A missing derived-pH model must not block otherwise valid forward treatment calculations.
 
-Well-sourced coffee, tea, bread, sourdough, or pizza target/reference data may be added early when the generic water machinery can represent it. This does not imply that the Engine contains a domain-specific predictive model. Regional, historical, practitioner, experimental, standard, and optimized profiles must retain distinct evidentiary classifications; consumer applications own the domain-specific interpretation of those profiles.
+Consumer applications may add well-sourced coffee, tea, bread, sourdough, or pizza target/reference data when the generic water machinery can represent it. This does not imply that the Engine contains either those product catalogs or a domain-specific predictive model. Regional, historical, practitioner, experimental, standard, and optimized profiles must retain distinct evidentiary classifications; consumer applications own their persistence, curation, licensing, distribution, selection, and domain-specific interpretation.
 
 BeerJSON and FermentationJSON adapters are intentionally later engine milestones so they do not block the supported forward-calculation API. FermentationJSON remains the intended richer long-term interchange representation without constraining the internal engine model or diminishing BeerJSON compatibility. Product-owned AI/document extraction and review workflows remain outside the engine repository.

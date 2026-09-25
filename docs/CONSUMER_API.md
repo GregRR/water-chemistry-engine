@@ -247,11 +247,13 @@ whose magnitude is an `int`, `float`, `Decimal`, or `Fraction`. Consumers may
 use it to type reported-value fields and return values without reproducing the
 engine's scalar-magnitude policy or importing `quantity_types` directly.
 
-## Curated target-profile catalogs
+## Optional in-memory target-profile collection validation
 
-`TargetProfileCatalog` is the versioned public boundary for a curated
-collection of target/reference profiles. A catalog has its own stable key and
-version. Every entry must:
+`TargetProfileCatalog` optionally validates a consumer-supplied in-memory
+collection of target/reference profiles. It is not a database, persistence
+API, Engine-owned registry, or bundled profile library. Calculations accept a
+single `TargetWaterProfile` and do not require a catalog. A catalog has its own
+stable key and version. Every entry must:
 
 - be a `TargetWaterProfile` with at least one represented criterion;
 - carry explicit `TargetProfileProvenance`;
@@ -262,9 +264,15 @@ version. Every entry must:
 
 `profile_for(profile_key, profile_version)` performs exact lookup. The catalog
 does not choose a “latest” version, merge conflicting references, or infer that
-one sourced profile is preferable or optimal. Catalog validation is not a
-substitute for the repository's source-verification, redistribution-rights,
-licensing, and review requirements for bundled data.
+one sourced profile is preferable or optimal. Consumer applications own
+profile storage, curation, source and licensing records, distribution,
+selection, and update policy. They load a selected database record, construct
+a `TargetWaterProfile`, and pass that domain object to the Engine.
+
+The same ownership boundary applies to `SourceWaterProfile`: the Engine defines
+and validates the scientific input object, while consumers persist source
+records, report documents, user edits, and record history in their own data
+stores.
 
 ## Source reporting and provenance example
 

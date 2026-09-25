@@ -114,6 +114,11 @@ consumer or separate domain library.
   - Chapter 7 reinforces coupled-ion treatment constraints and the distinction
     between a published recommendation/reference profile and a scientifically
     established optimum.
+  - Chapter 7 also contains scan-verified candidate validation cases for
+    target-range semantics, fixed RO blending followed by gypsum dosing, and a
+    calcium-chloride water build. Their proposed use and rounding/material-
+    identity cautions are recorded in
+    [`docs/research/palmer-kaminski-chapter-7-validation-candidates.md`](research/palmer-kaminski-chapter-7-validation-candidates.md).
 - **Verification rule:** OCR is used for navigation/prose only. Equations,
   tables, numerical constants, and any implementation logic must be checked
   against the scanned page; where practical, implementation claims should also
@@ -162,10 +167,10 @@ consumer or separate domain library.
   - Leave room for constituents beyond the initial brewing-ion panel.
   - Keep sensory annotations evidence-based and domain-specific.
   - Do not claim direct prediction of taste from a generic ion-match score.
-- **Roadmap:** Supports early generic target/reference data where defensible;
-  domain-specific sensory/process modeling belongs in consumers or separate
-  domain libraries, with reusable chemistry extracted into the Engine when a
-  common primitive emerges.
+- **Roadmap:** Supports consumer-curated target/reference data where defensible;
+  domain-specific sensory/process modeling and profile persistence belong in
+  consumers or separate domain libraries, with reusable chemistry extracted
+  into the Engine when a common primitive emerges.
 
 ### Food Science Toolbox overview
 
@@ -198,7 +203,7 @@ consumer or separate domain library.
 - **DOI:** 10.1021/jf501687c
 - **Type:** Primary scientific source
 - **Relevant topics:** Modeled interactions of Na+, Mg2+, and Ca2+ with representative coffee compounds; cation-dependent extraction behavior; interaction with bicarbonate buffering.
-- **Design implications:** Supports early coffee target/reference data using the generic water engine while reinforcing that a later coffee-specific extraction/sensory model is a separate capability.
+- **Design implications:** Supports coffee target/reference records curated by a consumer and evaluated with the generic water engine, while reinforcing that a later coffee-specific extraction/sensory model is a separate capability.
 - **Caution:** The paper does not establish one universally optimal coffee-water composition; do not turn its relative binding results into a generic "more magnesium is better" scoring rule.
 
 ### Daily Coffee News practical water guide (2018)
@@ -208,7 +213,7 @@ consumer or separate domain library.
 - **URL:** https://dailycoffeenews.com/2018/08/15/a-practical-water-guide-for-coffee-professionals-part-i/
 - **Type:** Specialist secondary source
 - **Relevant topics:** Practical coffee-water composition, hardness/alkalinity, treatment, and distinction between chloride and chlorine-related concerns.
-- **Use in this project:** Workflow and terminology research for early coffee target/reference data and later coffee-specific modeling. Quantitative rules should be traced to primary or current authoritative sources before implementation.
+- **Use in this project:** Workflow and terminology research for consumer-owned coffee target/reference data and later coffee-specific modeling. Quantitative rules should be traced to primary or current authoritative sources before implementation.
 
 ### Ferreira et al. (2024)
 
@@ -219,7 +224,7 @@ consumer or separate domain library.
 - **DOI:** 10.3390/app14209179
 - **Type:** Primary scientific source
 - **Relevant topics:** Effects of different mineral waters on bread mineral composition, pH, texture, and related physicochemical properties.
-- **Design implications:** The reported waters are legitimate experimental reference profiles and may be bundled as such if admission rules are met, but the study provides no basis for a universal optimal bread-water target. Deeper bread/sourdough modeling remains future domain work.
+- **Design implications:** The reported waters are legitimate experimental reference profiles that a consumer may curate when its provenance and licensing rules are met, but the study provides no basis for a universal optimal bread-water target. A narrowly scoped Engine fixture may use the data only when needed to validate generic profile semantics or calculations. Deeper bread/sourdough modeling remains future domain work.
 
 ### Sourdough Institute tap-water article
 
@@ -519,13 +524,14 @@ These use cases must remain distinct. A profile suitable for fermentation is not
 
 ## 5. Cross-domain profile and consumer-model research queues
 
-Research now has two distinct purposes: (1) admit well-sourced target/reference
-data that the generic Engine can already use, and (2) inform consumer/domain
-models while identifying any lower-level chemistry that is genuinely reusable
-enough to extract into the Engine. Coffee is the strongest early profile-data
-candidate; deeper coffee, tea, dough, and brewing-process science remains
-consumer/domain work unless a common chemistry primitive emerges. Create
-separate research notes as needed:
+Research now has two distinct purposes: (1) help consumer projects curate
+well-sourced target/reference data that the generic Engine can represent, and
+(2) inform consumer/domain models while identifying lower-level chemistry that
+is genuinely reusable enough to extract into the Engine. Profile persistence,
+licensing records, distribution, and selection policy remain consumer-owned.
+Deeper coffee, tea, dough, and brewing-process science remains consumer/domain
+work unless a common chemistry primitive emerges. Create separate research
+notes as needed:
 
 - `research/coffee.md`
 - `research/tea.md`
@@ -537,19 +543,30 @@ separate research notes as needed:
 
 Each note should identify target constituents, measurable outcomes, treatment methods, safety constraints, known standards, validated datasets, and gaps in evidence.
 
-## 6. Reference-data admission rules
+## 6. Engine scientific-data and fixture admission rules
 
-A profile or treatment definition may enter bundled `reference-data/` only when:
+Selectable source, target/reference, historical, and commercial-product
+records belong in consumer databases and follow the consumer project's
+curation, licensing, distribution, and review policy. The Engine repository
+does not admit those records merely to build a profile library.
+
+Data may enter Engine-owned `reference-data/`, tests, or conformance vectors
+only when it is necessary to validate reusable Engine behavior. In that case:
 
 1. Its provenance is recorded.
-2. The meaning of the numbers is clear: source water, treated process water, target range, historical estimate, or measured result.
+2. The meaning of the numbers is clear: analytical report, source water,
+   treated process water, target range, historical estimate, measured result,
+   chemical identity, or independently checkable calculation case.
 3. Units and reporting bases are explicit.
-4. Redistribution is permitted.
+4. Redistribution is permitted when source data is copied into the repository.
 5. Uncertainty, range, date, and regional variation are retained where available.
-6. The entry has a stable identifier and version.
-7. At least one review or validation test exists.
+6. The fixture or dataset has a stable identifier or version where needed.
+7. At least one review or validation test demonstrates why the data belongs in
+   the Engine rather than only in a consumer database.
 
-Historical city profiles must not be labeled as a brewery's actual treated liquor unless the source supports that interpretation.
+Even in a validation fixture, a historical city profile must not be labeled as
+a brewery's actual treated liquor unless the source supports that
+interpretation. Engine fixtures are not product-facing profile catalogs.
 
 ## 7. Research-record template
 
@@ -595,14 +612,17 @@ Historical city profiles must not be labeled as a brewery's actual treated liquo
    analytical context (alkalinity versus ANC, method/endpoint, sample state,
    original analyte wording/unit) and document that the conservative-equivalent
    model is not a laboratory-titration simulator.
-4. Identify defensible initial beer, mead, and distilling target profiles with redistribution rights.
-5. Identify the first defensible coffee target/reference profiles and classify each as standard, recommendation, practitioner reference, experimental reference, or optimized target as appropriate.
-6. Identify tea and dough/bread/pizza reference profiles only where the evidence and redistribution status support admission; do not manufacture optimal profiles from regional analyses.
-7. Find primary or authoritative references for charge-balance diagnostics,
+4. Find primary or authoritative references for charge-balance diagnostics,
    hardness reconciliation, carbonate speciation, and reusable aqueous
    equilibrium calculations.
-8. Catalogue unverified water-treatment formulas and claims encountered during research and compare them against stronger sources.
-9. Extend the implemented `TargetProfileCatalog` domain boundary into a
-   machine-readable bundled-data format that also records citation,
-   redistribution/licensing, verification, and review status. Catalog identity
-   validation alone is not sufficient for admission.
+5. Catalogue unverified water-treatment formulas and claims encountered during research and compare them against stronger sources.
+6. Define versioning and provenance rules for Engine-owned scientific
+   validation cases and portable conformance vectors without turning them into
+   a product profile catalog.
+
+Water Chemistry Designer or another consumer may separately research and
+curate beer, mead, distilling, coffee, tea, dough, bread, pizza, historical,
+and regional profiles. Those projects should preserve redistribution rights
+and evidentiary classification and must not manufacture optimal profiles from
+regional analyses. `TargetProfileCatalog` may validate an in-memory selected
+collection, but does not define its database or distribution format.

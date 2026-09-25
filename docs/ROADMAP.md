@@ -347,14 +347,15 @@ silently approximated.
 - product-specific persistence, reports, or UI behavior; and
 - equilibrium-dependent chalk treatment.
 
-## 0.5 — Total Alkalinity, Treatment Materials, Profiles, and Comparison Expansion
+## 0.5 — Total Alkalinity, Treatment Materials, Profile Semantics, and Comparison Expansion
 
 **Status: in progress.**
 
-Expand the useful profile library and practical treatment-material model
-without requiring complete coffee-, tea-, bread-, or pizza-specific predictive
-engines. The first optimizer's exact-composition material slice expands here to
-cover additional practical preparations and evidence-backed policies.
+Expand target/reference semantics and the practical treatment-material model
+without turning the Engine into a profile database or requiring complete
+coffee-, tea-, bread-, or pizza-specific predictive engines. The first
+optimizer's exact-composition material slice expands here to cover additional
+practical preparations and evidence-backed policies.
 
 The initial practical-use-limit boundary is now implemented as a separate,
 versioned and sourced caller-selected policy bound to an exact material key.
@@ -399,14 +400,15 @@ attributed source document.
 Source water remains structurally represented by `SourceWaterProfile`; it is
 not inferred from or duplicated in the target/reference classification.
 
-The public `TargetProfileCatalog` adds a versioned curated-collection boundary.
-It admits only evidence-based target/reference classifications with document
-attribution, exact profile key/version identity, and at least one represented
-criterion. Duplicate identities fail rather than overwrite one another, and
-lookup always requests an exact version; the engine does not select “latest” or
-merge conflicting references. Bundled entries still require separate source
-verification, redistribution permission, licensing records, and review before
-admission.
+The public `TargetProfileCatalog` is an optional in-memory validator for a
+consumer-supplied collection. It admits only evidence-based target/reference
+classifications with document attribution, exact profile key/version identity,
+and at least one represented criterion. Duplicate identities fail rather than
+overwrite one another, and lookup always requests an exact version; the engine
+does not select “latest” or merge conflicting references. It is not persistent
+storage, an Engine-owned registry, or a bundled profile library. Consumer
+applications own profile databases, curation, licensing records, distribution,
+selection, and update policy.
 
 ### Conservative-equivalent total-alkalinity balance
 
@@ -516,34 +518,44 @@ these calculations from ion data. Field placement, exact labels, layout,
 application schema versions, toggles, and temporary material visibility remain
 consumer-project decisions rather than engine requirements.
 
-### Near-term profile additions
+### Consumer-owned profile data
 
-- Curated brewing, mead, and distilling profiles with explicit provenance.
-- Published specialty-coffee standards and well-supported coffee-water
-  targets/references.
-- Tea target/reference profiles when defensible data exist.
-- Regional-reference dough waters such as documented New York City water.
-- Measured or otherwise well-supported bakery/pizzeria point-of-use waters.
-- Published experimental bread/pizza water profiles where the study actually
-  reports the water used.
+Water Chemistry Designer and other consumers may curate brewing, mead,
+distilling, coffee, tea, dough, or other profile libraries in their own
+databases. They map selected records to `TargetWaterProfile` at the Engine
+boundary and retain licensing, distribution, update, and user-selection policy.
+The Engine supplies profile semantics, provenance fields, validation,
+comparison, and calculation; it does not ship or persist the product catalog.
 
-Do not:
+Consumer curation should not:
 
 - turn a regional water analysis into an "optimal" bread/pizza profile;
 - average conflicting historical profiles into a manufactured canonical
   profile;
 - turn a mechanistic coffee paper into a universal optimum it did not establish.
 
-Some standards include properties beyond the current ion target model, such as
-TDS, hardness, alkalinity, chlorine, odor, or color. Add generic target-property
-semantics only where the requirement is concrete and scientifically clear; do
-not build a universal sensory-property framework merely to make every historic
-standard field machine-optimizable immediately.
+Chapter 7 of Palmer and Kaminski provides representative ranges and worked
+water-adjustment cases that may be useful for Engine validation without moving
+profile ownership into this repository. The scan-verified candidates and their
+rounding, hydration-state, and scope cautions are recorded in
+[`docs/research/palmer-kaminski-chapter-7-validation-candidates.md`](research/palmer-kaminski-chapter-7-validation-candidates.md).
+
+Some consumer-owned standards include properties beyond the current ion target
+model, such as TDS, hardness, alkalinity, chlorine, odor, or color. Add generic
+target-property semantics only where the requirement is concrete and
+scientifically clear; do not build a universal sensory-property framework
+merely to make every historic standard field machine-optimizable immediately.
 
 ### Practical treatment-material work
 
 Preserve the existing distinction between ideal chemical stoichiometry and the
 real material a user measures and adds.
+
+The Engine owns reviewed generic material semantics and may expose a small set
+of validated ideal chemical identities needed for calculations. Water
+Chemistry Designer and other consumers own databases of commercial products,
+brands, supplier specifications, availability, and purchasing information;
+they construct caller-supplied material definitions at the Engine boundary.
 
 - Treat hydration state as part of chemical identity. Calcium chloride
   anhydrous and calcium chloride dihydrate are distinct identities, not unit
@@ -699,7 +711,7 @@ unsupported/unknown rather than ship a weak approximation.
 ### Release hardening
 
 - Versioned calculation-result contracts.
-- Versioned bundled reference datasets.
+- Versioned scientific validation cases and portable conformance vectors.
 - Stable warning and explanation codes.
 - Expanded reference and cross-platform conformance vectors.
 - Documentation of operating limits and unsupported calculations.
@@ -711,7 +723,7 @@ unsupported/unknown rather than ship a weak approximation.
 
 Version 1.0 will provide a reusable, explainable, stable engine for supported
 brewing/fermentation water-treatment workflows while remaining generic enough
-for additional validated target/reference data and consumer products.
+for consumer-owned target/reference data and additional products.
 
 A consumer can:
 
@@ -724,7 +736,7 @@ A consumer can:
 - obtain practical automatic treatment recommendations;
 - compare useful ranked alternatives;
 - inspect contributions, assumptions, unknowns, compromises, and infeasibility;
-- use versioned curated profile/reference data;
+- accept versioned target/reference profiles supplied by consumers;
 - integrate through documented stable Python/request-result contracts.
 
 ### Version 1 scientific/architectural invariants

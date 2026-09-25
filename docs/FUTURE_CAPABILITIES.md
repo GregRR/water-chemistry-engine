@@ -82,7 +82,10 @@ web framework, or user-review system.
 - Portable conformance vectors for alternative-language implementations.
 - Additional import/export formats only when concrete demand exists.
 
-## Reference and historical datasets
+## Consumer-owned reference and historical datasets
+
+The following are useful Water Chemistry Designer or other consumer-library
+content, not Engine-bundled data or Engine persistence work:
 
 - Additional current municipal source-water datasets.
 - Historical regional/city water analyses kept as separate sourced records.
@@ -91,6 +94,11 @@ web framework, or user-review system.
 - Historical/reference coffee and tea waters.
 - Experimental water datasets from peer-reviewed food/beverage studies.
 - Versioned profile history rather than silent replacement or averaging.
+
+Consumers should preserve these records in their databases and map selected
+records to Engine domain objects. The Engine may retain narrowly scoped sourced
+fixtures or conformance vectors when they are needed to verify profile
+semantics or calculations; such fixtures are not a product-facing library.
 
 ## Domain-specific consumer science enabled by the engine
 
