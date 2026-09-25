@@ -1,8 +1,9 @@
-"""Versioned catalog boundary for curated target and reference profiles.
+"""Optional in-memory validation for a consumer-supplied profile collection.
 
-The catalog validates identity and provenance; it does not choose a preferred
-version, merge conflicting references, or imply that a listed profile is an
-optimum. Consumers select an exact profile key and version deliberately.
+The helper validates identity and provenance; it does not persist profiles,
+load an Engine-owned registry, choose a preferred version, merge conflicting
+references, or imply that a listed profile is an optimum. Consumers own the
+database and select an exact profile key and version deliberately.
 """
 
 from dataclasses import dataclass
@@ -29,12 +30,13 @@ def _validate_required_text(value: str, label: str) -> None:
 
 @dataclass(frozen=True, slots=True)
 class TargetProfileCatalog:
-    """One explicitly versioned collection of curated target/reference profiles.
+    """Validate one versioned, consumer-supplied in-memory collection.
 
     Every member must already carry complete versioned
     :class:`TargetProfileProvenance`. User-owned targets and previously achieved
-    treated-water profiles remain application data rather than curated catalog
-    entries.
+    treated-water profiles remain application data rather than evidence-based
+    collection entries. This type provides no storage, loading, distribution,
+    or latest-version policy.
     """
 
     catalog_key: str

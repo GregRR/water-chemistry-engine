@@ -43,9 +43,10 @@ class TargetProfileProvenance:
     """Classification and attribution for a target or reproducible reference.
 
     ``profile_key`` and ``profile_version`` identify a versioned profile in a
-    registry; they are deliberately separate from a document's title or date.
-    Classifications that claim published, practitioner, regional, historical,
-    experimental, or analytical support require an attributed document.
+    consumer collection or data store; they are deliberately separate from a
+    document's title or date. Classifications that claim published,
+    practitioner, regional, historical, experimental, or analytical support
+    require an attributed document. The Engine does not persist the profile.
     """
 
     classification: TargetProfileClassification
