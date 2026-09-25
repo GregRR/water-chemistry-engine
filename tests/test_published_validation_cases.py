@@ -14,9 +14,12 @@ import water_chemistry_engine as wce
 REPORTED_ONLY = wce.SourceResolutionPolicy(allow_exact_range_midpoints=False)
 CHAPTER_7 = wce.SourceDocumentMetadata(
     publisher="Brewers Publications",
-    title="Water: A Comprehensive Guide for Brewers (2013)",
+    title="Water: A Comprehensive Guide for Brewers",
     page_reference="Chapter 7, pp. 156-167",
-    notes="John Palmer and Colin Kaminski; only the publication year is recorded.",
+    notes=(
+        "John Palmer and Colin Kaminski; published in 2013, with no exact "
+        "publication date recorded by this fixture."
+    ),
 )
 
 
