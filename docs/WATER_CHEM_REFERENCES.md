@@ -587,8 +587,10 @@ Historical city profiles must not be labeled as a brewery's actual treated liquo
    to be defined before use. A sourced, versioned caller-selected practical-
    use-limit policy now validates optimizer maximums structurally; actual
    numeric policies still require authoritative evidence, applicability
-   analysis, source registration, and a structured machine-checkable volume-
-   basis/water-stage field before admission.
+   analysis, and source registration before admission. The required
+   `TreatmentMaterialUseLimitVolumeBasis` now makes the optimizer-total-water
+   denominator machine-checkable and prevents other process-volume bases from
+   being silently reinterpreted.
 3. Complete the 0.5 total-alkalinity source semantics by preserving supplied
    analytical context (alkalinity versus ANC, method/endpoint, sample state,
    original analyte wording/unit) and document that the conservative-equivalent

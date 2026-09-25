@@ -130,4 +130,6 @@ safety, dimensional, or public-contract defect. It cleared the implementation
 with four low-severity regression-coverage recommendations, all accepted and
 closed. Its forward-looking observation that a numeric policy needs a
 machine-checkable volume basis/water stage was recorded as a mandatory gate
-before the first built-in numeric policy is admitted.
+before the first built-in numeric policy is admitted. The gate was subsequently
+satisfied by the required `TreatmentMaterialUseLimitVolumeBasis`, whose only
+current value identifies optimizer total-water volume.

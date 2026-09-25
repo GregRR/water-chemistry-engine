@@ -17,6 +17,7 @@ from water_chemistry_engine.treatment_materials import (
     TreatmentMaterialActiveMassRange,
     TreatmentMaterialForm,
     TreatmentMaterialUseLimit,
+    TreatmentMaterialUseLimitVolumeBasis,
 )
 
 
@@ -36,6 +37,9 @@ def test_material_use_limit_preserves_policy_and_calculates_batch_maximum() -> N
         material_key="pure_gypsum",
         description="Example upper operational dose for finished water.",
         applicability="Only for the process and water state described by the source.",
+        volume_basis=(
+            TreatmentMaterialUseLimitVolumeBasis.OPTIMIZER_TOTAL_WATER_VOLUME
+        ),
         maximum_measured_mass_per_volume=Q_(200, "milligram / liter"),
         source_document=source,
     )
@@ -71,6 +75,9 @@ def test_material_use_limit_rejects_nonpositive_or_nonfinite_rate(
             material_key="pure_gypsum",
             description="Example limit.",
             applicability="Example context.",
+            volume_basis=(
+                TreatmentMaterialUseLimitVolumeBasis.OPTIMIZER_TOTAL_WATER_VOLUME
+            ),
             maximum_measured_mass_per_volume=maximum,  # type: ignore[arg-type]
             source_document=_use_limit_source(),
         )
@@ -84,7 +91,24 @@ def test_material_use_limit_rejects_wrong_dimension() -> None:
             material_key="pure_gypsum",
             description="Example limit.",
             applicability="Example context.",
+            volume_basis=(
+                TreatmentMaterialUseLimitVolumeBasis.OPTIMIZER_TOTAL_WATER_VOLUME
+            ),
             maximum_measured_mass_per_volume=Q_(1, "gram"),
+            source_document=_use_limit_source(),
+        )
+
+
+def test_material_use_limit_requires_supported_volume_basis_enum() -> None:
+    with pytest.raises(TypeError, match="TreatmentMaterialUseLimitVolumeBasis"):
+        TreatmentMaterialUseLimit(
+            key="example.gypsum.finished-water.v1",
+            version="1.0.0",
+            material_key="pure_gypsum",
+            description="Example limit.",
+            applicability="Example context.",
+            volume_basis="finished_water",  # type: ignore[arg-type]
+            maximum_measured_mass_per_volume=Q_(0.2, "gram / liter"),
             source_document=_use_limit_source(),
         )
 
@@ -106,6 +130,9 @@ def test_material_use_limit_requires_nonempty_identity_and_scope(field: str) -> 
     with pytest.raises(ValueError, match="cannot be empty"):
         TreatmentMaterialUseLimit(
             **values,
+            volume_basis=(
+                TreatmentMaterialUseLimitVolumeBasis.OPTIMIZER_TOTAL_WATER_VOLUME
+            ),
             maximum_measured_mass_per_volume=Q_(0.2, "gram / liter"),
             source_document=_use_limit_source(),
         )
@@ -119,6 +146,9 @@ def test_material_use_limit_requires_source_document_metadata() -> None:
             material_key="pure_gypsum",
             description="Example limit.",
             applicability="Example context.",
+            volume_basis=(
+                TreatmentMaterialUseLimitVolumeBasis.OPTIMIZER_TOTAL_WATER_VOLUME
+            ),
             maximum_measured_mass_per_volume=Q_(0.2, "gram / liter"),
             source_document="citation",  # type: ignore[arg-type]
         )
@@ -144,6 +174,9 @@ def test_material_use_limit_rejects_invalid_calculation_volume(
         material_key="pure_gypsum",
         description="Example limit.",
         applicability="Example context.",
+        volume_basis=(
+            TreatmentMaterialUseLimitVolumeBasis.OPTIMIZER_TOTAL_WATER_VOLUME
+        ),
         maximum_measured_mass_per_volume=Q_(0.2, "gram / liter"),
         source_document=_use_limit_source(),
     )

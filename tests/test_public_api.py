@@ -125,6 +125,7 @@ EXPECTED_PUBLIC_API = {
     "TreatmentMaterialActiveMassRange",
     "TreatmentMaterialForm",
     "TreatmentMaterialUseLimit",
+    "TreatmentMaterialUseLimitVolumeBasis",
     "TreatmentAlkalinityContribution",
     "TreatmentApplicationResult",
     "TreatmentContributionCell",
@@ -183,12 +184,18 @@ def test_consumer_can_construct_sourced_material_use_limit_from_package_root() -
         material_key="pure_gypsum",
         description="Example upper operational dose for finished water.",
         applicability="Only for the process and water state described by the source.",
+        volume_basis=(
+            wce.TreatmentMaterialUseLimitVolumeBasis.OPTIMIZER_TOTAL_WATER_VOLUME
+        ),
         maximum_measured_mass_per_volume=Q_(0.2, "gram / liter"),
         source_document=source,
     )
 
     assert use_limit.maximum_measured_mass_for(Q_(5, "liter")).magnitude == (
         pytest.approx(1.0)
+    )
+    assert use_limit.volume_basis is (
+        wce.TreatmentMaterialUseLimitVolumeBasis.OPTIMIZER_TOTAL_WATER_VOLUME
     )
 
 

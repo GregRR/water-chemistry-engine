@@ -364,12 +364,12 @@ explicit material maximum. This structural support does not establish any
 built-in numeric limit or turn a context-specific source into a universal
 safety, sensory, solubility, or regulatory rule.
 
-Before the first reusable numeric use-limit policy is admitted, replace or
-supplement the free-text applicability statement with a structured volume-
-basis/water-stage identity that can be checked against the optimizer's total-
-water-volume semantics. The controlled vocabulary requires evidence and design
-work; until then, the engine supplies the policy boundary but no built-in
-numeric limits.
+The required `TreatmentMaterialUseLimitVolumeBasis` now makes the denominator
+machine-checkable. Its only supported value is the optimizer's requested total
+treated-water volume; report sampling stage and other process/product volumes
+remain different concepts and are not silently reinterpreted. This satisfies
+the structural admission gate, but evidence, applicability analysis, and source
+registration are still required before any reusable numeric policy is added.
 
 ### Generic profile/data work
 

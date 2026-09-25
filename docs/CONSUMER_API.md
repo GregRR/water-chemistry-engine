@@ -85,10 +85,14 @@ into an assumed universal use limit.
 caller-selected practical-use policy. It identifies an exact material key,
 retains a stable policy key/version, description, applicability statement, and
 source document, and expresses its maximum as measured material mass per total
-water volume. The engine uses the optimizer request's total volume to validate
-the caller's explicit `maximum_mass`; it rejects a conflicting request rather
-than silently lowering that maximum. The policy is not interpreted as a
-universal safety, sensory, solubility, or regulatory limit.
+water volume. Its required `TreatmentMaterialUseLimitVolumeBasis` is calculation
+policy rather than report sampling context; the only current value is
+`OPTIMIZER_TOTAL_WATER_VOLUME`. The engine uses that requested total treated-
+water volume to validate the caller's explicit `maximum_mass`; it rejects a
+conflicting request rather than silently lowering that maximum. Finished-
+beverage, source-water, mash-water, or other process-volume bases are not
+silently reinterpreted as optimizer total water. The policy is not interpreted
+as a universal safety, sensory, solubility, or regulatory limit.
 
 `OptimizerMaterialConstraint` accepts the pure mass-for-mass material and the
 exact mass-fraction material. Optimizer increments and maximums are measured-
@@ -196,7 +200,8 @@ The exact initial facade is:
   `ResolvedMassPerVolumeSolutionDose`,
   `ResolvedTreatmentMaterialVolumeDose`, `TreatmentMaterialForm`, and
   `TreatmentMaterialActiveMassRange` for physical treatment materials, plus
-  `TreatmentMaterialUseLimit` for a sourced practical-use policy;
+  `TreatmentMaterialUseLimit` and `TreatmentMaterialUseLimitVolumeBasis` for a
+  sourced practical-use policy;
 - comparison interpretation: `TargetIonComparison`,
   `TargetIonComparisonStatus`, `TargetIonCalculationBasis`,
   `TargetIonClosenessStatus`,

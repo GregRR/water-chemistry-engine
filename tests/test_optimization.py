@@ -26,6 +26,7 @@ from water_chemistry_engine.treatment_materials import (
     RangedMassFractionTreatmentMaterial,
     TreatmentMaterialForm,
     TreatmentMaterialUseLimit,
+    TreatmentMaterialUseLimitVolumeBasis,
 )
 
 
@@ -44,6 +45,9 @@ def _material_use_limit(
         material_key=material_key,
         description="Example upper operational dose for finished water.",
         applicability="Only for the process and water state described by the source.",
+        volume_basis=(
+            TreatmentMaterialUseLimitVolumeBasis.OPTIMIZER_TOTAL_WATER_VOLUME
+        ),
         maximum_measured_mass_per_volume=maximum,  # type: ignore[arg-type]
         source_document=SourceDocumentMetadata(
             publisher="Example standards organization",

@@ -22,6 +22,7 @@ from water_chemistry_engine.treatment_materials import (
     ExactMassDosedTreatmentMaterial,
     ExactMassFractionTreatmentMaterial,
     TreatmentMaterialUseLimit,
+    TreatmentMaterialUseLimitVolumeBasis,
 )
 
 if TYPE_CHECKING:
@@ -209,6 +210,13 @@ class OptimizerMaterialConstraint:
                 raise ValueError(
                     "Optimizer material use limit must identify the constrained "
                     "material key."
+                )
+            if self.use_limit.volume_basis is not (
+                TreatmentMaterialUseLimitVolumeBasis.OPTIMIZER_TOTAL_WATER_VOLUME
+            ):
+                raise ValueError(
+                    "Optimizer material use limit must use optimizer total-water "
+                    "volume as its denominator basis."
                 )
 
 

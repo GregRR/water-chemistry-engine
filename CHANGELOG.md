@@ -33,7 +33,9 @@ comparison-expansion milestone is in progress.
   request is rejected when its explicit mass maximum exceeds the volume-scaled
   policy or the policy permits no whole dose increment. Limits are never
   silently applied or presented as universal safety, sensory, solubility, or
-  regulatory claims.
+  regulatory claims. A required `TreatmentMaterialUseLimitVolumeBasis` makes
+  the supported optimizer-total-water denominator machine-checkable instead of
+  relying on free-text applicability.
 - Added `TargetProfileCatalog`, an explicitly versioned curated-profile
   boundary that requires evidence-based versioned provenance, at least one
   represented criterion, and unique exact profile key/version identities. It

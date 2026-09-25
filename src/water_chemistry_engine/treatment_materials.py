@@ -32,6 +32,17 @@ class TreatmentMaterialForm(StrEnum):
     AQUEOUS_SOLUTION = "aqueous_solution"
 
 
+class TreatmentMaterialUseLimitVolumeBasis(StrEnum):
+    """Water-volume denominator supported by a material-use policy.
+
+    The initial optimizer supports only its requested total treated-water
+    volume. This is calculation-policy identity, not a reported sampling
+    ``WaterStage`` and not finished-beverage or process-product volume.
+    """
+
+    OPTIMIZER_TOTAL_WATER_VOLUME = "optimizer_total_water_volume"
+
+
 def _validate_required_text(value: str, *, label: str) -> None:
     if not value.strip():
         raise ValueError(f"{label} cannot be empty.")
@@ -226,6 +237,7 @@ class TreatmentMaterialUseLimit:
     material_key: str
     description: str
     applicability: str
+    volume_basis: TreatmentMaterialUseLimitVolumeBasis
     maximum_measured_mass_per_volume: ScalarQuantity
     source_document: SourceDocumentMetadata
 
@@ -247,6 +259,14 @@ class TreatmentMaterialUseLimit:
             self.applicability,
             label="Treatment material use-limit applicability",
         )
+        if not isinstance(
+            self.volume_basis,
+            TreatmentMaterialUseLimitVolumeBasis,
+        ):
+            raise TypeError(
+                "Treatment material use-limit volume_basis must be "
+                "TreatmentMaterialUseLimitVolumeBasis."
+            )
         _normalized_positive_material_use_rate(
             self.maximum_measured_mass_per_volume,
             label="Treatment material use-limit maximum",
@@ -269,7 +289,7 @@ class TreatmentMaterialUseLimit:
         self,
         total_volume: ScalarQuantity,
     ) -> Quantity[float]:
-        """Calculate the policy maximum material mass for a positive volume."""
+        """Calculate the maximum for positive optimizer total-water volume."""
         volume_ml = _normalized_positive_volume(
             total_volume,
             label="Treatment material use-limit total volume",

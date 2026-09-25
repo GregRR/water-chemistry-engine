@@ -941,13 +941,18 @@ practical-use-limit policy.
 Release 0.5 represents a practical-use limit as a separate, sourced and
 versioned caller-selected policy. The policy binds to one exact material key,
 states its applicability, and expresses a maximum measured material mass per
-total water volume. An optimizer request retains both that policy and its own
-explicit maximum measured mass. The engine rejects a request whose maximum
-exceeds the volume-scaled policy; it does not silently clamp the request or
-reinterpret the policy as a universal safety, sensory, solubility, or
-regulatory claim. If the policy permits less than one whole material dose
-increment at the requested volume, the request is rejected rather than treated
-as permission for a zero-only candidate.
+total water volume. `TreatmentMaterialUseLimitVolumeBasis` makes that
+denominator calculation policy explicit; its initial and only supported value
+is the optimizer's requested total treated-water volume. This is not the
+source-report `WaterStage`, finished-product volume, mash-water volume, or an
+unspecified process volume. An optimizer request retains both that policy and
+its own explicit maximum measured mass. The engine rejects a request whose
+maximum exceeds the volume-scaled policy; it does not silently clamp the
+request, reinterpret another denominator basis, or treat the policy as a
+universal safety, sensory, solubility, or regulatory claim. If the policy
+permits less than one whole material dose increment at the requested volume,
+the request is rejected rather than treated as permission for a zero-only
+candidate.
 
 The optimizer accepts exact mass-fraction materials without changing its
 measured-dose semantics. Whole increments, request maximums, and mass ranking

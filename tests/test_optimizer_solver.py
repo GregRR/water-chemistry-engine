@@ -49,6 +49,7 @@ from water_chemistry_engine.treatment_materials import (
     ExactMassFractionTreatmentMaterial,
     TreatmentMaterialForm,
     TreatmentMaterialUseLimit,
+    TreatmentMaterialUseLimitVolumeBasis,
 )
 
 _POLICY = SourceResolutionPolicy(allow_exact_range_midpoints=False)
@@ -257,6 +258,9 @@ def test_optimized_plan_retains_selected_material_use_limit() -> None:
         material_key="gypsum",
         description="Example upper operational dose for finished water.",
         applicability="Only for the process and water state described by the source.",
+        volume_basis=(
+            TreatmentMaterialUseLimitVolumeBasis.OPTIMIZER_TOTAL_WATER_VOLUME
+        ),
         maximum_measured_mass_per_volume=Q_(1.0, "gram / liter"),
         source_document=SourceDocumentMetadata(
             publisher="Example standards organization",
