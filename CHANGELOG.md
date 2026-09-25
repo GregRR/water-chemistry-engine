@@ -111,6 +111,15 @@ comparison-expansion milestone is in progress.
   their treatment mass is resolved active chemical mass and may differ from an
   optimizer plan's operator-facing measured material dose.
 
+### Tests
+
+- Added scan-verified Chapter 7 integration cases from Palmer and Kaminski for
+  a fixed RO blend followed by gypsum and for an explicitly identified calcium
+  chloride dihydrate water build. The tests retain exact Engine calculations
+  separately from the publication's display and practical-dose rounding,
+  exercise published range and one-sided-bound semantics, and do not create an
+  Engine-owned style-profile catalog.
+
 ## 0.4.1 - 2026-09-14
 
 ### Compatibility warning

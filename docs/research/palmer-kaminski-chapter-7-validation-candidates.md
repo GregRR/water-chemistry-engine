@@ -117,3 +117,21 @@ Before adding any executable vector derived from this chapter:
    model boundary; and
 6. confirm that the copied facts are suitable for inclusion as a small
    validation fixture rather than a redistributed profile collection.
+
+## Implemented validation slice
+
+`tests/test_published_validation_cases.py` now implements the two generic
+worked cases above:
+
+- the exact 1:1 blend and gypsum calculation retains unrounded Engine values,
+  compares the gypsum contribution with the book's quoted per-gallon values,
+  and checks the final water against the attributed suggested ranges; and
+- the calcium-chloride case identifies the dihydrate explicitly and tests both
+  the calculated 4.17-gram dose and the practical 4.2-gram rounded dose. It also
+  preserves the table's calcium minimum as a one-sided target and confirms that
+  the deliberately tempered worked example remains below that broader
+  recommendation while satisfying its chloride range.
+
+The tests construct profiles in memory and do not add a distributable Engine
+catalog. The acidification, residual-alkalinity, Z-alkalinity, and mash-pH cases
+remain deferred.
