@@ -10,6 +10,10 @@ comparison-expansion milestone is in progress.
 
 ### Fixed
 
+- Preserve declared source-volume precision across unit conversions during
+  capacity checks. Equivalent metric and customary volumes can supply the
+  same batch, and genuine Decimal or Fraction shortfalls remain infeasible.
+
 - Preserve reviewed alkalinity effects and optimizer eligibility when the
   same compound or ion molar mass is supplied in equivalent units.
 

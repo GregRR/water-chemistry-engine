@@ -1,9 +1,11 @@
 from dataclasses import replace
+from decimal import Decimal
+from fractions import Fraction
 from itertools import product
 from types import SimpleNamespace
 
 import pytest
-from fermunits import Q_, PHValue
+from fermunits import Q_, PHValue, create_registry
 
 from water_chemistry_engine import optimizer_solver
 from water_chemistry_engine.concentrations import (
@@ -1411,6 +1413,80 @@ def test_source_volume_policy_accepts_exact_decimal_capacity(
     )
     assert short.feasibility is OptimizerFeasibilityStatus.INFEASIBLE
     assert not short.plans
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_source_volume_capacity_preserves_units_and_precision(reverse: bool) -> None:
+    profile = SourceWaterProfile(
+        "Source", (), alkalinity=Alkalinity.mg_per_liter_as_caco3(50)
+    )
+    sources = (
+        OptimizerSource(profile, Q_(0, "L"), Q_(200, "mL")),
+        OptimizerSource(profile, Q_(0, "L"), Q_(Fraction(1, 2), "L")),
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(700, "mL"),
+        sources=sources[::-1] if reverse else sources,
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.SOURCE_VOLUMES,
+        target_profile=TargetWaterProfile("Target", (), alkalinity=profile.alkalinity),
+    )
+    for total in (Q_(0.7, "L"), Q_(700, "mL"), Q_(7, "dL")):
+        result = optimize_treatment(replace(request, total_volume=total))
+        assert result.feasibility is OptimizerFeasibilityStatus.FEASIBLE
+        plan = result.plans[0]
+        expected = (0.5, 0.2) if reverse else (0.2, 0.5)
+        assert (
+            tuple(entry.volume.magnitude for entry in plan.source_volumes) == expected
+        )
+        assert plan.target_fit is OptimizerTargetFitStatus.WITHIN_TARGET
+
+    for short in (
+        Q_(Decimal("0.70000000000000000001"), "L"),
+        Q_(Fraction(7, 10) + Fraction(1, 10**20), "L"),
+    ):
+        result = optimize_treatment(replace(request, total_volume=short))
+        assert result.feasibility is OptimizerFeasibilityStatus.INFEASIBLE
+        assert not result.plans
+
+
+def test_source_capacity_checks_current_volume_in_equivalent_units() -> None:
+    source = SourceWaterProfile("Source", ())
+    OptimizerSource(source, Q_(700, "mL"), Q_(0.7, "L"))
+    with pytest.raises(ValueError, match="below current volume"):
+        OptimizerSource(
+            source, Q_(Decimal("700.00000000000000001"), "mL"), Q_(0.7, "L")
+        )
+
+
+def test_capacity_in_us_gallons_and_custom_units() -> None:
+    registry = create_registry()
+    registry.define("test_tank = 2 * liter")
+    profile = SourceWaterProfile(
+        "Source", (), alkalinity=Alkalinity.mg_per_liter_as_caco3(50)
+    )
+    sources = (
+        OptimizerSource(profile, Q_(0, "L"), Q_(1, "gallon")),
+        OptimizerSource(profile, Q_(0, "L"), registry.Quantity(1, "test_tank")),
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(Decimal("5.785411784"), "L"),
+        sources=sources,
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.SOURCE_VOLUMES,
+        target_profile=TargetWaterProfile("Target", (), alkalinity=profile.alkalinity),
+    )
+    result = optimize_treatment(request)
+    assert result.feasibility is OptimizerFeasibilityStatus.FEASIBLE
+    assert tuple(
+        entry.volume.magnitude for entry in result.plans[0].source_volumes
+    ) == (3.785411784, 2.0)
+    short = optimize_treatment(
+        replace(request, total_volume=Q_(Decimal("5.78541178400000001"), "L"))
+    )
+    assert short.feasibility is OptimizerFeasibilityStatus.INFEASIBLE
 
 
 def test_source_volume_policy_reports_insufficient_total_availability() -> None:

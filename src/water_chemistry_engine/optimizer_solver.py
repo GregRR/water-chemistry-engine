@@ -16,7 +16,6 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from decimal import ROUND_FLOOR, Decimal
-from fractions import Fraction
 from math import fabs, fsum, inf, isclose, isfinite, nextafter
 from typing import Protocol, cast
 
@@ -27,6 +26,7 @@ from scipy.optimize import (  # type: ignore[import-untyped]
     milp,
 )
 
+from water_chemistry_engine._volume_precision import capacity_liters
 from water_chemistry_engine.alkalinity_balance import (
     ResolvedSourceAlkalinity,
     calculate_treatment_alkalinity_contribution,
@@ -55,7 +55,6 @@ from water_chemistry_engine.optimization import (
     OptimizerStrategy,
     OptimizerTargetFitStatus,
 )
-from water_chemistry_engine.quantity_types import ScalarQuantity
 from water_chemistry_engine.source_resolution import resolve_source_profile
 from water_chemistry_engine.target_comparison import (
     TargetAlkalinityComparison,
@@ -1314,15 +1313,11 @@ def _dilution_coefficients(
 
 
 def _source_volume_reference(request: OptimizerRequest) -> tuple[float, ...] | None:
-    # Use the decimal representation of normalized liters for capacity checks
-    # and allocation. A floating-point residual can otherwise make an exactly
-    # supplied batch infeasible. Convert to solver floats after allocation.
-    def liters(volume: ScalarQuantity) -> Fraction:
-        return Fraction(str(float(volume.to("liter").magnitude)))
-
-    total = liters(request.total_volume)
-    current = [liters(source.current_volume) for source in request.sources]
-    maximum = [min(total, liters(source.maximum_volume)) for source in request.sources]
+    total = capacity_liters(request.total_volume)
+    current = [capacity_liters(source.current_volume) for source in request.sources]
+    maximum = [
+        min(total, capacity_liters(source.maximum_volume)) for source in request.sources
+    ]
     if sum(maximum) < total:
         return None
 
@@ -1356,7 +1351,7 @@ def _source_volume_coefficients(
     )
     if unsupported:
         return None, unsupported
-    total_liters = float(request.total_volume.to("liter").magnitude)
+    total_liters = float(capacity_liters(request.total_volume))
     coefficients: list[tuple[float, ...]] = []
     diagnostics: list[OptimizerDiagnostic] = []
     for source_index, source in enumerate(request.sources):
@@ -1832,7 +1827,7 @@ def _optimize_proportional_dilution(request: OptimizerRequest) -> OptimizerResul
 
 
 def _optimize_source_volumes(request: OptimizerRequest) -> OptimizerResult:
-    total_liters = float(request.total_volume.to("liter").magnitude)
+    total_liters = float(capacity_liters(request.total_volume))
     if total_liters >= _LARGEST_SOLVER_BOUND:
         return _unsupported_result(
             request,
@@ -1924,7 +1919,7 @@ def _optimize_source_volumes(request: OptimizerRequest) -> OptimizerResult:
         )
 
     effective_maximum = tuple(
-        min(total_liters, float(source.maximum_volume.to("liter").magnitude))
+        min(total_liters, float(capacity_liters(source.maximum_volume)))
         for source in request.sources
     )
     lower_bounds = tuple(-volume for volume in reference)

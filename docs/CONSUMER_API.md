@@ -563,6 +563,14 @@ and includes a result-level `SOLVER_FAILED` or
 `SOLVER_POSTVALIDATION_FAILED` diagnostic identifying the unavailable optional
 candidate.
 
+For source-volume optimization, the engine checks current volumes, source
+capacities, and the requested batch size before converting allocations to
+solver floats. Integers, decimals, and fractions retain their supplied
+precision. Float inputs use their decimal string representation. Standard
+volume factors are evaluated from unit definitions using rational arithmetic.
+For caller-defined units the engine uses the supplying registry's conversion
+scale. The optimizer returns operational volumes in liters.
+
 ## 0.5 total-alkalinity calculation contract
 
 Engine 0.4.1 preserves report-native source total alkalinity and accepts a

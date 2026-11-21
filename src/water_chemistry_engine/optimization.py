@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 
 from fermunits import Q_, Quantity
 
+from water_chemistry_engine._volume_precision import capacity_liters
 from water_chemistry_engine.profiles import SourceWaterProfile
 from water_chemistry_engine.quantity_types import ScalarQuantity
 from water_chemistry_engine.reported_values import SourceResolutionPolicy
@@ -156,13 +157,9 @@ class OptimizerSource:
     def __post_init__(self) -> None:
         if not isinstance(self.source_profile, SourceWaterProfile):
             raise TypeError("Optimizer source_profile must be SourceWaterProfile.")
-        current = _nonnegative_volume(
-            self.current_volume, label="Optimizer source volume"
-        )
-        maximum = _positive_volume(
-            self.maximum_volume, label="Optimizer source maximum"
-        )
-        if maximum.magnitude < current.magnitude:
+        _nonnegative_volume(self.current_volume, label="Optimizer source volume")
+        _positive_volume(self.maximum_volume, label="Optimizer source maximum")
+        if capacity_liters(self.maximum_volume) < capacity_liters(self.current_volume):
             raise ValueError(
                 "Optimizer source maximum volume cannot be below current volume."
             )
