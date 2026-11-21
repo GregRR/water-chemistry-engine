@@ -10,6 +10,9 @@ comparison-expansion milestone is in progress.
 
 ### Fixed
 
+- Preserve reviewed alkalinity effects and optimizer eligibility when the
+  same compound or ion molar mass is supplied in equivalent units.
+
 - Accept source-volume plans whose declared capacities exactly supply the
   batch, including decimal liter amounts such as 0.2 L and 15.9 L for a
   16.1 L request. Capacity checks continue to reject insufficient supply.

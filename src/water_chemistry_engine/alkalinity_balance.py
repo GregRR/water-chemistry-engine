@@ -8,7 +8,7 @@ precipitation, dissolution, carbon-dioxide exchange, or unmodeled reactions.
 
 from dataclasses import dataclass
 from enum import StrEnum
-from math import fsum, isfinite
+from math import fsum, isfinite, ulp
 from typing import TypeAlias
 
 from fermunits import Q_, Quantity
@@ -21,6 +21,7 @@ from water_chemistry_engine.alkalinity_conversions import (
 )
 from water_chemistry_engine.blending import WaterBlendResult
 from water_chemistry_engine.profiles import SourceWaterProfile
+from water_chemistry_engine.quantity_types import ScalarQuantity
 from water_chemistry_engine.reported_properties import (
     Alkalinity,
     AlkalinityResultIdentity,
@@ -58,6 +59,13 @@ _REVIEWED_RULES = {
 }
 
 
+def _matches_molar_mass(actual: ScalarQuantity, reviewed: ScalarQuantity) -> bool:
+    """Allow round-off from unit conversion at the catalog mass's precision."""
+    expected = float(reviewed.to("g/mol").magnitude)
+    measured = float(actual.to("g/mol").magnitude)
+    return abs(measured - expected) <= 4 * ulp(expected)
+
+
 def reviewed_alkalinity_equivalents_per_mole(
     ingredient: TreatmentIngredient,
 ) -> float | None:
@@ -66,13 +74,23 @@ def reviewed_alkalinity_equivalents_per_mole(
     if rule is None:
         return None
     reviewed, equivalents = rule
+    if ingredient is reviewed:
+        return equivalents
     if (
         ingredient.formula != reviewed.formula
-        or ingredient.molar_mass != reviewed.molar_mass
-        or {s.ion: s for s in ingredient.ion_stoichiometry}
-        != {s.ion: s for s in reviewed.ion_stoichiometry}
+        or len(ingredient.ion_stoichiometry) != len(reviewed.ion_stoichiometry)
+        or not _matches_molar_mass(ingredient.molar_mass, reviewed.molar_mass)
     ):
         return None
+    reviewed_ions = {entry.ion: entry for entry in reviewed.ion_stoichiometry}
+    for actual in ingredient.ion_stoichiometry:
+        expected = reviewed_ions.get(actual.ion)
+        if (
+            expected is None
+            or actual.coefficient != expected.coefficient
+            or not _matches_molar_mass(actual.molar_mass, expected.molar_mass)
+        ):
+            return None
     return equivalents
 
 

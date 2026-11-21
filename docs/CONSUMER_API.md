@@ -629,7 +629,10 @@ A negative ANC result retains its sign and its ANC identity. Its source
 resolution remains `ACID_NEUTRALIZING_CAPACITY_UNSUPPORTED`.
 
 The alkalinity model matches a reviewed ingredient by key, formula, molar mass,
-and ion stoichiometry. Display names and ion ordering may vary. A positive
+and ion stoichiometry. Display names and ion ordering may vary. Compound and ion molar
+masses are compared in g/mol with a tolerance of four units in the last
+place of the catalog value to accommodate conversion round-off. Ion
+identities and stoichiometric coefficients must match exactly. A positive
 dose without a matching rule preserves the ion calculation and known
 alkalinity contributions, but leaves final alkalinity unresolved. Its index
 appears in `FinalAlkalinityResult.unresolved_treatment_indices` and its

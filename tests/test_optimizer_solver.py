@@ -865,15 +865,25 @@ def test_fixed_optimizer_uses_active_mass_from_exact_fraction_material() -> None
 
 
 @pytest.mark.parametrize(
-    "ingredient_name", ["Sodium bicarbonate", "Sodium hydrogen carbonate"]
+    ("ingredient_name", "mass_unit"),
+    [
+        ("Sodium bicarbonate", "g/mol"),
+        ("Sodium hydrogen carbonate", "g/mol"),
+        ("Sodium hydrogen carbonate", "kg/mol"),
+    ],
 )
 def test_alkalinity_optimizer_uses_active_sodium_bicarbonate_fraction(
     ingredient_name: str,
+    mass_unit: str,
 ) -> None:
     material = ExactMassFractionTreatmentMaterial(
         key="sodium_bicarbonate_50_percent",
         name="50 percent sodium bicarbonate material",
-        ingredient=replace(SODIUM_BICARBONATE, name=ingredient_name),
+        ingredient=replace(
+            SODIUM_BICARBONATE,
+            name=ingredient_name,
+            molar_mass=SODIUM_BICARBONATE.molar_mass.to(mass_unit),
+        ),
         form=TreatmentMaterialForm.SOLID,
         active_mass_fraction=Q_(50, "percent"),
         dose_increment=Q_(1, "gram"),

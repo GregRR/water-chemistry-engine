@@ -542,3 +542,60 @@ def test_unreviewed_treatment_preserves_known_contributions(grams: int) -> None:
             comparison.alkalinity_comparison.status
             is TargetAlkalinityComparisonStatus.ABOVE_TARGET
         )
+
+
+@pytest.mark.parametrize(
+    ("compound_unit", "ion_unit"), [("kg/mol", "g/mol"), ("g/mol", "oz/mol")]
+)
+def test_forward_alkalinity_accepts_equivalent_molar_mass_units(
+    compound_unit: str, ion_unit: str
+) -> None:
+    original = SODIUM_BICARBONATE
+    ingredient = replace(
+        original,
+        molar_mass=original.molar_mass.to(compound_unit),
+        ion_stoichiometry=tuple(
+            replace(entry, molar_mass=entry.molar_mass.to(ion_unit))
+            for entry in original.ion_stoichiometry
+        ),
+    )
+    initial = Alkalinity.mg_per_liter_as_caco3(50)
+    result = calculate_forward_water(
+        (ForwardWaterSource(_source("Source", initial), Q_(10, "L")),),
+        source_resolution_policy=REPORTED_ONLY,
+        treatment_additions=(TreatmentAddition(ingredient, Q_(1, "g")),),
+        target_profile=TargetWaterProfile("Target", (), alkalinity=initial),
+    )
+    assert result.final_alkalinity is not None
+    assert result.final_alkalinity.concentration.magnitude == pytest.approx(109.571444)
+    assert result.final_target_comparison is not None
+    assert (
+        result.final_target_comparison.status
+        is TargetProfileComparisonStatus.NOT_SATISFIED
+    )
+
+
+@pytest.mark.parametrize("change", ["formula", "coefficient", "ion_mass"])
+def test_altered_identity_remains_unreviewed(change: str) -> None:
+    ingredient = SODIUM_BICARBONATE
+    sodium, bicarbonate = ingredient.ion_stoichiometry
+    if change == "formula":
+        ingredient = replace(ingredient, formula="Na2CO3")
+    else:
+        sodium = (
+            replace(sodium, coefficient=2)
+            if change == "coefficient"
+            else replace(sodium, molar_mass=sodium.molar_mass + Q_(1e-9, "g/mol"))
+        )
+        ingredient = replace(ingredient, ion_stoichiometry=(sodium, bicarbonate))
+    result = calculate_forward_water(
+        (
+            ForwardWaterSource(
+                _source("Source", Alkalinity.mg_per_liter_as_caco3(50)), Q_(10, "L")
+            ),
+        ),
+        source_resolution_policy=REPORTED_ONLY,
+        treatment_additions=(TreatmentAddition(ingredient, Q_(1, "g")),),
+    )
+    assert result.alkalinity_balance.final.unresolved_treatment_indices == (0,)
+    assert result.final_alkalinity is None
