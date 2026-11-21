@@ -133,3 +133,6 @@ machine-checkable volume basis/water stage was recorded as a mandatory gate
 before the first built-in numeric policy is admitted. The gate was subsequently
 satisfied by the required `TreatmentMaterialUseLimitVolumeBasis`, whose only
 current value identifies optimizer total-water volume.
+
+The [0.5.0 milestone review](0.5.0-milestone-review.md) covers the assembled
+source-to-target workflow and records three open findings before release.
