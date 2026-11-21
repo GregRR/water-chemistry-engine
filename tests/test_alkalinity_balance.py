@@ -106,7 +106,10 @@ def test_explicit_total_alkalinity_identity_resolves_and_is_preserved() -> None:
     assert result.final_alkalinity is not None
 
 
-def test_explicit_anc_is_preserved_but_not_used_as_total_alkalinity() -> None:
+@pytest.mark.parametrize("value", [108.0, -12.0])
+def test_explicit_anc_is_preserved_but_not_used_as_total_alkalinity(
+    value: float,
+) -> None:
     analytical_context = AlkalinityAnalyticalContext(
         result_identity=AlkalinityResultIdentity.ACID_NEUTRALIZING_CAPACITY,
         sample_filtration_state=SampleFiltrationState.UNFILTERED,
@@ -114,7 +117,7 @@ def test_explicit_anc_is_preserved_but_not_used_as_total_alkalinity() -> None:
     source = _source(
         "Reported ANC source",
         Alkalinity.mg_per_liter_as_caco3(
-            108.0,
+            value,
             analytical_context=analytical_context,
         ),
     )
@@ -127,6 +130,7 @@ def test_explicit_anc_is_preserved_but_not_used_as_total_alkalinity() -> None:
     resolution = result.source_results[0].resolution.alkalinity_resolution
     assert isinstance(resolution, UnresolvedSourceAlkalinity)
     assert resolution.source_result is not None
+    assert resolution.source_result.value == Q_(value, "mg/L")
     assert resolution.source_result.analytical_context is analytical_context
     assert resolution.reason is (
         UnresolvedSourceAlkalinityReason.ACID_NEUTRALIZING_CAPACITY_UNSUPPORTED

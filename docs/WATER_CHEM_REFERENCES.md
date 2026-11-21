@@ -397,6 +397,12 @@ Preferred sources include NIST, PubChem, recognized chemical suppliers' technica
     temperature and CO2 conditions.
   - Design implication: chalk cannot be represented faithfully as a fixed
     complete-dissolution Ca2+/carbonate dose independent of pH/CO2 state.
+- **USGS Alkalinity Calculator FAQ, question 2.9**
+  - URL: https://or.water.usgs.gov/alk/faq.html
+  - Scope: negative analytical results for alkalinity and ANC. Preserve the
+    signed value in the reported record. Individual ion concentrations
+    remain nonnegative.
+
 - **USGS Alkalinity Calculator methods**
   - URL: https://or.water.usgs.gov/alk/methods.html
   - Type: authoritative government analytical-method documentation

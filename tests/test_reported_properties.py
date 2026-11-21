@@ -364,7 +364,6 @@ def test_invalid_conductivity_quantity_is_rejected() -> None:
 @pytest.mark.parametrize("invalid", [-1.0, float("nan"), float("inf"), float("-inf")])
 def test_reported_linear_properties_reject_invalid_values(invalid: float) -> None:
     constructors = (
-        lambda: Alkalinity.mg_per_liter_as_caco3(invalid),
         lambda: TotalHardness.mg_per_liter_as_caco3(invalid),
         lambda: TotalDissolvedSolids.mg_per_liter(invalid),
         lambda: Conductivity.microsiemens_per_cm(invalid),
@@ -562,3 +561,18 @@ def test_reported_ph_preserves_result_specific_context() -> None:
     )
 
     assert measurement.result_context is context
+
+
+def test_signed_alkalinity_range_and_bounds() -> None:
+    reported = Alkalinity.mg_per_liter_as_caco3_range(-8, 2, reported_average=-4)
+    assert reported.calculation_value == Q_(-4, "mg/L")
+    assert reported.minimum == Q_(-8, "mg/L")
+    assert reported.maximum == Q_(2, "mg/L")
+    assert Alkalinity.mg_per_liter_as_caco3_lower_bound(-5).minimum == Q_(-5, "mg/L")
+    assert Alkalinity.mg_per_liter_as_caco3_upper_bound(-2).maximum == Q_(-2, "mg/L")
+
+
+@pytest.mark.parametrize("invalid", [float("nan"), float("inf"), float("-inf")])
+def test_alkalinity_rejects_nonfinite_exact_values(invalid: float) -> None:
+    with pytest.raises(ValueError, match="finite"):
+        Alkalinity.mg_per_liter_as_caco3(invalid)

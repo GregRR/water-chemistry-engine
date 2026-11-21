@@ -10,6 +10,10 @@ comparison-expansion milestone is in progress.
 
 ### Fixed
 
+- Preserve negative total alkalinity and ANC in reported values, bounds,
+  ranges, and averages. Blending and target comparison retain the sign of
+  resolved total alkalinity. Explicit ANC remains unresolved.
+
 - Preserve reviewed alkalinity effects when an ingredient display name changes.
   A positive dose with an unreviewed effect makes final alkalinity unresolved.
   Optimizer requests with an alkalinity target report such materials as unsupported.

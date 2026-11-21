@@ -1076,19 +1076,24 @@ def test_proportional_dilution_rejects_unknown_diluent_alkalinity() -> None:
     )
 
 
-def test_source_volume_policy_optimizes_total_alkalinity() -> None:
+@pytest.mark.parametrize(
+    ("high", "low", "target"), [(100.0, 0.0, 25.0), (10.0, -10.0, -5.0)]
+)
+def test_source_volume_policy_optimizes_total_alkalinity(
+    high: float, low: float, target: float
+) -> None:
     sources = (
         _available_source_with_alkalinity(
             "High alkalinity",
             current_liters=5.0,
             maximum_liters=10.0,
-            alkalinity_mg_per_liter_as_caco3=100.0,
+            alkalinity_mg_per_liter_as_caco3=high,
         ),
         _available_source_with_alkalinity(
-            "Zero alkalinity",
+            "Lower alkalinity",
             current_liters=5.0,
             maximum_liters=10.0,
-            alkalinity_mg_per_liter_as_caco3=0.0,
+            alkalinity_mg_per_liter_as_caco3=low,
         ),
     )
     request = OptimizerRequest(
@@ -1100,7 +1105,7 @@ def test_source_volume_policy_optimizes_total_alkalinity() -> None:
         target_profile=TargetWaterProfile(
             "Alkalinity target",
             (),
-            alkalinity=Alkalinity.mg_per_liter_as_caco3(25.0),
+            alkalinity=Alkalinity.mg_per_liter_as_caco3(target),
         ),
     )
 
@@ -1115,7 +1120,7 @@ def test_source_volume_policy_optimizes_total_alkalinity() -> None:
     )
     assert plan.calculation.final_alkalinity is not None
     assert plan.calculation.final_alkalinity.concentration.magnitude == pytest.approx(
-        25.0
+        target
     )
     assert plan.target_fit is OptimizerTargetFitStatus.WITHIN_TARGET
 

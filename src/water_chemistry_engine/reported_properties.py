@@ -109,6 +109,7 @@ def _validate_quantity(
     canonical_unit: str,
     label: str,
     dimension_label: str,
+    allow_negative: bool = False,
 ) -> None:
     try:
         value.to(canonical_unit)
@@ -118,7 +119,7 @@ def _validate_quantity(
     magnitude = float(value.to(canonical_unit).magnitude)
     if not isfinite(magnitude):
         raise ValueError(f"{label} must be finite.")
-    if magnitude < 0:
+    if magnitude < 0 and not allow_negative:
         raise ValueError(f"{label} cannot be negative.")
 
 
@@ -131,6 +132,7 @@ def _validate_reported_values(
     canonical_unit: str,
     label: str,
     dimension_label: str,
+    allow_negative: bool = False,
 ) -> None:
     if value is not None:
         _validate_quantity(
@@ -138,6 +140,7 @@ def _validate_reported_values(
             canonical_unit=canonical_unit,
             label=label,
             dimension_label=dimension_label,
+            allow_negative=allow_negative,
         )
 
         if minimum is not None or maximum is not None or reported_average is not None:
@@ -157,12 +160,14 @@ def _validate_reported_values(
             canonical_unit=canonical_unit,
             label=label,
             dimension_label=dimension_label,
+            allow_negative=allow_negative,
         )
         _validate_quantity(
             maximum,
             canonical_unit=canonical_unit,
             label=label,
             dimension_label=dimension_label,
+            allow_negative=allow_negative,
         )
 
         minimum_value = minimum.to(canonical_unit).magnitude
@@ -177,6 +182,7 @@ def _validate_reported_values(
                 canonical_unit=canonical_unit,
                 label=label,
                 dimension_label=dimension_label,
+                allow_negative=allow_negative,
             )
             average_value = reported_average.to(canonical_unit).magnitude
 
@@ -193,6 +199,7 @@ def _validate_reported_values(
             canonical_unit=canonical_unit,
             label=label,
             dimension_label=dimension_label,
+            allow_negative=allow_negative,
         )
         return
 
@@ -238,6 +245,7 @@ class Alkalinity:
                 canonical_unit="milligram / liter",
                 label="Alkalinity",
                 dimension_label="mass per volume",
+                allow_negative=True,
             )
             return
 
@@ -253,6 +261,7 @@ class Alkalinity:
             canonical_unit="milligram / liter",
             label="Alkalinity",
             dimension_label="mass per volume",
+            allow_negative=True,
         )
 
     @property
