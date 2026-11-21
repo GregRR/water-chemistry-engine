@@ -31,7 +31,50 @@ from water_chemistry_engine.treatment_application import (
     TreatmentAddition,
     TreatmentApplicationResult,
 )
-from water_chemistry_engine.treatment_ingredients import SODIUM_BICARBONATE
+from water_chemistry_engine.treatment_ingredients import (
+    CALCIUM_CHLORIDE_ANHYDROUS,
+    CALCIUM_CHLORIDE_DIHYDRATE,
+    EPSOM_SALT,
+    GYPSUM,
+    POTASSIUM_CHLORIDE,
+    SODIUM_BICARBONATE,
+    SODIUM_CHLORIDE,
+    TreatmentIngredient,
+)
+
+# Admit each ingredient explicitly. Extending the stoichiometry catalog alone
+# does not establish a zero effect in the conservative alkalinity model.
+_REVIEWED_RULES = {
+    ingredient.key: (ingredient, equivalents)
+    for ingredient, equivalents in (
+        (SODIUM_BICARBONATE, 1.0),
+        (GYPSUM, 0.0),
+        (EPSOM_SALT, 0.0),
+        (SODIUM_CHLORIDE, 0.0),
+        (POTASSIUM_CHLORIDE, 0.0),
+        (CALCIUM_CHLORIDE_ANHYDROUS, 0.0),
+        (CALCIUM_CHLORIDE_DIHYDRATE, 0.0),
+    )
+}
+
+
+def reviewed_alkalinity_equivalents_per_mole(
+    ingredient: TreatmentIngredient,
+) -> float | None:
+    """Return the model rule for a verified identity, independent of its label."""
+    rule = _REVIEWED_RULES.get(ingredient.key)
+    if rule is None:
+        return None
+    reviewed, equivalents = rule
+    if (
+        ingredient.formula != reviewed.formula
+        or ingredient.molar_mass != reviewed.molar_mass
+        or {s.ion: s for s in ingredient.ion_stoichiometry}
+        != {s.ion: s for s in reviewed.ion_stoichiometry}
+    ):
+        return None
+    return equivalents
+
 
 CONSERVATIVE_EQUIVALENT_ALKALINITY_MODEL = "conservative_equivalent_alkalinity_v1"
 
@@ -182,6 +225,7 @@ class FinalAlkalinityResult:
     treatment_contributions: tuple[TreatmentAlkalinityContribution, ...]
     alkalinity: ModeledAlkalinity | None
     model: str = CONSERVATIVE_EQUIVALENT_ALKALINITY_MODEL
+    unresolved_treatment_indices: tuple[int, ...] = ()
 
     @property
     def is_resolved(self) -> bool:
@@ -313,11 +357,9 @@ def calculate_treatment_alkalinity_contribution(
     water_volume_liters: float,
 ) -> TreatmentAlkalinityContribution | None:
     """Return a reviewed conservative-equivalent treatment contribution."""
-    # This is deliberately a reviewed-model mapping.  A matching-looking key on
-    # an arbitrary chemical does not opt that chemical into alkalinity behavior.
-    if addition.ingredient != SODIUM_BICARBONATE:
+    equivalents_per_mole = reviewed_alkalinity_equivalents_per_mole(addition.ingredient)
+    if equivalents_per_mole is None or equivalents_per_mole == 0.0:
         return None
-    equivalents_per_mole = 1.0
     mass_grams = float(addition.mass.to("gram").magnitude)
     molar_mass = float(addition.ingredient.molar_mass.to("gram / mole").magnitude)
     concentration = Q_(
@@ -345,27 +387,30 @@ def calculate_alkalinity_balance(
     require_treatment_matches_blend(blend_result, treatment_result)
     blended = _blend_alkalinity(source_resolutions, blend_result)
     water_volume_liters = float(treatment_result.water_volume.to("liter").magnitude)
-    contributions = tuple(
-        contribution
-        for treatment_index, applied in enumerate(treatment_result.applied_treatments)
-        if (
-            contribution := calculate_treatment_alkalinity_contribution(
-                treatment_index,
-                applied.addition,
-                water_volume_liters,
-            )
+    contributions = []
+    unresolved_indices = []
+    for index, applied in enumerate(treatment_result.applied_treatments):
+        addition = applied.addition
+        contribution = calculate_treatment_alkalinity_contribution(
+            index, addition, water_volume_liters
         )
-        is not None
-    )
+        if contribution is not None:
+            contributions.append(contribution)
+        elif (
+            addition.mass.magnitude > 0
+            and reviewed_alkalinity_equivalents_per_mole(addition.ingredient) is None
+        ):
+            unresolved_indices.append(index)
     final_alkalinity = None
-    if blended.alkalinity is not None:
+    if blended.alkalinity is not None and not unresolved_indices:
         final_alkalinity = ModeledAlkalinity.mg_per_liter_as_caco3(
             float(blended.alkalinity.concentration.magnitude)
             + fsum(float(item.concentration.magnitude) for item in contributions)
         )
     final = FinalAlkalinityResult(
         initial_alkalinity=blended.alkalinity,
-        treatment_contributions=contributions,
+        treatment_contributions=tuple(contributions),
+        unresolved_treatment_indices=tuple(unresolved_indices),
         alkalinity=final_alkalinity,
     )
     return AlkalinityBalanceResult(

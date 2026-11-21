@@ -78,6 +78,7 @@ class TreatmentContributionColumn:
 class TreatmentContributionCellStatus(StrEnum):
     """How one treatment addition participates in one ion row."""
 
+    UNRESOLVED = "unresolved"
     CONTRIBUTES = "contributes"
     DOES_NOT_CONTRIBUTE = "does_not_contribute"
 
@@ -384,28 +385,27 @@ def build_contribution_matrix(
             contribution.treatment_index: contribution
             for contribution in alkalinity_balance.final.treatment_contributions
         }
-        treatment_cells = tuple(
-            TreatmentContributionCell(
-                treatment_index=treatment_index,
-                addition=applied.addition,
-                status=(
-                    TreatmentContributionCellStatus.CONTRIBUTES
-                    if treatment_index in treatment_contributions_by_index
-                    else TreatmentContributionCellStatus.DOES_NOT_CONTRIBUTE
-                ),
-                contribution=(
-                    treatment_contributions_by_index[treatment_index].concentration
-                    if treatment_index in treatment_contributions_by_index
-                    else None
-                ),
+        unresolved_indices = set(alkalinity_balance.final.unresolved_treatment_indices)
+        alkalinity_cells = []
+        for index, applied in enumerate(treatment_result.applied_treatments):
+            effect = treatment_contributions_by_index.get(index)
+            if effect is not None:
+                status = TreatmentContributionCellStatus.CONTRIBUTES
+            elif index in unresolved_indices:
+                status = TreatmentContributionCellStatus.UNRESOLVED
+            else:
+                status = TreatmentContributionCellStatus.DOES_NOT_CONTRIBUTE
+            alkalinity_cells.append(
+                TreatmentContributionCell(
+                    treatment_index=index,
+                    addition=applied.addition,
+                    status=status,
+                    contribution=None if effect is None else effect.concentration,
+                )
             )
-            for treatment_index, applied in enumerate(
-                treatment_result.applied_treatments
-            )
-        )
         alkalinity_row = AlkalinityContributionMatrixRow(
             source_contributions=tuple(source_cells),
-            treatment_contributions=treatment_cells,
+            treatment_contributions=tuple(alkalinity_cells),
             blend_alkalinity=(
                 None
                 if alkalinity_balance.blend.alkalinity is None

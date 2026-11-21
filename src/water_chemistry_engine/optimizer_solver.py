@@ -29,6 +29,7 @@ from scipy.optimize import (  # type: ignore[import-untyped]
 from water_chemistry_engine.alkalinity_balance import (
     ResolvedSourceAlkalinity,
     calculate_treatment_alkalinity_contribution,
+    reviewed_alkalinity_equivalents_per_mole,
 )
 from water_chemistry_engine.calculation_policy import capabilities_for
 from water_chemistry_engine.forward_calculator import (
@@ -62,7 +63,6 @@ from water_chemistry_engine.target_comparison import (
     TargetProfileComparison,
     TargetProfileComparisonStatus,
 )
-from water_chemistry_engine.treatment_ingredients import SODIUM_BICARBONATE
 from water_chemistry_engine.treatment_stoichiometry import (
     calculate_ion_contributions,
 )
@@ -304,10 +304,19 @@ def _input_diagnostics(
             for entry in constraint.material.ingredient.ion_stoichiometry
             if not capabilities_for(entry.ion).optimizer_material_contribution
         )
-        reviewed_alkalinity_material = (
-            constraint.material.ingredient == SODIUM_BICARBONATE
-            and has_alkalinity_criterion
+        equivalents = reviewed_alkalinity_equivalents_per_mole(
+            constraint.material.ingredient
         )
+        reviewed_alkalinity_material = has_alkalinity_criterion and bool(equivalents)
+        if has_alkalinity_criterion and equivalents is None:
+            support = OptimizerInputSupportStatus.UNSUPPORTED
+            diagnostics.append(
+                OptimizerDiagnostic(
+                    code=OptimizerDiagnosticCode.MATERIAL_ALKALINITY_EFFECT_UNKNOWN,
+                    message=f"Material {constraint.material.key} has no reviewed total-alkalinity effect.",
+                    material_key=constraint.material.key,
+                )
+            )
         if unsupported_contributions and not reviewed_alkalinity_material:
             support = OptimizerInputSupportStatus.UNSUPPORTED
             ion = unsupported_contributions[0]
@@ -414,7 +423,11 @@ def _numerical_model_diagnostics(
             contributes = (
                 comparison.ion in contributed_ions
                 if isinstance(comparison, TargetIonComparison)
-                else constraint.material.ingredient == SODIUM_BICARBONATE
+                else bool(
+                    reviewed_alkalinity_equivalents_per_mole(
+                        constraint.material.ingredient
+                    )
+                )
             )
             if contributes and (
                 magnitude <= _SMALLEST_SOLVER_MATRIX_VALUE

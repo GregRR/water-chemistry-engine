@@ -8,6 +8,12 @@ distribution and its repository milestones.
 Development of the total-alkalinity, treatment-material, profile, and
 comparison-expansion milestone is in progress.
 
+### Fixed
+
+- Preserve reviewed alkalinity effects when an ingredient display name changes.
+  A positive dose with an unreviewed effect makes final alkalinity unresolved.
+  Optimizer requests with an alkalinity target report such materials as unsupported.
+
 ### Compatibility warning
 
 - Refined the CaCO3 equivalent-mass constant from 50.04 to 50.04345 g/eq and

@@ -89,6 +89,7 @@ class OptimizerStrategy(StrEnum):
 class OptimizerDiagnosticCode(StrEnum):
     """Machine-readable reasons an optimizer request or plan is limited."""
 
+    MATERIAL_ALKALINITY_EFFECT_UNKNOWN = "material_alkalinity_effect_unknown"
     TARGET_PH_UNSUPPORTED = "target_ph_unsupported"
     TARGET_ALKALINITY_UNSUPPORTED = "target_alkalinity_unsupported"
     TARGET_CRITERION_UNSUPPORTED = "target_criterion_unsupported"

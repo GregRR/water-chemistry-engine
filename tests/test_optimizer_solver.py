@@ -1,3 +1,4 @@
+from dataclasses import replace
 from itertools import product
 from types import SimpleNamespace
 
@@ -863,11 +864,16 @@ def test_fixed_optimizer_uses_active_mass_from_exact_fraction_material() -> None
     assert plan.solver_report.secondary_objective_grams == pytest.approx(1.0)
 
 
-def test_alkalinity_optimizer_uses_active_sodium_bicarbonate_fraction() -> None:
+@pytest.mark.parametrize(
+    "ingredient_name", ["Sodium bicarbonate", "Sodium hydrogen carbonate"]
+)
+def test_alkalinity_optimizer_uses_active_sodium_bicarbonate_fraction(
+    ingredient_name: str,
+) -> None:
     material = ExactMassFractionTreatmentMaterial(
         key="sodium_bicarbonate_50_percent",
         name="50 percent sodium bicarbonate material",
-        ingredient=SODIUM_BICARBONATE,
+        ingredient=replace(SODIUM_BICARBONATE, name=ingredient_name),
         form=TreatmentMaterialForm.SOLID,
         active_mass_fraction=Q_(50, "percent"),
         dose_increment=Q_(1, "gram"),
@@ -2728,3 +2734,25 @@ def test_two_material_result_matches_exhaustive_practical_grid() -> None:
     )
     assert selected_objective == pytest.approx(best_objective, abs=1e-7)
     assert selected_mass == pytest.approx(best_mass, abs=1e-7)
+
+
+def test_alkalinity_optimizer_rejects_unreviewed_material_effect() -> None:
+    constraint = _gypsum_constraint()
+    material = replace(
+        constraint.material, ingredient=replace(GYPSUM, molar_mass=Q_(170, "g/mol"))
+    )
+    result = optimize_treatment(
+        _fixed_request(
+            source=_source_with_alkalinity(50),
+            target=TargetWaterProfile(
+                "Target", (), alkalinity=Alkalinity.mg_per_liter_as_caco3(50)
+            ),
+            constraints=(replace(constraint, material=material),),
+        )
+    )
+    assert result.input_support is OptimizerInputSupportStatus.UNSUPPORTED
+    assert not result.plans
+    assert (
+        result.diagnostics[0].code
+        is OptimizerDiagnosticCode.MATERIAL_ALKALINITY_EFFECT_UNKNOWN
+    )

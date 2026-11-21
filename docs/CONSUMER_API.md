@@ -623,6 +623,15 @@ range midpoint, while `SOURCE_ALKALINITY_UNRESOLVED` reports the stable
 that cannot be used. A source that omits alkalinity does not produce this source
 notice, and neither does an unresolved source whose blend volume is zero.
 
+The alkalinity model matches a reviewed ingredient by key, formula, molar mass,
+and ion stoichiometry. Display names and ion ordering may vary. A positive
+dose without a matching rule preserves the ion calculation and known
+alkalinity contributions, but leaves final alkalinity unresolved. Its index
+appears in `FinalAlkalinityResult.unresolved_treatment_indices` and its
+alkalinity matrix cell has status `UNRESOLVED`. A zero dose has no effect.
+An optimizer request with an alkalinity criterion rejects a material with an
+unreviewed effect using `MATERIAL_ALKALINITY_EFFECT_UNKNOWN`.
+
 Sodium bicarbonate may participate in optimization only when starting
 alkalinity is resolved and the request contains an appropriate supported total-
 alkalinity criterion. Its sodium contribution remains ordinary ion chemistry;

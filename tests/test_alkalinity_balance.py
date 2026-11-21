@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 import pytest
 from fermunits import Q_
 
@@ -463,3 +465,76 @@ def test_one_sided_alkalinity_target_comparison(
     assert comparison.alkalinity_comparison.deviation.magnitude == pytest.approx(
         expected_deviation
     )
+
+
+@pytest.mark.parametrize("reverse_order", [False, True])
+def test_renamed_bicarbonate_exceeds_alkalinity_target(reverse_order: bool) -> None:
+    initial = Alkalinity.mg_per_liter_as_caco3(50)
+    result = calculate_forward_water(
+        (ForwardWaterSource(_source("Source", initial), Q_(10, "liter")),),
+        source_resolution_policy=REPORTED_ONLY,
+        treatment_additions=(
+            TreatmentAddition(
+                replace(
+                    SODIUM_BICARBONATE,
+                    name="Sodium hydrogen carbonate",
+                    ion_stoichiometry=SODIUM_BICARBONATE.ion_stoichiometry[::-1]
+                    if reverse_order
+                    else SODIUM_BICARBONATE.ion_stoichiometry,
+                ),
+                Q_(1, "gram"),
+            ),
+        ),
+        target_profile=TargetWaterProfile("Target", (), alkalinity=initial),
+    )
+    assert result.final_alkalinity is not None
+    assert result.final_alkalinity.concentration.magnitude == pytest.approx(
+        109.57, abs=0.005
+    )
+    comparison = result.final_target_comparison
+    assert comparison is not None and comparison.alkalinity_comparison is not None
+    assert (
+        comparison.alkalinity_comparison.status
+        is TargetAlkalinityComparisonStatus.ABOVE_TARGET
+    )
+    assert comparison.status is TargetProfileComparisonStatus.NOT_SATISFIED
+
+
+@pytest.mark.parametrize("grams", [0, 1])
+def test_unreviewed_treatment_preserves_known_contributions(grams: int) -> None:
+    initial = Alkalinity.mg_per_liter_as_caco3(50)
+    result = calculate_forward_water(
+        (ForwardWaterSource(_source("Source", initial), Q_(10, "liter")),),
+        source_resolution_policy=REPORTED_ONLY,
+        treatment_additions=(
+            TreatmentAddition(SODIUM_BICARBONATE, Q_(1, "gram")),
+            TreatmentAddition(
+                replace(GYPSUM, molar_mass=Q_(170, "g/mol")), Q_(grams, "gram")
+            ),
+        ),
+        target_profile=TargetWaterProfile("Target", (), alkalinity=initial),
+    )
+    row = result.contribution_matrix.alkalinity_row
+    assert row is not None
+    assert row.known_treatment_contribution_sum.magnitude == pytest.approx(
+        59.57, abs=0.005
+    )
+    comparison = result.final_target_comparison
+    assert comparison is not None and comparison.alkalinity_comparison is not None
+    if grams:
+        assert result.final_alkalinity is None
+        assert result.alkalinity_balance.final.unresolved_treatment_indices == (1,)
+        assert (
+            row.treatment_contributions[1].status
+            is TreatmentContributionCellStatus.UNRESOLVED
+        )
+        assert (
+            comparison.alkalinity_comparison.status
+            is TargetAlkalinityComparisonStatus.ACTUAL_UNKNOWN
+        )
+    else:
+        assert result.final_alkalinity is not None
+        assert (
+            comparison.alkalinity_comparison.status
+            is TargetAlkalinityComparisonStatus.ABOVE_TARGET
+        )

@@ -369,7 +369,7 @@ def _target_notices(
                 level=ForwardNoticeLevel.WARNING,
                 message=(
                     "Final total alkalinity cannot be compared with the target "
-                    "because one or more positive-volume sources are unresolved."
+                    "because the source or treatment alkalinity is unresolved."
                 ),
                 reason=alkalinity_comparison.status.value,
             )
