@@ -1359,6 +1359,50 @@ def test_source_volume_and_material_decisions_solve_together() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ("capacities", "total"),
+    [
+        ((0.2, 15.9), 16.1),
+        ((15.9, 0.2), 16.1),
+        ((0.1, 0.7), 0.8),
+    ],
+)
+def test_source_volume_policy_accepts_exact_decimal_capacity(
+    capacities: tuple[float, float],
+    total: float,
+) -> None:
+    sources = tuple(
+        _available_source_with_alkalinity(
+            f"Source {index}",
+            current_liters=0.0,
+            maximum_liters=capacity,
+            alkalinity_mg_per_liter_as_caco3=50.0,
+        )
+        for index, capacity in enumerate(capacities)
+    )
+    request = OptimizerRequest(
+        total_volume=Q_(total, "liter"),
+        sources=sources,
+        material_constraints=(),
+        source_resolution_policy=_POLICY,
+        blend_policy=OptimizerBlendPolicy.SOURCE_VOLUMES,
+        target_profile=TargetWaterProfile(
+            "Alkalinity target", (), alkalinity=Alkalinity.mg_per_liter_as_caco3(50.0)
+        ),
+    )
+    result = optimize_treatment(request)
+    assert result.feasibility is OptimizerFeasibilityStatus.FEASIBLE
+    plan = result.plans[0]
+    assert tuple(entry.volume.magnitude for entry in plan.source_volumes) == capacities
+    assert plan.target_fit is OptimizerTargetFitStatus.WITHIN_TARGET
+
+    short = optimize_treatment(
+        replace(request, total_volume=Q_(total + 1e-10, "liter"))
+    )
+    assert short.feasibility is OptimizerFeasibilityStatus.INFEASIBLE
+    assert not short.plans
+
+
 def test_source_volume_policy_reports_insufficient_total_availability() -> None:
     sources = (
         _available_source(

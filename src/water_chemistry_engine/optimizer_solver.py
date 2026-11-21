@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from decimal import ROUND_FLOOR, Decimal
+from fractions import Fraction
 from math import fabs, fsum, inf, isclose, isfinite, nextafter
 from typing import Protocol, cast
 
@@ -54,6 +55,7 @@ from water_chemistry_engine.optimization import (
     OptimizerStrategy,
     OptimizerTargetFitStatus,
 )
+from water_chemistry_engine.quantity_types import ScalarQuantity
 from water_chemistry_engine.source_resolution import resolve_source_profile
 from water_chemistry_engine.target_comparison import (
     TargetAlkalinityComparison,
@@ -1312,42 +1314,30 @@ def _dilution_coefficients(
 
 
 def _source_volume_reference(request: OptimizerRequest) -> tuple[float, ...] | None:
-    total_liters = float(request.total_volume.to("liter").magnitude)
-    current = [
-        float(source.current_volume.to("liter").magnitude) for source in request.sources
-    ]
-    maximum = [
-        min(total_liters, float(source.maximum_volume.to("liter").magnitude))
-        for source in request.sources
-    ]
-    if fsum(maximum) < total_liters:
+    # Use the decimal representation of normalized liters for capacity checks
+    # and allocation. A floating-point residual can otherwise make an exactly
+    # supplied batch infeasible. Convert to solver floats after allocation.
+    def liters(volume: ScalarQuantity) -> Fraction:
+        return Fraction(str(float(volume.to("liter").magnitude)))
+
+    total = liters(request.total_volume)
+    current = [liters(source.current_volume) for source in request.sources]
+    maximum = [min(total, liters(source.maximum_volume)) for source in request.sources]
+    if sum(maximum) < total:
         return None
 
-    current_total = fsum(current)
-    if current_total >= total_liters:
-        scale = total_liters / current_total
-        return tuple(value * scale for value in current)
+    current_total = sum(current)
+    if current_total >= total:
+        return tuple(float(value * total / current_total) for value in current)
 
-    reference = current
-    remaining = total_liters - current_total
+    remaining = total - current_total
     for index, upper in enumerate(maximum):
-        addition = min(remaining, upper - reference[index])
-        reference[index] += addition
+        addition = min(remaining, upper - current[index])
+        current[index] += addition
         remaining -= addition
-        if remaining <= 0.0:
+        if remaining == 0:
             break
-    if remaining > 0.0:
-        return None
-    correction = total_liters - fsum(reference)
-    if correction != 0.0:
-        for index in range(len(reference) - 1, -1, -1):
-            adjusted = reference[index] + correction
-            if 0.0 <= adjusted <= maximum[index]:
-                reference[index] = adjusted
-                break
-        else:
-            return None
-    return tuple(reference)
+    return tuple(float(value) for value in current)
 
 
 def _source_volume_coefficients(

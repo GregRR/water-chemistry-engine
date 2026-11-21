@@ -10,6 +10,10 @@ comparison-expansion milestone is in progress.
 
 ### Fixed
 
+- Accept source-volume plans whose declared capacities exactly supply the
+  batch, including decimal liter amounts such as 0.2 L and 15.9 L for a
+  16.1 L request. Capacity checks continue to reject insufficient supply.
+
 - Preserve negative total alkalinity and ANC in reported values, bounds,
   ranges, and averages. Blending and target comparison retain the sign of
   resolved total alkalinity. Explicit ANC remains unresolved.
