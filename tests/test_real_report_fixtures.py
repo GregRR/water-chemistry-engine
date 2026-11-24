@@ -396,6 +396,22 @@ def _load_property(
         fallback=result_context,
     )
     unit = data["unit"]
+    form = data["form"]
+    field_sets = {
+        "exact": ({"value"},),
+        "value": ({"value"},),
+        "average": ({"reported_average"},),
+        "range": ({"minimum", "maximum"}, {"minimum", "maximum", "reported_average"}),
+        "upper_bound": ({"maximum"},),
+        "lower_bound": ({"minimum"},),
+    }
+    present = {
+        field
+        for field in ("value", "minimum", "maximum", "reported_average")
+        if data.get(field) is not None
+    }
+    if present not in field_sets.get(form, ()):
+        raise ValueError(f"Invalid {name} property form or fields: {form!r}, {present}")
     kwargs = {
         "value": _quantity_or_none(data, "value", unit),
         "minimum": _quantity_or_none(data, "minimum", unit),
@@ -409,7 +425,11 @@ def _load_property(
     }
 
     if name == "alkalinity":
-        return Alkalinity(**kwargs, basis=ReportingBasis(data["reporting_basis"]))
+        return Alkalinity(
+            **kwargs,
+            basis=ReportingBasis(data["reporting_basis"]),
+            reported_statistic=_load_reported_statistic(data.get("reported_statistic")),
+        )
     if name == "total_hardness":
         return TotalHardness(**kwargs, basis=ReportingBasis(data["reporting_basis"]))
     if name == "total_dissolved_solids":
@@ -421,6 +441,36 @@ def _load_property(
         )
 
     raise ValueError(f"Unsupported reported property: {name}")
+
+
+def test_alkalinity_fixture_preserves_labeled_statistic() -> None:
+    result = _load_property(
+        "alkalinity",
+        {
+            "form": "exact",
+            "value": 100,
+            "unit": "milligram / liter",
+            "reporting_basis": "as_caco3",
+            "reported_statistic": {"kind": "reported_average", "label": "Mean"},
+        },
+        result_context=None,
+    )
+
+    assert isinstance(result, Alkalinity)
+    assert result.value == Q_(100, "milligram / liter")
+    assert result.reported_statistic == ReportedStatistic(
+        ReportedStatisticKind.REPORTED_AVERAGE, label="Mean"
+    )
+
+
+@pytest.mark.parametrize("form", ["not_detected", "range", "average"])
+def test_alkalinity_fixture_rejects_form_inconsistent_with_value(form: str) -> None:
+    with pytest.raises(ValueError, match="property form or fields"):
+        _load_property(
+            "alkalinity",
+            {"form": form, "value": 100, "unit": "mg/L", "reporting_basis": "as_caco3"},
+            result_context=None,
+        )
 
 
 def _load_profile(
@@ -511,6 +561,15 @@ def _load_fixture(path: Path) -> tuple[JsonObject, tuple[SourceWaterProfile, ...
         for profile in data["profiles"]
     )
     return data, profiles
+
+
+@pytest.fixture(scope="module")
+def report_profiles() -> tuple[tuple[JsonObject, SourceWaterProfile], ...]:
+    pairs = []
+    for path in FIXTURE_PATHS:
+        data, profiles = _load_fixture(path)
+        pairs.extend(zip(data["profiles"], profiles, strict=True))
+    return tuple(pairs)
 
 
 def _assert_range_endpoint_matches(
@@ -663,22 +722,18 @@ def test_real_report_fixture_preserves_reported_values(
                 assert result_value.to(unit).magnitude == pytest.approx(raw_value)
 
 
-@pytest.mark.parametrize(
-    "fixture_path",
-    FIXTURE_PATHS,
-    ids=lambda path: str(path.relative_to(REPORT_FIXTURE_ROOT)),
-)
 def test_real_report_fixture_preserves_reported_statistics(
-    fixture_path: Path,
+    report_profiles: tuple[tuple[JsonObject, SourceWaterProfile], ...],
 ) -> None:
-    data, profiles = _load_fixture(fixture_path)
+    checked = 0
 
-    for raw_profile, profile in zip(data["profiles"], profiles, strict=True):
+    for raw_profile, profile in report_profiles:
         for ion_name, raw_result in raw_profile.get("concentrations", {}).items():
             raw_statistic = raw_result.get("reported_statistic")
             if raw_statistic is None:
                 continue
 
+            checked += 1
             result = profile.concentration_for(Ion(ion_name))
             assert result is not None
             assert result.reported_statistic is not None
@@ -695,6 +750,7 @@ def test_real_report_fixture_preserves_reported_statistics(
             if raw_statistic is None:
                 continue
 
+            checked += 1
             result = profile.disinfectant_for(
                 DisinfectantKind(raw_result["kind"]),
                 species_name=raw_result.get("species_name"),
@@ -709,18 +765,15 @@ def test_real_report_fixture_preserves_reported_statistics(
             )
             assert result.reported_statistic.label == raw_statistic.get("label")
 
+    assert checked, "The report corpus must include reported statistics."
 
-@pytest.mark.parametrize(
-    "fixture_path",
-    FIXTURE_PATHS,
-    ids=lambda path: str(path.relative_to(REPORT_FIXTURE_ROOT)),
-)
+
 def test_qualified_ranges_do_not_invent_numeric_endpoints_or_midpoints(
-    fixture_path: Path,
+    report_profiles: tuple[tuple[JsonObject, SourceWaterProfile], ...],
 ) -> None:
-    data, profiles = _load_fixture(fixture_path)
+    checked = 0
 
-    for raw_profile, profile in zip(data["profiles"], profiles, strict=True):
+    for raw_profile, profile in report_profiles:
         for ion_name, raw_result in raw_profile.get("concentrations", {}).items():
             if raw_result["form"] != "range":
                 continue
@@ -729,6 +782,7 @@ def test_qualified_ranges_do_not_invent_numeric_endpoints_or_midpoints(
             ):
                 continue
 
+            checked += 1
             result = profile.concentration_for(Ion(ion_name))
             assert isinstance(result, IonConcentrationRange)
             if raw_result.get("reported_average") is None:
@@ -740,18 +794,15 @@ def test_qualified_ranges_do_not_invent_numeric_endpoints_or_midpoints(
                     raw_result["reported_average"]
                 )
 
+    assert checked, "The report corpus must include qualified ion ranges."
 
-@pytest.mark.parametrize(
-    "fixture_path",
-    FIXTURE_PATHS,
-    ids=lambda path: str(path.relative_to(REPORT_FIXTURE_ROOT)),
-)
+
 def test_range_only_ph_does_not_invent_a_representative_value(
-    fixture_path: Path,
+    report_profiles: tuple[tuple[JsonObject, SourceWaterProfile], ...],
 ) -> None:
-    data, profiles = _load_fixture(fixture_path)
+    checked = 0
 
-    for raw_profile, profile in zip(data["profiles"], profiles, strict=True):
+    for raw_profile, profile in report_profiles:
         raw_ph = raw_profile.get("ph")
         if (
             raw_ph is None
@@ -760,28 +811,27 @@ def test_range_only_ph_does_not_invent_a_representative_value(
         ):
             continue
 
+        checked += 1
         assert profile.ph is not None
         with pytest.raises(ValueError):
             _ = profile.ph.calculation_value
 
+    assert checked, "The report corpus must include range-only pH."
 
-@pytest.mark.parametrize(
-    "fixture_path",
-    FIXTURE_PATHS,
-    ids=lambda path: str(path.relative_to(REPORT_FIXTURE_ROOT)),
-)
+
 def test_result_specific_context_overrides_profile_timing(
-    fixture_path: Path,
+    report_profiles: tuple[tuple[JsonObject, SourceWaterProfile], ...],
 ) -> None:
-    data, profiles = _load_fixture(fixture_path)
+    checked = 0
 
-    for raw_profile, profile in zip(data["profiles"], profiles, strict=True):
+    for raw_profile, profile in report_profiles:
         profile_context = raw_profile.get("result_context", {})
         for ion_name, raw_result in raw_profile.get("concentrations", {}).items():
             raw_context = raw_result.get("result_context")
             if raw_context is None:
                 continue
 
+            checked += 1
             result = profile.concentration_for(Ion(ion_name))
             assert result is not None
             assert result.result_context is not None
@@ -812,6 +862,8 @@ def test_result_specific_context_overrides_profile_timing(
                 assert result.result_context.water_stage is WaterStage(
                     profile_context["water_stage"]
                 )
+
+    assert checked, "The report corpus must include result-specific ion timing."
 
 
 @pytest.mark.parametrize(
@@ -884,41 +936,37 @@ def test_santa_cruz_fixture_preserves_distribution_system_chlorine() -> None:
     assert distribution_profile.concentration_for(Ion.CHLORIDE) is None
 
 
-@pytest.mark.parametrize(
-    "fixture_path",
-    FIXTURE_PATHS,
-    ids=lambda path: str(path.relative_to(REPORT_FIXTURE_ROOT)),
-)
 def test_alkalinity_does_not_create_unreported_bicarbonate(
-    fixture_path: Path,
+    report_profiles: tuple[tuple[JsonObject, SourceWaterProfile], ...],
 ) -> None:
-    data, profiles = _load_fixture(fixture_path)
+    checked = 0
 
-    for raw_profile, profile in zip(data["profiles"], profiles, strict=True):
+    for raw_profile, profile in report_profiles:
         if "alkalinity" in raw_profile.get(
             "properties", {}
         ) and "bicarbonate" not in raw_profile.get("concentrations", {}):
+            checked += 1
             assert profile.alkalinity is not None
             assert profile.concentration_for(Ion.BICARBONATE) is None
 
+    assert checked, "The report corpus must include alkalinity without bicarbonate."
 
-@pytest.mark.parametrize(
-    "fixture_path",
-    FIXTURE_PATHS,
-    ids=lambda path: str(path.relative_to(REPORT_FIXTURE_ROOT)),
-)
+
 def test_conductivity_reference_temperature_is_not_invented(
-    fixture_path: Path,
+    report_profiles: tuple[tuple[JsonObject, SourceWaterProfile], ...],
 ) -> None:
-    data, profiles = _load_fixture(fixture_path)
+    checked = 0
 
-    for raw_profile, profile in zip(data["profiles"], profiles, strict=True):
+    for raw_profile, profile in report_profiles:
         raw_conductivity = raw_profile.get("properties", {}).get("conductivity")
         if raw_conductivity is None:
             continue
 
+        checked += 1
         assert profile.conductivity is not None
         assert (
             profile.conductivity.reference_temperature_celsius
             == raw_conductivity.get("reference_temperature_celsius")
         )
+
+    assert checked, "The report corpus must include conductivity."
