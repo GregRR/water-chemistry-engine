@@ -15,7 +15,7 @@ can be modeled later without changing the underlying stoichiometry.
 """
 
 from dataclasses import dataclass
-from math import isfinite
+from math import fsum, isfinite, ulp
 
 from fermunits import Q_
 
@@ -110,6 +110,17 @@ class TreatmentIngredient:
         if len(ions) != len(set(ions)):
             raise ValueError(
                 "Treatment ingredient cannot contain duplicate ion stoichiometry entries."
+            )
+
+        represented_mass = fsum(
+            entry.coefficient * float(entry.molar_mass.to("gram / mole").magnitude)
+            for entry in self.ion_stoichiometry
+        )
+        # Products can omit neutral constituents such as waters of hydration.
+        # Allow only rounding noise when their sum approaches the whole mass.
+        if represented_mass - magnitude > 4 * ulp(magnitude):
+            raise ValueError(
+                "Modeled ion mass cannot exceed the ingredient formula mass."
             )
 
 

@@ -269,6 +269,12 @@ Chemical-identity evidence should cover:
 - stoichiometric ion yield;
 - authoritative chemical reference.
 
+Under the complete-dissociation model, multiply each ion molar mass by its
+stoichiometric coefficient before summing. The sum may fall below the formula
+mass when the model omits a constituent, such as water of hydration. The
+engine allows an excess of up to four units in the last place of the formula
+mass in g/mol to accommodate floating-point rounding.
+
 Treatment-material evidence should cover where applicable:
 
 - purity/assay, preserving reported ranges;

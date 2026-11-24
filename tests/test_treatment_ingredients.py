@@ -1,3 +1,6 @@
+from dataclasses import replace
+from math import ulp
+
 import pytest
 from fermunits import Q_
 
@@ -139,3 +142,34 @@ def test_ingredient_molar_mass_must_be_finite(invalid: float) -> None:
             molar_mass=Q_(invalid, "gram / mole"),
             ion_stoichiometry=(chloride,),
         )
+
+
+def test_ingredient_cannot_create_extra_ion_mass() -> None:
+    with pytest.raises(ValueError, match="ion mass cannot exceed"):
+        replace(CALCIUM_CHLORIDE_ANHYDROUS, molar_mass=Q_(100, "g/mol"))
+
+
+def test_mass_conservation_tolerates_four_ulps_of_rounding() -> None:
+    formula_mass = 100.0
+    calcium = IonStoichiometry(
+        Ion.CALCIUM, 1, Q_(formula_mass + 4 * ulp(formula_mass), "g/mol")
+    )
+    ingredient = replace(
+        GYPSUM, molar_mass=Q_(formula_mass, "g/mol"), ion_stoichiometry=(calcium,)
+    )
+    excess = replace(
+        calcium, molar_mass=Q_(formula_mass + 5 * ulp(formula_mass), "g/mol")
+    )
+    with pytest.raises(ValueError, match="ion mass cannot exceed"):
+        replace(ingredient, ion_stoichiometry=(excess,))
+
+
+def test_valid_hydrate_may_omit_neutral_mass_from_ion_yields() -> None:
+    hydrate = replace(GYPSUM, molar_mass=GYPSUM.molar_mass.to("kg/mol"))
+    ion_sum = sum(
+        term.coefficient * term.molar_mass.to("g/mol").magnitude
+        for term in hydrate.ion_stoichiometry
+    )
+    assert float(hydrate.molar_mass.to("g/mol").magnitude) - ion_sum == pytest.approx(
+        2 * 18.015
+    )

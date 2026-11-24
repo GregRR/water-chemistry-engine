@@ -35,7 +35,11 @@ from water_chemistry_engine.target_comparison import (
 )
 from water_chemistry_engine.target_profiles import TargetWaterProfile
 from water_chemistry_engine.treatment_application import TreatmentAddition
-from water_chemistry_engine.treatment_ingredients import GYPSUM, SODIUM_BICARBONATE
+from water_chemistry_engine.treatment_ingredients import (
+    CALCIUM_CHLORIDE_DIHYDRATE,
+    GYPSUM,
+    SODIUM_BICARBONATE,
+)
 
 REPORTED_ONLY = SourceResolutionPolicy(allow_exact_range_midpoints=False)
 ALLOW_MIDPOINTS = SourceResolutionPolicy(allow_exact_range_midpoints=True)
@@ -577,17 +581,17 @@ def test_forward_alkalinity_accepts_equivalent_molar_mass_units(
 
 @pytest.mark.parametrize("change", ["formula", "coefficient", "ion_mass"])
 def test_altered_identity_remains_unreviewed(change: str) -> None:
-    ingredient = SODIUM_BICARBONATE
-    sodium, bicarbonate = ingredient.ion_stoichiometry
+    ingredient = CALCIUM_CHLORIDE_DIHYDRATE
+    calcium, chloride = ingredient.ion_stoichiometry
     if change == "formula":
         ingredient = replace(ingredient, formula="Na2CO3")
     else:
-        sodium = (
-            replace(sodium, coefficient=2)
+        chloride = (
+            replace(chloride, coefficient=1)
             if change == "coefficient"
-            else replace(sodium, molar_mass=sodium.molar_mass + Q_(1e-9, "g/mol"))
+            else replace(chloride, molar_mass=chloride.molar_mass + Q_(1e-9, "g/mol"))
         )
-        ingredient = replace(ingredient, ion_stoichiometry=(sodium, bicarbonate))
+        ingredient = replace(ingredient, ion_stoichiometry=(calcium, chloride))
     result = calculate_forward_water(
         (
             ForwardWaterSource(

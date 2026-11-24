@@ -10,6 +10,9 @@ comparison-expansion milestone is in progress.
 
 ### Fixed
 
+- Reject treatment ingredients whose modeled ions together exceed the formula
+  mass, accounting for each ion's stoichiometric coefficient.
+
 - Preserve declared source-volume precision across unit conversions during
   capacity checks. Equivalent metric and customary volumes can supply the
   same batch, and genuine Decimal or Fraction shortfalls remain infeasible.
