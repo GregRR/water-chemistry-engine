@@ -451,6 +451,9 @@ The expected final calcium concentration is approximately
 The positive gypsum addition also produces a
 `treatment_complete_dissolution_model` assumption notice.
 
+`SourceResolutionPolicy.allow_exact_range_midpoints` requires a boolean.
+Passing a string such as `"false"` or an integer raises `TypeError`.
+
 The result graph is intended to be consumed through the same facade. For
 example, callers can use `isinstance` with `ResolvedSourceIon` versus
 `UnresolvedSourceIon`, `ResolvedBlendIon` versus `UnresolvedBlendIon`, and

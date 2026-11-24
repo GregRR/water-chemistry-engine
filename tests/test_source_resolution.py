@@ -59,6 +59,12 @@ def test_exact_reported_value_resolves_directly() -> None:
     assert isinstance(resolution.concentration.concentration.magnitude, float)
 
 
+@pytest.mark.parametrize("value", ["false", 0, 1, None])
+def test_midpoint_policy_rejects_non_booleans(value: object) -> None:
+    with pytest.raises(TypeError, match="allow_exact_range_midpoints must be a bool"):
+        SourceResolutionPolicy(allow_exact_range_midpoints=value)
+
+
 def test_reported_average_takes_precedence_over_exact_range_midpoint() -> None:
     calcium = IonConcentrationRange.mg_per_liter(
         Ion.CALCIUM,

@@ -19,6 +19,10 @@ class SourceResolutionPolicy:
 
     allow_exact_range_midpoints: bool
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.allow_exact_range_midpoints, bool):
+            raise TypeError("allow_exact_range_midpoints must be a bool.")
+
 
 def linear_calculation_value(
     *,

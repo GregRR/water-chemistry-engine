@@ -25,6 +25,9 @@ comparison-expansion milestone is in progress.
   ranges, and averages. Blending and target comparison retain the sign of
   resolved total alkalinity. Explicit ANC remains unresolved.
 
+- Require a boolean for the source range midpoint policy so a string such as
+  `"false"` cannot enable midpoint calculation.
+
 - Reject unsupported reporting bases when constructing an `Alkalinity` value.
 
 - Preserve reviewed alkalinity effects when an ingredient display name changes.
