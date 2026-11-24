@@ -633,6 +633,8 @@ notice, and neither does an unresolved source whose blend volume is zero.
 
 Source reports and target criteria accept finite signed total alkalinity in
 mg/L as CaCO3, including ranges spanning zero and one-sided bounds.
+The `Alkalinity` constructor defaults to `ReportingBasis.AS_CACO3` and raises
+`ValueError` for any other basis.
 A negative ANC result retains its sign and its ANC identity. Its source
 resolution remains `ACID_NEUTRALIZING_CAPACITY_UNSUPPORTED`.
 

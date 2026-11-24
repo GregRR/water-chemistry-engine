@@ -576,3 +576,8 @@ def test_signed_alkalinity_range_and_bounds() -> None:
 def test_alkalinity_rejects_nonfinite_exact_values(invalid: float) -> None:
     with pytest.raises(ValueError, match="finite"):
         Alkalinity.mg_per_liter_as_caco3(invalid)
+
+
+def test_alkalinity_rejects_unsupported_reporting_basis() -> None:
+    with pytest.raises(ValueError, match="as-CaCO3 basis"):
+        Alkalinity(value=Q_(100, "mg/L"), basis="as_hco3")

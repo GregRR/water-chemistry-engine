@@ -25,6 +25,8 @@ comparison-expansion milestone is in progress.
   ranges, and averages. Blending and target comparison retain the sign of
   resolved total alkalinity. Explicit ANC remains unresolved.
 
+- Reject unsupported reporting bases when constructing an `Alkalinity` value.
+
 - Preserve reviewed alkalinity effects when an ingredient display name changes.
   A positive dose with an unreviewed effect makes final alkalinity unresolved.
   Optimizer requests with an alkalinity target report such materials as unsupported.

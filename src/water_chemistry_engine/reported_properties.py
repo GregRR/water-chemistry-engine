@@ -223,6 +223,8 @@ class Alkalinity:
     analytical_context: AlkalinityAnalyticalContext | None = None
 
     def __post_init__(self) -> None:
+        if self.basis is not ReportingBasis.AS_CACO3:
+            raise ValueError("Reported alkalinity requires an as-CaCO3 basis.")
         if self.reported_statistic is not None and not isinstance(
             self.reported_statistic,
             ReportedStatistic,
