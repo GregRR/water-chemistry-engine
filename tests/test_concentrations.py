@@ -381,6 +381,60 @@ def test_qualified_range_uses_real_reported_average_when_present() -> None:
     assert concentration.calculation_value.to("milligram / liter").magnitude == 4.2
 
 
+@pytest.mark.parametrize(
+    ("minimum", "maximum", "average"),
+    [
+        (
+            NotDetectedConcentrationEndpoint(),
+            ExactConcentrationEndpoint.mg_per_liter(4.2),
+            42,
+        ),
+        (
+            ExactConcentrationEndpoint.mg_per_liter(4.2),
+            NotDetectedConcentrationEndpoint(),
+            1,
+        ),
+        (
+            LowerBoundConcentrationEndpoint.mg_per_liter(5),
+            ExactConcentrationEndpoint.mg_per_liter(10),
+            5,
+        ),
+        (
+            ExactConcentrationEndpoint.mg_per_liter(1),
+            UpperBoundConcentrationEndpoint.mg_per_liter(10),
+            10,
+        ),
+    ],
+)
+def test_reported_mean_must_respect_each_known_endpoint(
+    minimum, maximum, average
+) -> None:
+    with pytest.raises(ValueError, match="reported average must fall within"):
+        IonConcentrationRange(
+            Ion.CALCIUM, minimum, maximum, reported_average=Q_(average, "mg/L")
+        )
+
+
+def test_reported_mean_can_exceed_a_limit_on_the_minimum() -> None:
+    result = IonConcentrationRange(
+        Ion.SULFATE,
+        UpperBoundConcentrationEndpoint.mg_per_liter(3),
+        ExactConcentrationEndpoint.mg_per_liter(14),
+        reported_average=Q_(0.008, "g/L"),
+    )
+    assert result.calculation_value == Q_(8, "mg/L")
+
+
+def test_reported_mean_can_be_below_a_limit_on_the_maximum() -> None:
+    result = IonConcentrationRange(
+        Ion.SULFATE,
+        ExactConcentrationEndpoint.mg_per_liter(1),
+        LowerBoundConcentrationEndpoint.mg_per_liter(8),
+        reported_average=Q_(5, "mg/L"),
+    )
+    assert result.calculation_value == Q_(5, "mg/L")
+
+
 def test_invalid_endpoint_quantity_is_rejected() -> None:
     with pytest.raises(
         ValueError,

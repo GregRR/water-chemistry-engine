@@ -143,6 +143,11 @@ Older inputs that carry a named statistic alongside only `reported_average`
 are accepted. The constructor retains that quantity under
 `reported_statistic_value` and leaves the ordinary mean absent.
 
+For a qualified ion range, an independently reported ordinary mean must be
+consistent with each known endpoint. For example, an ND minimum and a
+4.2 mg/L maximum allow a mean of 0.63 mg/L. Supplying 42 mg/L raises
+`ValueError` when constructing the range.
+
 The exact initial facade is:
 
 <!-- public-api-inventory-start -->

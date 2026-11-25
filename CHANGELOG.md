@@ -10,6 +10,9 @@ comparison-expansion milestone is in progress.
 
 ### Fixed
 
+- Validate ordinary means for ion ranges against known endpoint constraints,
+  including ranges with a not-detected endpoint.
+
 - Require an `Ion` identifier for exact concentrations, ranges, one-sided
   bounds, and not-detected results in source and target profiles.
 

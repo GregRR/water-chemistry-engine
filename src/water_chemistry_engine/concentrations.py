@@ -201,22 +201,38 @@ class IonConcentrationRange:
             raise ValueError("Ion concentration range minimum cannot exceed maximum.")
 
         if self.reported_average is not None:
-            _validate_mass_concentration(self.reported_average)
+            self._validate_reported_average(self.reported_average)
+
+    def _validate_reported_average(self, average: ScalarQuantity) -> None:
+        """Check an ordinary mean against each constraint on the observations."""
+        _validate_mass_concentration(average)
+        unit = "milligram / liter"
+        value = average.to(unit).magnitude
+        message = (
+            "Ion concentration reported average must fall within the reported range."
+        )
 
         if (
-            self.reported_average is not None
-            and isinstance(self.minimum, ExactConcentrationEndpoint)
-            and isinstance(self.maximum, ExactConcentrationEndpoint)
+            isinstance(self.minimum, ExactConcentrationEndpoint)
+            and value < self.minimum.value.to(unit).magnitude
         ):
-            minimum = self.minimum.value.to("milligram / liter").magnitude
-            maximum = self.maximum.value.to("milligram / liter").magnitude
-            reported_average = self.reported_average.to("milligram / liter").magnitude
+            raise ValueError(message)
+        if (
+            isinstance(self.minimum, LowerBoundConcentrationEndpoint)
+            and value <= self.minimum.limit.to(unit).magnitude
+        ):
+            raise ValueError(message)
 
-            if not minimum <= reported_average <= maximum:
-                raise ValueError(
-                    "Ion concentration reported average must fall within "
-                    "the reported range."
-                )
+        if (
+            isinstance(self.maximum, ExactConcentrationEndpoint)
+            and value > self.maximum.value.to(unit).magnitude
+        ):
+            raise ValueError(message)
+        if (
+            isinstance(self.maximum, UpperBoundConcentrationEndpoint)
+            and value >= self.maximum.limit.to(unit).magnitude
+        ):
+            raise ValueError(message)
 
     @property
     def calculation_value(self) -> ScalarQuantity:

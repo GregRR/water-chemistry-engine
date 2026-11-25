@@ -467,6 +467,19 @@ not encode that process narrative without direct experimental brewing evidence.
 - Bottled-water regulatory and quality-report requirements.
 - Definitions and conversions for alkalinity, hardness, `as CaCO3`, equivalents, detection limits, and uncertainty.
 
+### Ordinary means of reported ion ranges
+
+An arithmetic mean lies between the smallest and largest observations in the
+same dataset. If all observations exceed a limit, their mean also exceeds it,
+and the analogous strict upper bound holds. This check assumes the endpoints
+and ordinary mean describe the same observations. A separately labeled
+statistic can summarize a different period.
+
+The [Cal Water Chico fixture](../test-vectors/water/reports/cal-water-chico/2025.json)
+records an ND potassium minimum, a 4.2 mg/L maximum, and a 0.63 mg/L mean.
+It retains the report reference and table pages. The maximum constrains the
+mean even though the minimum has no numeric value.
+
 ### IUPAC pH definition and measurement recommendations
 
 - **Entry:** pH, IUPAC Compendium of Chemical Terminology (Gold Book), term

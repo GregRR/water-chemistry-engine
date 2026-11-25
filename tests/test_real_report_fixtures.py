@@ -7,6 +7,13 @@ from typing import Any, TypeAlias
 import pytest
 from fermunits import Q_, PHValue
 
+from water_chemistry_engine import (
+    ForwardWaterSource,
+    ResolvedSourceIon,
+    SourceIonResolutionMethod,
+    SourceResolutionPolicy,
+    calculate_forward_water,
+)
 from water_chemistry_engine.concentrations import (
     ExactConcentrationEndpoint,
     IonConcentration,
@@ -585,6 +592,24 @@ def _load_fixture(path: Path) -> tuple[JsonObject, tuple[SourceWaterProfile, ...
         for profile in data["profiles"]
     )
     return data, profiles
+
+
+def test_chico_reported_potassium_mean_reaches_final_state() -> None:
+    _, (source,) = _load_fixture(REPORT_FIXTURE_ROOT / "cal-water-chico" / "2025.json")
+    result = calculate_forward_water(
+        (ForwardWaterSource(source, Q_(1, "liter")),),
+        source_resolution_policy=SourceResolutionPolicy(
+            allow_exact_range_midpoints=False
+        ),
+    )
+    resolution = result.source_results[0].resolution.resolution_for(Ion.POTASSIUM)
+    assert isinstance(resolution, ResolvedSourceIon)
+    assert resolution.method is SourceIonResolutionMethod.REPORTED_AVERAGE
+    assert isinstance(resolution.source_result, IonConcentrationRange)
+    assert isinstance(
+        resolution.source_result.minimum, NotDetectedConcentrationEndpoint
+    )
+    assert result.final_state.concentration_for(Ion.POTASSIUM) == Q_(0.63, "mg/L")
 
 
 @pytest.fixture(scope="module")
