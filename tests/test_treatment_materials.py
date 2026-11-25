@@ -430,7 +430,10 @@ def _mass_per_volume_solution() -> ExactMassPerVolumeDosedSolutionTreatmentMater
     )
 
 
-def test_mass_per_volume_solution_resolves_active_mass_directly() -> None:
+@pytest.mark.parametrize("convert_units", [False, True])
+def test_mass_per_volume_solution_resolves_active_mass_directly(
+    convert_units: bool,
+) -> None:
     material = _mass_per_volume_solution()
 
     result = material.resolve_volume_dose(
@@ -451,6 +454,10 @@ def test_mass_per_volume_solution_resolves_active_mass_directly() -> None:
     assert material.concentration_source is not None
     assert not hasattr(material, "density")
     assert not hasattr(result, "solution_mass")
+    if convert_units:
+        result.measured_volume.ito("liter")
+        result.measurement_temperature.ito("kelvin")
+        result.active_chemical_mass.ito("milligram")
     assert result.preparation_text == (
         "Measure 25 mL of 10 g per 100 mL calcium chloride solution at 20 °C; "
         "this supplies 2.5 g of Calcium chloride anhydrous (CaCl2)."
@@ -643,7 +650,10 @@ def _volume_dosed_solution() -> ExactVolumeDosedSolutionTreatmentMaterial:
     )
 
 
-def test_exact_volume_dose_resolves_solution_and_active_mass() -> None:
+@pytest.mark.parametrize("convert_units", [False, True])
+def test_exact_volume_dose_resolves_solution_and_active_mass(
+    convert_units: bool,
+) -> None:
     material = _volume_dosed_solution()
 
     result = material.resolve_volume_dose(
@@ -664,6 +674,11 @@ def test_exact_volume_dose_resolves_solution_and_active_mass() -> None:
     assert result.treatment_addition.mass.magnitude == pytest.approx(3.9)
     assert material.composition_source is not None
     assert material.density_source is not None
+    if convert_units:
+        result.measured_volume.ito("liter")
+        result.measurement_temperature.ito("kelvin")
+        result.active_chemical_mass.ito("milligram")
+        result.solution_mass.ito("kilogram")
     assert result.preparation_text == (
         "Measure 10 mL of Exact calcium chloride solution at 20 °C; this is "
         "12 g of solution and supplies 3.9 g of Calcium chloride anhydrous "

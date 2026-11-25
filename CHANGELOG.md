@@ -10,6 +10,9 @@ comparison-expansion milestone is in progress.
 
 ### Fixed
 
+- Keep liquid-dose preparation instructions in mL, °C, and g after callers
+  convert the units of the resolved quantities.
+
 - Reject ion ranges with contradictory strict endpoints, including a minimum
   above 5 mg/L paired with a maximum at or below 5 mg/L.
 

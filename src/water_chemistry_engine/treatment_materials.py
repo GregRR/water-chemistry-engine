@@ -321,6 +321,10 @@ class TreatmentMaterialActiveMassRange:
             )
 
 
+def _format_dose_quantity(value: Quantity[float], unit: str) -> str:
+    return format(float(value.to(unit).magnitude), ".12g")
+
+
 @dataclass(frozen=True, slots=True)
 class ResolvedTreatmentMaterialVolumeDose:
     """One exact solution-volume dose resolved at its density condition."""
@@ -335,10 +339,12 @@ class ResolvedTreatmentMaterialVolumeDose:
     @property
     def preparation_text(self) -> str:
         """Describe physical volume and resolved solution/chemical masses."""
-        volume = format(float(self.measured_volume.magnitude), ".12g")
-        temperature = format(float(self.measurement_temperature.magnitude), ".12g")
-        solution_mass = format(float(self.solution_mass.magnitude), ".12g")
-        active_mass = format(float(self.active_chemical_mass.magnitude), ".12g")
+        volume = _format_dose_quantity(self.measured_volume, "milliliter")
+        temperature = _format_dose_quantity(
+            self.measurement_temperature, "degree_Celsius"
+        )
+        solution_mass = _format_dose_quantity(self.solution_mass, "gram")
+        active_mass = _format_dose_quantity(self.active_chemical_mass, "gram")
         ingredient = self.treatment_addition.ingredient
         return (
             f"Measure {volume} mL of {self.material.name} at {temperature} °C; "
@@ -360,9 +366,11 @@ class ResolvedMassPerVolumeSolutionDose:
     @property
     def preparation_text(self) -> str:
         """Describe physical volume and resolved active chemical mass."""
-        volume = format(float(self.measured_volume.magnitude), ".12g")
-        temperature = format(float(self.measurement_temperature.magnitude), ".12g")
-        active_mass = format(float(self.active_chemical_mass.magnitude), ".12g")
+        volume = _format_dose_quantity(self.measured_volume, "milliliter")
+        temperature = _format_dose_quantity(
+            self.measurement_temperature, "degree_Celsius"
+        )
+        active_mass = _format_dose_quantity(self.active_chemical_mass, "gram")
         ingredient = self.treatment_addition.ingredient
         return (
             f"Measure {volume} mL of {self.material.name} at {temperature} °C; "

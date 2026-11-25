@@ -124,6 +124,11 @@ mass; it does not claim to know total solution mass and does not infer density.
 The temperatures must match because thermal correction remains unsupported.
 This type is also manual-only and is not an optimizer material.
 
+Both liquid-dose results expose `preparation_text` in milliliters, degrees
+Celsius, and grams. For example, a 25 mL dose at 20 °C supplying 2.5 g of
+active chemical prints those same values after a caller converts the result
+quantities to liters, kelvin, and milligrams.
+
 The facade also supports the complete source-report construction graph retained
 by `SourceWaterProfile`: reported pH and disinfectants, source-document
 metadata, water and physical-source identity, observation/result context,
