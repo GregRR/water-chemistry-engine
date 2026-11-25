@@ -467,6 +467,14 @@ not encode that process narrative without direct experimental brewing evidence.
 - Bottled-water regulatory and quality-report requirements.
 - Definitions and conversions for alkalinity, hardness, `as CaCO3`, equivalents, detection limits, and uncertainty.
 
+### Strict ion-range endpoints
+
+Range validation uses the defining order of the observations: the minimum
+must be at or below the maximum. If the minimum exceeds a limit and the
+maximum is at or below that limit, no pair of observations satisfies the
+report. The same reasoning applies to an exact minimum and a maximum strictly
+below it. With exact endpoints, equal observations satisfy the range.
+
 ### Ordinary means of reported ion ranges
 
 An arithmetic mean lies between the smallest and largest observations in the

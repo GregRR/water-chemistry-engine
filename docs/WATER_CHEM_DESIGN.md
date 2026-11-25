@@ -309,6 +309,8 @@ If a report says `ND` but does not publish the applicable detection/reporting li
 
 When both endpoints of a reported range carry explicit numeric thresholds—including exact values, upper/lower bounds, or an `ND` endpoint with a supplied detection limit—the minimum endpoint threshold must not exceed the maximum endpoint threshold. This validation catches internally reversed extracted/report data without turning either qualified endpoint into a calculation value. An `ND` endpoint without a reported detection limit remains nonnumeric and does not participate in this threshold-order check.
 
+Endpoint qualifiers must admit at least one nonnegative minimum and maximum in order. Equality is possible for two exact endpoints. A minimum strictly above 5 mg/L cannot coexist with a maximum equal to 5 mg/L. A strict upper endpoint of zero is impossible for a nonnegative concentration.
+
 An ordinary mean of the same observations must satisfy every known constraint that follows from their minimum and maximum. An exact maximum bounds the mean even when the minimum is `ND`. A minimum reported as `>L` requires a mean above L, and a maximum reported as `<U` requires a mean below U. A limit on the minimum such as `<L` does not impose an upper bound on the mean.
 
 Bounds, `ND`, and qualified endpoints do not automatically receive a representative calculation value. Any policy that substitutes a numeric value must be explicit, domain-specific, reproducible, and surfaced in assumptions/warnings.

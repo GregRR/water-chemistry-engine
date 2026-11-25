@@ -10,6 +10,9 @@ comparison-expansion milestone is in progress.
 
 ### Fixed
 
+- Reject ion ranges with contradictory strict endpoints, including a minimum
+  above 5 mg/L paired with a maximum at or below 5 mg/L.
+
 - Validate ordinary means for ion ranges against known endpoint constraints,
   including ranges with a not-detected endpoint.
 

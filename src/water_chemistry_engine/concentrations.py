@@ -57,6 +57,10 @@ class UpperBoundConcentrationEndpoint:
 
     def __post_init__(self) -> None:
         _validate_mass_concentration(self.limit)
+        if self.limit.magnitude <= 0:
+            raise ValueError(
+                "A strictly upper-bounded concentration endpoint needs a positive limit."
+            )
 
     @classmethod
     def mg_per_liter(cls, limit: float) -> UpperBoundConcentrationEndpoint:
@@ -129,6 +133,36 @@ def _endpoint_threshold_mg_per_liter(
     return float(quantity.to("milligram / liter").magnitude)
 
 
+def _validate_endpoint_order(
+    minimum: ConcentrationRangeEndpoint,
+    maximum: ConcentrationRangeEndpoint,
+    message: str,
+) -> None:
+    """Reject endpoint constraints that cannot admit a minimum <= maximum."""
+    if isinstance(minimum, ExactConcentrationEndpoint):
+        lower = minimum.value
+    elif isinstance(minimum, LowerBoundConcentrationEndpoint):
+        lower = minimum.limit
+    else:
+        return
+
+    if isinstance(maximum, ExactConcentrationEndpoint):
+        upper = maximum.value
+    elif isinstance(maximum, UpperBoundConcentrationEndpoint):
+        upper = maximum.limit
+    else:
+        return
+
+    unit = "milligram / liter"
+    lo = lower.to(unit).magnitude
+    hi = upper.to(unit).magnitude
+    strict = isinstance(minimum, LowerBoundConcentrationEndpoint) or isinstance(
+        maximum, UpperBoundConcentrationEndpoint
+    )
+    if lo > hi or (strict and lo == hi):
+        raise ValueError(message)
+
+
 @dataclass(frozen=True, slots=True)
 class IonConcentration:
     """Exact reported concentration of a single ion."""
@@ -190,6 +224,15 @@ class IonConcentrationRange:
             object.__setattr__(self, "reported_statistic_value", self.reported_average)
             object.__setattr__(self, "reported_average", None)
 
+        if not isinstance(self.minimum, ConcentrationRangeEndpoint) or not isinstance(
+            self.maximum, ConcentrationRangeEndpoint
+        ):
+            raise TypeError("Ion concentration range requires reported endpoints.")
+        _validate_endpoint_order(
+            self.minimum,
+            self.maximum,
+            "Ion concentration range minimum cannot exceed maximum or contradict an endpoint qualifier.",
+        )
         minimum_threshold = _endpoint_threshold_mg_per_liter(self.minimum)
         maximum_threshold = _endpoint_threshold_mg_per_liter(self.maximum)
 
@@ -201,38 +244,10 @@ class IonConcentrationRange:
             raise ValueError("Ion concentration range minimum cannot exceed maximum.")
 
         if self.reported_average is not None:
-            self._validate_reported_average(self.reported_average)
-
-    def _validate_reported_average(self, average: ScalarQuantity) -> None:
-        """Check an ordinary mean against each constraint on the observations."""
-        _validate_mass_concentration(average)
-        unit = "milligram / liter"
-        value = average.to(unit).magnitude
-        message = (
-            "Ion concentration reported average must fall within the reported range."
-        )
-
-        if (
-            isinstance(self.minimum, ExactConcentrationEndpoint)
-            and value < self.minimum.value.to(unit).magnitude
-        ):
-            raise ValueError(message)
-        if (
-            isinstance(self.minimum, LowerBoundConcentrationEndpoint)
-            and value <= self.minimum.limit.to(unit).magnitude
-        ):
-            raise ValueError(message)
-
-        if (
-            isinstance(self.maximum, ExactConcentrationEndpoint)
-            and value > self.maximum.value.to(unit).magnitude
-        ):
-            raise ValueError(message)
-        if (
-            isinstance(self.maximum, UpperBoundConcentrationEndpoint)
-            and value >= self.maximum.limit.to(unit).magnitude
-        ):
-            raise ValueError(message)
+            average = ExactConcentrationEndpoint(self.reported_average)
+            message = "Ion concentration reported average must fall within the reported range."
+            _validate_endpoint_order(self.minimum, average, message)
+            _validate_endpoint_order(average, self.maximum, message)
 
     @property
     def calculation_value(self) -> ScalarQuantity:

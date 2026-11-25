@@ -320,6 +320,52 @@ def test_qualified_range_rejects_reversed_numeric_thresholds() -> None:
         )
 
 
+@pytest.mark.parametrize(
+    ("minimum", "maximum"),
+    [
+        (
+            ExactConcentrationEndpoint.mg_per_liter(5),
+            UpperBoundConcentrationEndpoint.mg_per_liter(5),
+        ),
+        (
+            LowerBoundConcentrationEndpoint.mg_per_liter(5),
+            ExactConcentrationEndpoint.mg_per_liter(5),
+        ),
+        (
+            LowerBoundConcentrationEndpoint.mg_per_liter(5),
+            UpperBoundConcentrationEndpoint.mg_per_liter(5),
+        ),
+    ],
+)
+def test_strict_endpoints_reject_impossible_equality(minimum, maximum) -> None:
+    with pytest.raises(ValueError, match="endpoint qualifier"):
+        IonConcentrationRange(Ion.CALCIUM, minimum, maximum)
+
+
+def test_equal_exact_endpoints_allow_reported_mean() -> None:
+    result = IonConcentrationRange.mg_per_liter(Ion.CALCIUM, 5, 5, reported_average=5)
+    assert result.calculation_value == Q_(5, "mg/L")
+
+
+def test_close_distinct_endpoints_allow_strict_range() -> None:
+    result = IonConcentrationRange(
+        Ion.CALCIUM,
+        LowerBoundConcentrationEndpoint(Q_(Decimal(5), "mg/L")),
+        ExactConcentrationEndpoint(Q_(Decimal("5.000000000000000001"), "mg/L")),
+    )
+    assert isinstance(result.minimum, LowerBoundConcentrationEndpoint)
+
+
+def test_strict_upper_endpoint_requires_positive_limit() -> None:
+    with pytest.raises(ValueError, match="positive limit"):
+        UpperBoundConcentrationEndpoint.mg_per_liter(0)
+
+
+def test_range_requires_reported_endpoint_objects() -> None:
+    with pytest.raises(TypeError, match="reported endpoints"):
+        IonConcentrationRange(Ion.CALCIUM, None, NotDetectedConcentrationEndpoint())
+
+
 def test_lower_and_upper_bound_range_rejects_reversed_thresholds() -> None:
     with pytest.raises(
         ValueError,

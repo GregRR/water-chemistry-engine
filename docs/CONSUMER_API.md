@@ -143,6 +143,11 @@ Older inputs that carry a named statistic alongside only `reported_average`
 are accepted. The constructor retains that quantity under
 `reported_statistic_value` and leaves the ordinary mean absent.
 
+Pass endpoint objects to `IonConcentrationRange`. An exact range from 5 to
+5 mg/L is valid. A minimum above 5 paired with a maximum of 5 raises
+`ValueError`. A valid qualified range without an ordinary mean remains
+unresolved even when the caller enables midpoint selection.
+
 For a qualified ion range, an independently reported ordinary mean must be
 consistent with each known endpoint. For example, an ND minimum and a
 4.2 mg/L maximum allow a mean of 0.63 mg/L. Supplying 42 mg/L raises
