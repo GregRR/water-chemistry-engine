@@ -10,6 +10,9 @@ comparison-expansion milestone is in progress.
 
 ### Fixed
 
+- Preserve alkalinity target status and signed deviation when callers convert
+  modeled concentrations to equivalent units before comparison.
+
 - Keep liquid-dose preparation instructions in mL, °C, and g after callers
   convert the units of the resolved quantities.
 

@@ -32,6 +32,7 @@ from water_chemistry_engine.reported_values import SourceResolutionPolicy
 from water_chemistry_engine.target_comparison import (
     TargetAlkalinityComparisonStatus,
     TargetProfileComparisonStatus,
+    compare_state_to_target,
 )
 from water_chemistry_engine.target_profiles import TargetWaterProfile
 from water_chemistry_engine.treatment_application import TreatmentAddition
@@ -351,6 +352,47 @@ def test_final_alkalinity_is_compared_with_exact_target() -> None:
     )
     assert comparison.alkalinity_comparison.deviation.magnitude == pytest.approx(-5.0)
     assert comparison.status is TargetProfileComparisonStatus.NOT_SATISFIED
+
+
+@pytest.mark.parametrize(
+    ("source_mg_per_liter", "expected_status", "expected_deviation"),
+    (
+        (70, TargetAlkalinityComparisonStatus.BELOW_TARGET, -5),
+        (75, TargetAlkalinityComparisonStatus.WITHIN_TARGET, 0),
+        (90, TargetAlkalinityComparisonStatus.ABOVE_TARGET, 5),
+    ),
+)
+def test_alkalinity_comparison_after_converting_modeled_result_to_grams_per_liter(
+    source_mg_per_liter: int,
+    expected_status: TargetAlkalinityComparisonStatus,
+    expected_deviation: int,
+) -> None:
+    source = _source("Source", Alkalinity.mg_per_liter_as_caco3(source_mg_per_liter))
+    result = calculate_forward_water(
+        (ForwardWaterSource(source, Q_(1, "liter")),),
+        source_resolution_policy=REPORTED_ONLY,
+    )
+    actual = result.final_alkalinity
+    assert actual is not None
+    actual.concentration.ito("gram / liter")
+    target = TargetWaterProfile(
+        "Target", (), alkalinity=Alkalinity.mg_per_liter_as_caco3_range(75, 85)
+    )
+
+    comparison = compare_state_to_target(
+        result.final_state, target, actual_alkalinity=actual
+    )
+
+    criterion = comparison.alkalinity_comparison
+    assert criterion is not None and criterion.deviation is not None
+    assert criterion.status is expected_status
+    assert criterion.deviation.units == Q_(1, "mg/L").units
+    assert criterion.deviation.magnitude == pytest.approx(expected_deviation)
+    assert comparison.status is (
+        TargetProfileComparisonStatus.SATISFIED
+        if expected_deviation == 0
+        else TargetProfileComparisonStatus.NOT_SATISFIED
+    )
 
 
 def test_final_alkalinity_is_compared_with_range_target() -> None:

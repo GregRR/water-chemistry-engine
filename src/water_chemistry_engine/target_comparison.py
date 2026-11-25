@@ -426,7 +426,7 @@ def _compare_alkalinity(
             deviation=None,
         )
 
-    actual_value = float(actual.concentration.magnitude)
+    actual_value = float(actual.concentration.to("milligram / liter").magnitude)
     minimum_value = None if target_minimum is None else float(target_minimum.magnitude)
     maximum_value = None if target_maximum is None else float(target_maximum.magnitude)
     if (

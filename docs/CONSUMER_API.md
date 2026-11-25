@@ -614,7 +614,9 @@ Engine 0.5 now includes the first public slice of the named
 source resolution, volume-weighted blending with unknown propagation,
 per-source and reviewed per-treatment contributions, modeled final total
 alkalinity, exact/range/bound target comparison with signed deviation, and a
-contribution-matrix row. Exact, range, lower-bound, and upper-bound alkalinity
+contribution-matrix row. The comparison expresses signed deviation in mg/L as
+CaCO3 regardless of the concentration unit on the modeled result.
+Exact, range, lower-bound, and upper-bound alkalinity
 targets are supported; one-sided source reports remain unresolved rather than
 being treated as exact values. Reported, modeled, and target alkalinity remain
 conceptually distinct: `Alkalinity` preserves report/target values while
