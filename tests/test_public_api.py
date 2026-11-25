@@ -685,6 +685,56 @@ def test_complete_source_reporting_contract_uses_package_root_imports() -> None:
     assert chlorine.result_context is context
 
 
+@pytest.mark.parametrize(
+    ("allow_midpoint", "mean", "expected"),
+    [(False, None, None), (True, None, 15), (False, 12, 12), (True, 12, 12)],
+)
+def test_forward_preserves_range_statistic_and_resolves_chloride(
+    allow_midpoint, mean, expected
+) -> None:
+    ion = wce.Ion.CHLORIDE
+    statistic = wce.ReportedStatistic(wce.ReportedStatisticKind.RUNNING_ANNUAL_AVERAGE)
+    chloride = wce.IonConcentrationRange(
+        ion,
+        wce.ExactConcentrationEndpoint.mg_per_liter(10),
+        wce.ExactConcentrationEndpoint.mg_per_liter(20),
+        reported_statistic=statistic,
+        reported_statistic_value=Q_(14, "mg/L"),
+        reported_average=None if mean is None else Q_(mean, "mg/L"),
+    )
+    source = wce.SourceWaterProfile("Source", (chloride,))
+    result = wce.calculate_forward_water(
+        (wce.ForwardWaterSource(source, Q_(1, "L")),),
+        source_resolution_policy=wce.SourceResolutionPolicy(allow_midpoint),
+    )
+    resolution = result.source_results[0].resolution.resolution_for(ion)
+    assert resolution is not None
+    assert resolution.source_result is chloride
+    assert chloride.reported_statistic is statistic
+    assert chloride.reported_statistic_value == Q_(14, "mg/L")
+    codes = {notice.code for notice in result.notices}
+    if expected is None:
+        assert isinstance(resolution, wce.UnresolvedSourceIon)
+        assert (
+            resolution.reason
+            is wce.UnresolvedSourceIonReason.EXACT_RANGE_MIDPOINT_NOT_PERMITTED
+        )
+        assert result.final_state.concentration_for(ion) is None
+        assert wce.ForwardNoticeCode.SOURCE_ION_UNRESOLVED in codes
+    else:
+        assert isinstance(resolution, wce.ResolvedSourceIon)
+        expected_method = (
+            wce.SourceIonResolutionMethod.DERIVED_EXACT_RANGE_MIDPOINT
+            if mean is None
+            else wce.SourceIonResolutionMethod.REPORTED_AVERAGE
+        )
+        assert resolution.method is expected_method
+        assert result.final_state.concentration_for(ion) == Q_(expected, "mg/L")
+        assert (wce.ForwardNoticeCode.SOURCE_RANGE_MIDPOINT_USED in codes) == (
+            mean is None
+        )
+
+
 def test_public_api_preserves_unknown_and_notice_semantics() -> None:
     """The facade does not turn a bounded report result into a known value."""
     source = wce.SourceWaterProfile(

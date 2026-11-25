@@ -136,6 +136,13 @@ Source and target concentration constructors require an `Ion` enum member.
 When reading a serialized identifier, convert it first, for example with
 `Ion("calcium")`. Passing the string directly raises `TypeError`.
 
+For an ion range, pass a running annual average, percentile, or other named
+summary as `reported_statistic_value` together with its `reported_statistic`
+metadata. Supply an independently reported ordinary mean as `reported_average`.
+Older inputs that carry a named statistic alongside only `reported_average`
+are accepted. The constructor retains that quantity under
+`reported_statistic_value` and leaves the ordinary mean absent.
+
 The exact initial facade is:
 
 <!-- public-api-inventory-start -->

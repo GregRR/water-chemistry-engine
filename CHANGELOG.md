@@ -13,6 +13,9 @@ comparison-expansion milestone is in progress.
 - Require an `Ion` identifier for exact concentrations, ranges, one-sided
   bounds, and not-detected results in source and target profiles.
 
+- Preserve separately named ion-range statistics and use an independently
+  reported ordinary mean or an explicitly authorized midpoint for resolution.
+
 - Reject treatment ingredients whose modeled ions together exceed the formula
   mass, accounting for each ion's stoichiometric coefficient.
 

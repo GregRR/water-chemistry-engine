@@ -171,7 +171,7 @@ def test_reported_average_takes_precedence_over_midpoint() -> None:
     assert concentration.calculation_value.to("milligram / liter").magnitude == 51.0
 
 
-def test_reported_average_can_be_qualified_by_statistic_type() -> None:
+def test_legacy_labeled_average_preserves_named_statistic() -> None:
     statistic = ReportedStatistic(
         kind=ReportedStatisticKind.RUNNING_ANNUAL_AVERAGE,
     )
@@ -184,7 +184,40 @@ def test_reported_average_can_be_qualified_by_statistic_type() -> None:
     )
 
     assert concentration.reported_statistic is statistic
-    assert concentration.calculation_value.to("milligram / liter").magnitude == 14.0
+    assert concentration.reported_statistic_value == Q_(14, "mg/L")
+    assert concentration.reported_average is None
+    with pytest.raises(ValueError, match="no representative"):
+        _ = concentration.calculation_value
+
+
+@pytest.mark.parametrize(
+    "statistic", [None, ReportedStatistic(ReportedStatisticKind.REPORTED_AVERAGE)]
+)
+def test_separate_statistic_value_requires_named_statistic(statistic) -> None:
+    with pytest.raises(ValueError, match="requires a named"):
+        IonConcentrationRange(
+            Ion.CHLORIDE,
+            ExactConcentrationEndpoint.mg_per_liter(10),
+            ExactConcentrationEndpoint.mg_per_liter(20),
+            reported_statistic=statistic,
+            reported_statistic_value=Q_(14, "mg/L"),
+        )
+
+
+@pytest.mark.parametrize(
+    "quantity", [Q_(14, "g"), Q_(-1, "mg/L"), Q_(float("nan"), "mg/L")]
+)
+def test_range_statistic_requires_valid_concentration(quantity) -> None:
+    with pytest.raises(ValueError):
+        IonConcentrationRange(
+            Ion.CHLORIDE,
+            ExactConcentrationEndpoint.mg_per_liter(10),
+            ExactConcentrationEndpoint.mg_per_liter(20),
+            reported_statistic=ReportedStatistic(
+                ReportedStatisticKind.PERCENTILE, percentile=90
+            ),
+            reported_statistic_value=quantity,
+        )
 
 
 def test_reported_average_must_fall_within_exact_range() -> None:

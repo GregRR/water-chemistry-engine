@@ -250,6 +250,11 @@ def _load_concentration(
             ion=ion,
             minimum=_load_range_endpoint(data["minimum"], unit=unit),
             maximum=_load_range_endpoint(data["maximum"], unit=unit),
+            reported_statistic_value=(
+                Q_(data["reported_statistic_value"], unit)
+                if data.get("reported_statistic_value") is not None
+                else None
+            ),
             reported_average=(
                 Q_(data["reported_average"], unit)
                 if data.get("reported_average") is not None
@@ -441,6 +446,25 @@ def _load_property(
         )
 
     raise ValueError(f"Unsupported reported property: {name}")
+
+
+def test_range_fixture_retains_named_statistic_and_ordinary_mean() -> None:
+    result = _load_concentration(
+        "chloride",
+        {
+            "form": "range",
+            "unit": "mg/L",
+            "minimum": 10,
+            "maximum": 20,
+            "reported_average": 12,
+            "reported_statistic": {"kind": "running_annual_average"},
+            "reported_statistic_value": 14,
+        },
+        result_context=None,
+    )
+    assert isinstance(result, IonConcentrationRange)
+    assert result.reported_statistic_value == Q_(14, "mg/L")
+    assert result.calculation_value == Q_(12, "mg/L")
 
 
 def test_alkalinity_fixture_preserves_labeled_statistic() -> None:

@@ -8,7 +8,10 @@ from fermunits import Q_
 
 from water_chemistry_engine.ions import Ion
 from water_chemistry_engine.quantity_types import ScalarQuantity
-from water_chemistry_engine.reported_statistics import ReportedStatistic
+from water_chemistry_engine.reported_statistics import (
+    ReportedStatistic,
+    ReportedStatisticKind,
+)
 from water_chemistry_engine.reported_values import (
     SourceResolutionPolicy,
     linear_calculation_value,
@@ -160,9 +163,33 @@ class IonConcentrationRange:
     reported_average: ScalarQuantity | None = None
     reported_statistic: ReportedStatistic | None = None
     result_context: ReportedResultContext | None = None
+    reported_statistic_value: ScalarQuantity | None = None
 
     def __post_init__(self) -> None:
         _validate_ion(self.ion)
+        if self.reported_statistic is not None and not isinstance(
+            self.reported_statistic, ReportedStatistic
+        ):
+            raise TypeError(
+                "Ion concentration range requires ReportedStatistic metadata."
+            )
+        named_statistic = (
+            self.reported_statistic is not None
+            and self.reported_statistic.kind != ReportedStatisticKind.REPORTED_AVERAGE
+        )
+        if self.reported_statistic_value is not None:
+            if not named_statistic:
+                raise ValueError(
+                    "A separate statistic value requires a named non-average statistic."
+                )
+            _validate_mass_concentration(self.reported_statistic_value)
+        elif named_statistic and self.reported_average is not None:
+            # Older callers supplied the labeled statistic in the only numeric
+            # summary field. Its explicit label determines its meaning.
+            _validate_mass_concentration(self.reported_average)
+            object.__setattr__(self, "reported_statistic_value", self.reported_average)
+            object.__setattr__(self, "reported_average", None)
+
         minimum_threshold = _endpoint_threshold_mg_per_liter(self.minimum)
         maximum_threshold = _endpoint_threshold_mg_per_liter(self.maximum)
 

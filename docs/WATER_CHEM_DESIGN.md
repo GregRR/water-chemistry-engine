@@ -615,6 +615,8 @@ Real reports use several statistically distinct summary concepts. At minimum the
 
 `reported_average` remains narrowly defined: it means an ordinary average explicitly reported by the source. It must not become a generic bucket for RAA, LRAA, percentile, highest/lowest, or other named statistics.
 
+For an ion range, `reported_statistic_value` pairs a separately reported numerical statistic with its `reported_statistic` metadata. A range of 10–20 mg/L with a running annual average of 14 mg/L retains all three numbers. With midpoint selection disabled, this range has no representative concentration unless a separate ordinary average was reported.
+
 The implemented `ReportedStatistic` / `ReportedStatisticKind` model preserves these meanings without forcing every statistic into a separate top-level property. A percentile retains its percentile value, while `OTHER` requires an explicit label.
 
 ### 9.9 Observation timing and data coverage
