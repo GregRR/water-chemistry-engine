@@ -10,6 +10,11 @@ comparison-expansion milestone is in progress.
 
 ### Fixed
 
+- Accept feasible qualified ion ranges, including a
+  minimum of `<20` or `ND(20)` and an exact maximum of 14 mg/L. A supplied
+  detection limit on an ND maximum acts as a strict upper bound when
+  validating the range and its ordinary mean.
+
 - Preserve alkalinity target status and signed deviation when callers convert
   modeled concentrations to equivalent units before comparison.
 

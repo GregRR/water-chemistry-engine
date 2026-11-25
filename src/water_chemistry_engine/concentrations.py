@@ -90,6 +90,8 @@ class NotDetectedConcentrationEndpoint:
     def __post_init__(self) -> None:
         if self.detection_limit is not None:
             _validate_mass_concentration(self.detection_limit)
+            if self.detection_limit.magnitude <= 0:
+                raise ValueError("A not-detected endpoint needs a positive limit.")
 
     @classmethod
     def with_detection_limit_mg_per_liter(
@@ -114,25 +116,6 @@ def _validate_ion(ion: Ion) -> None:
         raise TypeError("Ion concentration requires an Ion identifier.")
 
 
-def _endpoint_threshold_mg_per_liter(
-    endpoint: ConcentrationRangeEndpoint,
-) -> float | None:
-    """Return an explicitly reported numeric endpoint threshold, if present."""
-    if isinstance(endpoint, ExactConcentrationEndpoint):
-        quantity = endpoint.value
-    elif isinstance(
-        endpoint,
-        (UpperBoundConcentrationEndpoint, LowerBoundConcentrationEndpoint),
-    ):
-        quantity = endpoint.limit
-    elif endpoint.detection_limit is not None:
-        quantity = endpoint.detection_limit
-    else:
-        return None
-
-    return float(quantity.to("milligram / liter").magnitude)
-
-
 def _validate_endpoint_order(
     minimum: ConcentrationRangeEndpoint,
     maximum: ConcentrationRangeEndpoint,
@@ -150,14 +133,19 @@ def _validate_endpoint_order(
         upper = maximum.value
     elif isinstance(maximum, UpperBoundConcentrationEndpoint):
         upper = maximum.limit
+    elif (
+        isinstance(maximum, NotDetectedConcentrationEndpoint)
+        and maximum.detection_limit is not None
+    ):
+        upper = maximum.detection_limit
     else:
         return
 
     unit = "milligram / liter"
     lo = lower.to(unit).magnitude
     hi = upper.to(unit).magnitude
-    strict = isinstance(minimum, LowerBoundConcentrationEndpoint) or isinstance(
-        maximum, UpperBoundConcentrationEndpoint
+    strict = isinstance(minimum, LowerBoundConcentrationEndpoint) or not isinstance(
+        maximum, ExactConcentrationEndpoint
     )
     if lo > hi or (strict and lo == hi):
         raise ValueError(message)
@@ -233,15 +221,6 @@ class IonConcentrationRange:
             self.maximum,
             "Ion concentration range minimum cannot exceed maximum or contradict an endpoint qualifier.",
         )
-        minimum_threshold = _endpoint_threshold_mg_per_liter(self.minimum)
-        maximum_threshold = _endpoint_threshold_mg_per_liter(self.maximum)
-
-        if (
-            minimum_threshold is not None
-            and maximum_threshold is not None
-            and minimum_threshold > maximum_threshold
-        ):
-            raise ValueError("Ion concentration range minimum cannot exceed maximum.")
 
         if self.reported_average is not None:
             average = ExactConcentrationEndpoint(self.reported_average)

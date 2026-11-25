@@ -475,6 +475,13 @@ maximum is at or below that limit, no pair of observations satisfies the
 report. The same reasoning applies to an exact minimum and a maximum strictly
 below it. With exact endpoints, equal observations satisfy the range.
 
+A left-censored result can share a range with an exact result below its
+reporting limit. For example, 8 and 14 mg/L satisfy a reported minimum of
+`<20` mg/L and an exact maximum of 14 mg/L. The example illustrates the
+ordering rule. USGS documents left-censored results and varying reporting
+limits for the same contaminant in drinking-water analyses.
+[USGS Scientific Investigations Report 2022–5066](https://pubs.usgs.gov/publication/sir20225066/full)
+
 ### Ordinary means of reported ion ranges
 
 An arithmetic mean lies between the smallest and largest observations in the

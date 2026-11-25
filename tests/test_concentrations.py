@@ -308,16 +308,46 @@ def test_qualified_range_supports_not_detected_endpoint() -> None:
     )
 
 
-def test_qualified_range_rejects_reversed_numeric_thresholds() -> None:
-    with pytest.raises(
-        ValueError,
-        match="range minimum cannot exceed maximum",
-    ):
-        IonConcentrationRange(
-            ion=Ion.SODIUM,
-            minimum=UpperBoundConcentrationEndpoint.mg_per_liter(20.0),
-            maximum=ExactConcentrationEndpoint.mg_per_liter(14.0),
-        )
+@pytest.mark.parametrize(
+    ("minimum", "maximum"),
+    [
+        (
+            UpperBoundConcentrationEndpoint.mg_per_liter(20),
+            ExactConcentrationEndpoint.mg_per_liter(14),
+        ),
+        (
+            NotDetectedConcentrationEndpoint.with_detection_limit_mg_per_liter(20),
+            ExactConcentrationEndpoint.mg_per_liter(14),
+        ),
+        (
+            UpperBoundConcentrationEndpoint.mg_per_liter(20),
+            UpperBoundConcentrationEndpoint.mg_per_liter(5),
+        ),
+        (
+            ExactConcentrationEndpoint.mg_per_liter(14),
+            UpperBoundConcentrationEndpoint.mg_per_liter(20),
+        ),
+        (
+            ExactConcentrationEndpoint.mg_per_liter(14),
+            NotDetectedConcentrationEndpoint(Q_(0.020, "g/L")),
+        ),
+        (
+            LowerBoundConcentrationEndpoint.mg_per_liter(20),
+            LowerBoundConcentrationEndpoint.mg_per_liter(5),
+        ),
+        (
+            LowerBoundConcentrationEndpoint.mg_per_liter(20),
+            NotDetectedConcentrationEndpoint(),
+        ),
+    ],
+)
+def test_feasible_qualified_range_preserves_endpoints(minimum, maximum) -> None:
+    result = IonConcentrationRange(Ion.SODIUM, minimum, maximum)
+
+    assert result.minimum is minimum
+    assert result.maximum is maximum
+    with pytest.raises(ValueError, match="no automatic representative"):
+        result.calculation_value_with_policy(ALLOW_MIDPOINTS)
 
 
 @pytest.mark.parametrize(
@@ -366,30 +396,31 @@ def test_range_requires_reported_endpoint_objects() -> None:
         IonConcentrationRange(Ion.CALCIUM, None, NotDetectedConcentrationEndpoint())
 
 
-def test_lower_and_upper_bound_range_rejects_reversed_thresholds() -> None:
-    with pytest.raises(
-        ValueError,
-        match="range minimum cannot exceed maximum",
-    ):
-        IonConcentrationRange(
-            ion=Ion.SODIUM,
-            minimum=LowerBoundConcentrationEndpoint.mg_per_liter(20.0),
-            maximum=UpperBoundConcentrationEndpoint.mg_per_liter(14.0),
-        )
+@pytest.mark.parametrize(
+    ("minimum", "maximum"),
+    [
+        (
+            LowerBoundConcentrationEndpoint.mg_per_liter(20),
+            UpperBoundConcentrationEndpoint.mg_per_liter(14),
+        ),
+        (
+            LowerBoundConcentrationEndpoint.mg_per_liter(20),
+            ExactConcentrationEndpoint.mg_per_liter(14),
+        ),
+        (
+            ExactConcentrationEndpoint.mg_per_liter(5),
+            NotDetectedConcentrationEndpoint(Q_(0.005, "g/L")),
+        ),
+    ],
+)
+def test_infeasible_endpoint_pair_is_rejected(minimum, maximum) -> None:
+    with pytest.raises(ValueError, match="range minimum cannot exceed maximum"):
+        IonConcentrationRange(Ion.SODIUM, minimum, maximum)
 
 
-def test_not_detected_limit_participates_in_range_coherence() -> None:
-    with pytest.raises(
-        ValueError,
-        match="range minimum cannot exceed maximum",
-    ):
-        IonConcentrationRange(
-            ion=Ion.SULFATE,
-            minimum=NotDetectedConcentrationEndpoint.with_detection_limit_mg_per_liter(
-                20.0
-            ),
-            maximum=ExactConcentrationEndpoint.mg_per_liter(14.0),
-        )
+def test_nd_endpoint_with_supplied_limit_requires_positive_limit() -> None:
+    with pytest.raises(ValueError, match="positive limit"):
+        NotDetectedConcentrationEndpoint.with_detection_limit_mg_per_liter(0)
 
 
 def test_not_detected_without_limit_skips_numeric_coherence_check() -> None:
@@ -439,6 +470,11 @@ def test_qualified_range_uses_real_reported_average_when_present() -> None:
             ExactConcentrationEndpoint.mg_per_liter(4.2),
             NotDetectedConcentrationEndpoint(),
             1,
+        ),
+        (
+            NotDetectedConcentrationEndpoint(),
+            NotDetectedConcentrationEndpoint.with_detection_limit_mg_per_liter(10),
+            10,
         ),
         (
             LowerBoundConcentrationEndpoint.mg_per_liter(5),
