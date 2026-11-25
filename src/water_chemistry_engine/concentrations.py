@@ -102,6 +102,11 @@ ConcentrationRangeEndpoint: TypeAlias = (
 )
 
 
+def _validate_ion(ion: Ion) -> None:
+    if not isinstance(ion, Ion):
+        raise TypeError("Ion concentration requires an Ion identifier.")
+
+
 def _endpoint_threshold_mg_per_liter(
     endpoint: ConcentrationRangeEndpoint,
 ) -> float | None:
@@ -131,6 +136,7 @@ class IonConcentration:
     result_context: ReportedResultContext | None = None
 
     def __post_init__(self) -> None:
+        _validate_ion(self.ion)
         _validate_mass_concentration(self.value)
 
     @property
@@ -156,6 +162,7 @@ class IonConcentrationRange:
     result_context: ReportedResultContext | None = None
 
     def __post_init__(self) -> None:
+        _validate_ion(self.ion)
         minimum_threshold = _endpoint_threshold_mg_per_liter(self.minimum)
         maximum_threshold = _endpoint_threshold_mg_per_liter(self.maximum)
 
@@ -267,6 +274,7 @@ class IonConcentrationUpperBound:
     result_context: ReportedResultContext | None = None
 
     def __post_init__(self) -> None:
+        _validate_ion(self.ion)
         _validate_mass_concentration(self.maximum)
 
     @classmethod
@@ -291,6 +299,7 @@ class IonConcentrationLowerBound:
     result_context: ReportedResultContext | None = None
 
     def __post_init__(self) -> None:
+        _validate_ion(self.ion)
         _validate_mass_concentration(self.minimum)
 
     @classmethod
@@ -315,6 +324,7 @@ class IonConcentrationNotDetected:
     result_context: ReportedResultContext | None = None
 
     def __post_init__(self) -> None:
+        _validate_ion(self.ion)
         if self.detection_limit is not None:
             _validate_mass_concentration(self.detection_limit)
 

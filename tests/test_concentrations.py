@@ -397,3 +397,18 @@ def test_not_detected_result_preserves_result_specific_context() -> None:
     )
 
     assert concentration.result_context is context
+
+
+@pytest.mark.parametrize(
+    "constructor",
+    [
+        lambda: IonConcentration.mg_per_liter("calcium", 40),
+        lambda: IonConcentrationLowerBound.mg_per_liter("calcium", 40),
+        lambda: IonConcentrationUpperBound.mg_per_liter("calcium", 40),
+        lambda: IonConcentrationRange.mg_per_liter("calcium", 40, 50),
+        lambda: IonConcentrationNotDetected("calcium"),
+    ],
+)
+def test_all_reported_ion_forms_reject_raw_ion_strings(constructor) -> None:
+    with pytest.raises(TypeError, match="Ion identifier"):
+        constructor()

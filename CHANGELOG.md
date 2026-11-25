@@ -10,6 +10,9 @@ comparison-expansion milestone is in progress.
 
 ### Fixed
 
+- Require an `Ion` identifier for exact concentrations, ranges, one-sided
+  bounds, and not-detected results in source and target profiles.
+
 - Reject treatment ingredients whose modeled ions together exceed the formula
   mass, accounting for each ion's stoichiometric coefficient.
 

@@ -132,6 +132,10 @@ these representation types does not make them automatic forward-calculation
 inputs. Only explicitly modeled ion concentrations currently enter source
 resolution.
 
+Source and target concentration constructors require an `Ion` enum member.
+When reading a serialized identifier, convert it first, for example with
+`Ion("calcium")`. Passing the string directly raises `TypeError`.
+
 The exact initial facade is:
 
 <!-- public-api-inventory-start -->
