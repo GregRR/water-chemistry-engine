@@ -88,8 +88,8 @@ source document, and expresses its maximum as measured material mass per total
 water volume. Its required `TreatmentMaterialUseLimitVolumeBasis` is calculation
 policy rather than report sampling context; the only current value is
 `OPTIMIZER_TOTAL_WATER_VOLUME`. The engine uses that requested total treated-
-water volume to validate the caller's explicit `maximum_mass`; it rejects a
-conflicting request rather than silently lowering that maximum. Finished-
+water volume (the pre-dose blend volume) to validate the caller's explicit
+`maximum_mass`; it rejects a conflicting request rather than silently lowering that maximum. Finished-
 beverage, source-water, mash-water, or other process-volume bases are not
 silently reinterpreted as optimizer total water. The policy is not interpreted
 as a universal safety, sensory, solubility, or regulatory limit.
@@ -123,6 +123,21 @@ and the actual measurement temperature. `resolve_volume_dose` returns
 mass; it does not claim to know total solution mass and does not infer density.
 The temperatures must match because thermal correction remains unsupported.
 This type is also manual-only and is not an optimizer material.
+
+In the current 0.5 development implementation, both liquid-dose resolvers
+retain measured volume on the resolved dose. Final chemistry still uses the
+pre-dose blend volume. Under the planned 0.5 contract, both resolvers pass
+the measured volume into the forward calculation. For a positive aqueous
+dose measured by mass, final-water calculation requires solution density at
+the matching temperature and identifies the dose in the error if its volume
+cannot be determined. Active mass alone can still be resolved without density.
+The optimizer will accept only solid materials.
+
+Under that contract, fully resolved matrix contributions sum directly to
+Final Water on a single final-volume basis. Source concentrations and the
+pre-dose blend remain available separately. Solid-only calculations retain
+their existing volume and concentrations.
+[Final mixture volume](WATER_CHEM_DESIGN.md#9161-final-mixture-volume)
 
 Both liquid-dose results expose `preparation_text` in milliliters, degrees
 Celsius, and grams. For example, a 25 mL dose at 20 °C supplying 2.5 g of

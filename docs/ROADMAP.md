@@ -421,7 +421,9 @@ The model must keep reported, calculated, and target alkalinity conceptually
 distinct without requiring a breaking replacement of the public `Alkalinity`
 type. Its initial assumptions are:
 
-- volumes are additive;
+- source blending uses additive volumes. The planned final-mixture model also
+  counts known external liquid dose volumes in the final-water calculation
+  (see [design 9.16.1](WATER_CHEM_DESIGN.md#9161-final-mixture-volume));
 - source alkalinity is resolved under the existing source-resolution policy;
 - resolved source alkalinity is volume-weighted during blending;
 - reviewed treatment contributions are calculated stoichiometrically in
@@ -568,8 +570,10 @@ they construct caller-supplied material definitions at the Engine boundary.
   chemical stoichiometry. Exact fractions resolve measured mass to active
   chemical mass; ranged fractions preserve active-mass bounds without an
   implicit midpoint.
-- Exact mass-fraction materials are eligible optimizer inputs. Dose increments,
-  request maximums, and mass ranking remain measured-material quantities while
+- The development optimizer accepts exact mass-fraction materials. Planned
+  0.5 admission is limited to solids pending volume-aware aqueous plan ranking
+  and forward replay. Dose increments, request maximums, and mass ranking
+  remain measured-material quantities while
   chemistry uses resolved active mass. Ranged materials remain optimizer-
   ineligible until an explicit uncertainty policy exists.
 - Represent purity/assay separately from chemical hydration state. A commercial
@@ -579,7 +583,9 @@ they construct caller-supplied material definitions at the Engine boundary.
   unlabeled percentage whose meaning could be mass fraction, mass/volume, or
   another convention.
 - Mass-based dosing of aqueous solutions is supported when an exact mass
-  fraction is supplied. Manual volume dosing is supported either when exact
+  fraction is supplied. The planned 0.5 final-water calculation also requires
+  density at the matching temperature for a positive aqueous mass dose.
+  Manual volume dosing is supported either when exact
   mass fraction, density, density reference temperature, and a matching
   measurement temperature are supplied, or when an exact active-mass-per-
   solution-volume concentration and matching reference/measurement

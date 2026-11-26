@@ -8,6 +8,16 @@ distribution and its repository milestones.
 Development of the total-alkalinity, treatment-material, profile, and
 comparison-expansion milestone is in progress.
 
+### Planned behavior changes
+
+- Restrict optimizer admission to solid materials pending volume-aware ranking
+  and replay. The current 0.5 development implementation also admits exact
+  mass-fraction aqueous solutions. Manual liquid dosing remains in scope.
+- Require density at the matching temperature for a positive mass-dosed
+  aqueous solution in final-water calculations. Active-mass resolution alone
+  still needs only the mass fraction and dose mass. Both volume-dose paths
+  will use the measured solution volume in final chemistry and matrix cells.
+
 ### Fixed
 
 - Accept feasible qualified ion ranges, including a

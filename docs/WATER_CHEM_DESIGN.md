@@ -945,9 +945,10 @@ dimensionless active-chemical mass fractions and separate solid or aqueous-
 solution form. Exact fractions resolve measured material mass to active
 chemical mass and then reuse ordinary `TreatmentAddition` semantics. Ranged
 fractions preserve their endpoints and return active-mass bounds; they cannot
-produce an exact addition or silently use a midpoint. This supports mass dosing
-without density. Those mass-fraction types do not themselves permit volume
-dosing because no density or reference-temperature assumption is inferred.
+produce an exact addition or silently use a midpoint. Active mass can be
+resolved without density. Under 9.16.1 a positive mass-dosed aqueous
+solution also requires density at the applicable temperature to calculate
+final water. Solid additions retain their existing mass-based behavior.
 Optional composition-source metadata retains the document behind a material
 definition separately from the chemical identity and from any
 practical-use-limit policy.
@@ -957,8 +958,8 @@ versioned caller-selected policy. The policy binds to one exact material key,
 states its applicability, and expresses a maximum measured material mass per
 total water volume. `TreatmentMaterialUseLimitVolumeBasis` makes that
 denominator calculation policy explicit; its initial and only supported value
-is the optimizer's requested total treated-water volume. This is not the
-source-report `WaterStage`, finished-product volume, mash-water volume, or an
+is the optimizer's requested total water volume (the pre-dose blend volume).
+This is not the source-report `WaterStage`, finished-product volume, mash-water volume, or an
 unspecified process volume. An optimizer request retains both that policy and
 its own explicit maximum measured mass. The engine rejects a request whose
 maximum exceeds the volume-scaled policy; it does not silently clamp the
@@ -968,8 +969,9 @@ permits less than one whole material dose increment at the requested volume,
 the request is rejected rather than treated as permission for a zero-only
 candidate.
 
-The optimizer accepts exact mass-fraction materials without changing its
-measured-dose semantics. Whole increments, request maximums, and mass ranking
+The 0.5 development optimizer currently accepts both solid and aqueous exact
+mass-fraction materials. The [final mixture volume design](#9161-final-mixture-volume)
+limits planned admission to solids. Whole increments, request maximums, and mass ranking
 refer to material mass; stoichiometric ion and reviewed alkalinity coefficients
 use the corresponding resolved active chemical mass. Returned plan additions
 retain both quantities and are replayed through the ordinary forward path.
@@ -988,6 +990,7 @@ thermal correction. The result retains measured volume, measurement
 temperature, solution mass, active chemical mass, the ordinary treatment
 addition, and operator-facing text. Composition and density provenance remain
 separate. This is a manual resolution path and is not admitted to the optimizer.
+Under 9.16.1 the resolver will carry the measured volume into the forward calculation.
 
 An aqueous solution specified directly as exact active chemical mass per
 solution volume has a distinct manual resolution path. It requires the
@@ -999,6 +1002,95 @@ retains measured volume, measurement temperature, active chemical mass, the
 ordinary treatment addition, and operator-facing text. Its concentration
 source remains distinct from chemical identity. Temperature correction and
 optimizer admission remain unsupported.
+
+The mass-per-volume resolver will likewise pass the measured dose volume to
+the forward calculation under the following design.
+
+#### 9.16.1 Final mixture volume
+
+**Planned for 0.5.** The current development implementation resolves liquid
+doses to active chemical mass and uses the pre-dose blend volume for final
+concentrations. Under this design each accepted liquid dose contributes its
+external solution volume to the final mixture.
+
+For each conservative linear constituent i:
+
+```text
+V_final   = V_blend + sum(v_j)
+C_final,i = (V_blend * C_blend,i + sum(m_ij)) / V_final
+```
+
+Here `V_blend` is the physical blend volume from 9.15, `v_j` is the volume
+added by treatment j, and `m_ij` is the stoichiometric mass of constituent i
+supplied by that treatment. Total alkalinity uses the same balance in signed
+equivalents under `conservative_equivalent_alkalinity_v1`. For example,
+adding 100 mL of sodium-free stock to 1.000 L containing 100 mg of sodium
+gives a final sodium concentration of 100 mg / 1.100 L, or 90.91 mg/L.
+
+##### Assumptions
+
+The result records the applicable assumptions by name:
+
+- comparable volume measurement temperatures, without thermal correction;
+- additive liquid volumes;
+- zero modeled volume change from dissolving a solid; and
+- zero modeled ions and alkalinity from the carrier water of an external stock.
+
+##### Dose volume
+
+- A volume-dosed aqueous solution contributes its measured solution volume.
+  Both the mass-fraction-plus-density and mass-per-volume resolvers carry
+  that volume into the forward calculation.
+- A mass-dosed aqueous solution contributes its measured solution mass
+  divided by the supplied exact density at the matching measurement
+  temperature. The engine must never infer a density of 1 g/mL.
+- A solid contributes zero modeled volume. Dissolving it in water drawn from
+  the batch and returning all that water counts as a solid addition. The
+  blend already includes that water and its constituents.
+
+A zero-mass dose contributes nothing and needs no density. A final-water
+calculation must reject a positive aqueous dose whose volume cannot be
+determined and identify the affected dose in the error. Resolving active
+chemical mass from a mass fraction remains possible without density.
+
+##### Final state and contribution matrix
+
+Final ions, final alkalinity, final target comparison and all matrix
+contributions use the same `V_final`. Reported source concentrations and the
+pre-dose blend profile retain their own bases.
+
+```text
+source cell    = V_s * C_s,i / V_final
+treatment cell = m_ij / V_final
+```
+
+For a fully resolved constituent, the cells sum directly to its final
+concentration. If any contributing amount is unknown, the known cells give
+a partial subtotal and the final concentration remains unknown, as in 9.15.
+
+##### Optimizer and practical-use limits
+
+The planned 0.5 optimizer admits only solid materials. This narrows current
+development behavior, which admits exact mass-fraction aqueous materials.
+Future aqueous admission requires a known dose volume, the forward model's
+denominator, ranking by deviation in the reported concentration units, and
+forward replay that reproduces each plan's score and chemistry. A density
+at the applicable temperature determines volume for a mass-dosed solution.
+Multiplying target inequalities by a positive final volume preserves their
+feasibility, but ranking by the resulting mass residual can reverse plan
+order when volumes differ.
+
+Practical-use limits apply to measured material mass per requested pre-dose
+blend volume. Adding a liquid product cannot increase its own allowance.
+
+##### Deferred until a consumer needs liquid or acid workflows
+
+Revisit unknown-volume estimates, a measured final-volume override, carrier
+composition and aqueous optimization together with a consumer workflow. For
+a known amount, unknown positive dilution bounds a signed concentration
+between its known-volume estimate and zero. An unknown amount still leaves
+the constituent unresolved. A public volume-basis enum and interval-aware
+target statuses are deferred with that work.
 
 ### 9.17 Future TreatmentPlan
 
@@ -1627,8 +1719,9 @@ claim that fewer products are chemically superior. A requested no-dilution
 best-effort plan is solved independently and follows the preferred candidates,
 so a result may contain two preferred plans plus that requested comparison.
 When the no-dilution starting blend already exceeds an ion's target maximum,
-the result identifies the ion and unavoidable starting deviation explicitly;
-the supported additive treatments cannot reduce that concentration.
+the result identifies the ion and unavoidable starting deviation under the
+constant-volume solid-addition model. An external stock lacking that ion
+could dilute it if liquid treatments are admitted under 9.16.1.
 
 ### 20.5 Result exactness language
 
