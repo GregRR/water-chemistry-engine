@@ -10,7 +10,7 @@
 
 - Before committing, run `git diff --check`. For code changes, run the applicable [CI checks](.github/workflows/ci.yml) in a locked environment. Mirror the full runtime matrix for compatibility-sensitive changes and release candidates.
 - Review the accumulated code and science after each coherent implementation slice. Resolve confirmed issues before starting dependent work.
-- Pause for independent scientific and code review when completing a substantial model, changing the public API or core data semantics, finishing a milestone or significant remediation, or preparing a release candidate. Record significant reviews and the disposition of each finding in [review records](docs/reviews/README.md). Add regression tests for confirmed bugs.
+- Pause for independent scientific and code review when completing a substantial model, changing the public API or core data semantics, finishing a milestone or significant remediation, or preparing a release candidate. Keep review reports and finding dispositions private in the ignored `notes-and-references/reviews/` directory. Never stage or force-add those files. Add regression tests for confirmed bugs.
 
 ## Commits
 
