@@ -296,7 +296,9 @@ Preferred sources include NIST, PubChem, recognized chemical suppliers' technica
     mixture.
   - Use: supports the exact active-chemical-mass-per-solution-volume material
     basis and the calculation `active mass = mass concentration × measured
-    solution volume`.
+    solution volume`. Final concentrations use total constituent mass divided
+    by the modeled final mixture volume. Adding the external stock volumes
+    and neglecting solid volume change are engine approximations in 9.16.1.
   - Project policy: the initial engine contract requires the measurement
     temperature to match the stated concentration reference temperature and
     provides no thermal correction. This fail-closed condition is project

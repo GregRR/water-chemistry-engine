@@ -8,14 +8,14 @@ distribution and its repository milestones.
 Development of the total-alkalinity, treatment-material, profile, and
 comparison-expansion milestone is in progress.
 
-### Planned behavior changes
-
-- Require density at the matching temperature for a positive mass-dosed
-  aqueous solution in final-water calculations. Active-mass resolution alone
-  still needs only the mass fraction and dose mass. Both volume-dose paths
-  will use the measured solution volume in final chemistry and matrix cells.
-
 ### Changed
+
+- Include external stock volume in final ions, signed alkalinity, target
+  comparisons and matrix contributions. Solid additions retain their
+  existing volume basis.
+- Require density at the matching temperature to prepare a positive
+  mass-dosed aqueous solution for final-water calculation. Active-mass
+  resolution alone still needs only the mass fraction and dose mass.
 
 - Restrict optimizer material constraints to solids. Earlier 0.5 development
   builds also admitted mass-dosed aqueous solutions and ranked their plans
@@ -143,8 +143,8 @@ comparison-expansion milestone is in progress.
   treated as interchangeable with calcium chloride dihydrate or commercial
   calcium-chloride products.
 - Added mass-dosed solid and aqueous-solution material types with explicit
-  exact or ranged active-chemical mass fractions. Exact fractions resolve to
-  ordinary treatment additions without density; ranged fractions preserve
+  exact or ranged active-chemical mass fractions. Exact fractions resolve
+  active mass without density; ranged fractions preserve
   active-mass bounds and never select an implicit midpoint. Optional source-
   document metadata retains composition/specification provenance.
 - Extended optimizer admission to solid exact mass-fraction materials. Operational

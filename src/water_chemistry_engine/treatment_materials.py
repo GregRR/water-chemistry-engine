@@ -200,6 +200,32 @@ def _normalized_temperature(
     return Q_(magnitude, "degree_Celsius")
 
 
+def _temperature_at_reference(
+    measurement: ScalarQuantity,
+    reference: ScalarQuantity,
+    *,
+    basis: str,
+    dose_name: str,
+) -> Quantity[float]:
+    temperature = _normalized_temperature(
+        measurement, label="Treatment material measurement temperature"
+    )
+    expected = _normalized_temperature(
+        reference, label=f"{basis.capitalize()} reference temperature"
+    )
+    if not isclose(
+        float(temperature.magnitude),
+        float(expected.magnitude),
+        rel_tol=0.0,
+        abs_tol=1e-9,
+    ):
+        raise ValueError(
+            f"Dose {dose_name!r} measurement temperature must match the "
+            f"{basis} reference temperature; temperature correction is unsupported."
+        )
+    return temperature
+
+
 def _normalized_mass_fraction(
     value: ScalarQuantity,
     *,
@@ -425,8 +451,8 @@ class ExactMassFractionTreatmentMaterial:
     The fraction must carry an explicit dimensionless basis, for example
     ``Q_(80, "percent")`` or ``Q_(0.8, "dimensionless")``.  Physical form is
     retained separately so an aqueous solution is never modeled as a chemical
-    hydration state.  Density is unnecessary for mass dosing and is not
-    inferred.
+    hydration state.  Density is optional for active-mass resolution and required for a
+    positive aqueous addition to final water.
     """
 
     key: str
@@ -436,6 +462,8 @@ class ExactMassFractionTreatmentMaterial:
     active_mass_fraction: ScalarQuantity
     dose_increment: ScalarQuantity
     composition_source: SourceDocumentMetadata | None = None
+    density: ScalarQuantity | None = None
+    density_reference_temperature: ScalarQuantity | None = None
 
     def __post_init__(self) -> None:
         _validate_identity(self.key, self.name, self.ingredient)
@@ -451,6 +479,18 @@ class ExactMassFractionTreatmentMaterial:
             label="Treatment material dose increment",
         )
         _validate_composition_source(self.composition_source)
+        if self.density is not None or self.density_reference_temperature is not None:
+            if self.form is not TreatmentMaterialForm.AQUEOUS_SOLUTION:
+                raise ValueError("Density is supported only for aqueous solutions.")
+            if self.density is None or self.density_reference_temperature is None:
+                raise ValueError(
+                    "Supply both solution density and its reference temperature."
+                )
+            _normalized_positive_density(self.density, label="Solution density")
+            _normalized_temperature(
+                self.density_reference_temperature,
+                label="Density reference temperature",
+            )
 
     @property
     def normalized_active_mass_fraction(self) -> Quantity[float]:
@@ -478,12 +518,38 @@ class ExactMassFractionTreatmentMaterial:
         fraction = float(self.normalized_active_mass_fraction.magnitude)
         return Q_(float(measured.magnitude) * fraction, "gram")
 
-    def treatment_addition(self, measured_mass: ScalarQuantity) -> TreatmentAddition:
-        """Resolve an exact mass-fraction dose to ordinary treatment semantics."""
-        return TreatmentAddition(
-            self.ingredient,
-            self.active_ingredient_mass(measured_mass),
+    def treatment_addition(
+        self,
+        measured_mass: ScalarQuantity,
+        *,
+        measurement_temperature: ScalarQuantity | None = None,
+    ) -> TreatmentAddition:
+        """Resolve a dose for final-water calculation, including external volume."""
+        active_mass = self.active_ingredient_mass(measured_mass)
+        if self.form is TreatmentMaterialForm.SOLID or measured_mass.magnitude == 0:
+            return TreatmentAddition(self.ingredient, active_mass)
+        if (
+            self.density is None
+            or self.density_reference_temperature is None
+            or measurement_temperature is None
+        ):
+            raise ValueError(
+                f"Aqueous dose {self.key!r} requires density, its reference temperature, "
+                "and measurement temperature for final-water calculation."
+            )
+        _temperature_at_reference(
+            measurement_temperature,
+            self.density_reference_temperature,
+            basis="density",
+            dose_name=self.key,
         )
+
+        density = _normalized_positive_density(self.density, label="Solution density")
+        volume = Q_(
+            float(measured_mass.to("gram").magnitude) / float(density.magnitude),
+            "milliliter",
+        )
+        return TreatmentAddition(self.ingredient, active_mass, solution_volume=volume)
 
 
 @dataclass(frozen=True, slots=True)
@@ -655,29 +721,21 @@ class ExactMassPerVolumeDosedSolutionTreatmentMaterial:
             measured_volume,
             label="Measured treatment material volume",
         )
-        temperature = _normalized_temperature(
+        temperature = _temperature_at_reference(
             measurement_temperature,
-            label="Treatment material measurement temperature",
+            self.concentration_reference_temperature,
+            basis="concentration",
+            dose_name=self.key,
         )
-        reference_temperature = self.normalized_concentration_reference_temperature
-        if not isclose(
-            float(temperature.magnitude),
-            float(reference_temperature.magnitude),
-            rel_tol=0.0,
-            abs_tol=1e-9,
-        ):
-            raise ValueError(
-                "Treatment material measurement temperature must match the "
-                "concentration reference temperature; temperature correction "
-                "is unsupported."
-            )
 
         active_mass = Q_(
             float(volume.magnitude)
             * float(self.normalized_active_mass_concentration.magnitude),
             "gram",
         )
-        addition = TreatmentAddition(self.ingredient, active_mass)
+        addition = TreatmentAddition(
+            self.ingredient, active_mass, solution_volume=volume
+        )
         return ResolvedMassPerVolumeSolutionDose(
             material=self,
             measured_volume=volume,
@@ -779,22 +837,12 @@ class ExactVolumeDosedSolutionTreatmentMaterial:
             measured_volume,
             label="Measured treatment material volume",
         )
-        temperature = _normalized_temperature(
+        temperature = _temperature_at_reference(
             measurement_temperature,
-            label="Treatment material measurement temperature",
+            self.density_reference_temperature,
+            basis="density",
+            dose_name=self.key,
         )
-        reference_temperature = self.normalized_density_reference_temperature
-        if not isclose(
-            float(temperature.magnitude),
-            float(reference_temperature.magnitude),
-            rel_tol=0.0,
-            abs_tol=1e-9,
-        ):
-            raise ValueError(
-                "Treatment material measurement temperature must match the "
-                "density reference temperature; temperature correction is "
-                "unsupported."
-            )
 
         volume_ml = float(volume.magnitude)
         solution_mass = Q_(
@@ -806,7 +854,9 @@ class ExactVolumeDosedSolutionTreatmentMaterial:
             * float(self.normalized_active_mass_fraction.magnitude),
             "gram",
         )
-        addition = TreatmentAddition(self.ingredient, active_mass)
+        addition = TreatmentAddition(
+            self.ingredient, active_mass, solution_volume=volume
+        )
         return ResolvedTreatmentMaterialVolumeDose(
             material=self,
             measured_volume=volume,

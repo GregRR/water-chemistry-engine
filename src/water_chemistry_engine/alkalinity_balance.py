@@ -404,7 +404,7 @@ def calculate_alkalinity_balance(
     """Calculate the named conservative-equivalent alkalinity balance."""
     require_treatment_matches_blend(blend_result, treatment_result)
     blended = _blend_alkalinity(source_resolutions, blend_result)
-    water_volume_liters = float(treatment_result.water_volume.to("liter").magnitude)
+    water_volume_liters = float(treatment_result.final_volume.to("liter").magnitude)
     contributions = []
     unresolved_indices = []
     for index, applied in enumerate(treatment_result.applied_treatments):
@@ -422,7 +422,8 @@ def calculate_alkalinity_balance(
     final_alkalinity = None
     if blended.alkalinity is not None and not unresolved_indices:
         final_alkalinity = ModeledAlkalinity.mg_per_liter_as_caco3(
-            float(blended.alkalinity.concentration.magnitude)
+            float(blended.alkalinity.concentration.to("mg/L").magnitude)
+            * treatment_result.initial_to_final_volume_ratio
             + fsum(float(item.concentration.magnitude) for item in contributions)
         )
     final = FinalAlkalinityResult(

@@ -262,10 +262,14 @@ def test_exact_mass_fraction_material_resolves_measured_mass(
     )
 
     active_mass = material.active_ingredient_mass(Q_(10, "gram"))
-    addition = material.treatment_addition(Q_(10, "gram"))
-
     assert material.normalized_active_mass_fraction.magnitude == pytest.approx(0.8)
     assert active_mass.to("gram").magnitude == pytest.approx(8.0)
+    if form is TreatmentMaterialForm.AQUEOUS_SOLUTION:
+        with pytest.raises(ValueError, match="calcium_chloride_material.*density"):
+            material.treatment_addition(Q_(10, "gram"))
+        assert material.treatment_addition(Q_(0, "gram")).mass == Q_(0, "gram")
+        return
+    addition = material.treatment_addition(Q_(10, "gram"))
     assert addition.ingredient is CALCIUM_CHLORIDE_ANHYDROUS
     assert addition.mass.to("gram").magnitude == pytest.approx(8.0)
 
@@ -283,6 +287,33 @@ def test_exact_mass_fraction_material_mass_dosing_does_not_require_density() -> 
     assert solution.active_ingredient_mass(Q_(10, "gram")).magnitude == (
         pytest.approx(3.25)
     )
+
+
+@pytest.mark.parametrize(
+    ("density", "reference", "measurement", "error"),
+    (
+        (Q_(1, "g/mL"), None, None, "both solution density"),
+        (None, Q_(20, "degC"), None, "both solution density"),
+        (Q_(0, "g/mL"), Q_(20, "degC"), None, "positive"),
+        (Q_(1, "g/mL"), Q_(20, "degC"), None, "stock.*measurement temperature"),
+        (Q_(1, "g/mL"), Q_(20, "degC"), Q_(19, "degC"), "stock.*must match"),
+    ),
+)
+def test_mass_dosed_stock_requires_density_at_matching_temperature(
+    density, reference, measurement, error
+) -> None:
+    with pytest.raises(ValueError, match=error):
+        stock = ExactMassFractionTreatmentMaterial(
+            key="stock",
+            name="Calcium chloride stock",
+            ingredient=CALCIUM_CHLORIDE_ANHYDROUS,
+            form=TreatmentMaterialForm.AQUEOUS_SOLUTION,
+            active_mass_fraction=Q_(33, "percent"),
+            dose_increment=Q_(1, "g"),
+            density=density,
+            density_reference_temperature=reference,
+        )
+        stock.treatment_addition(Q_(110, "g"), measurement_temperature=measurement)
 
 
 def test_ranged_mass_fraction_preserves_active_mass_bounds() -> None:

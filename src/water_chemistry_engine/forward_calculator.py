@@ -136,7 +136,7 @@ def calculate_forward_water(
 
     Every source report is first resolved under the same explicit caller policy.
     Those exact derived states are blended using the requested source volumes.
-    Mineral additions are then applied using the blend's physical total volume.
+    Final chemistry uses the blend volume plus the external solution volumes.
 
     When a target/reference profile is supplied, each resolved source state, the
     fixed blend, and the final treated state are compared independently.  The

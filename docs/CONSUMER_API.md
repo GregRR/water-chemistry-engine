@@ -125,16 +125,22 @@ mass; it does not claim to know total solution mass and does not infer density.
 The temperatures must match because thermal correction remains unsupported.
 This type is also manual-only and is not an optimizer material.
 
-In the current 0.5 development implementation, both liquid-dose resolvers
-retain measured volume on the resolved dose. Final chemistry still uses the
-pre-dose blend volume. Under the planned 0.5 contract, both resolvers pass
-the measured volume into the forward calculation. For a positive aqueous
-dose measured by mass, final-water calculation requires solution density at
-the matching temperature and identifies the dose in the error if its volume
-cannot be determined. Active mass alone can still be resolved without density.
+Both volume-dose resolvers carry the measured solution volume in
+`resolved.treatment_addition.solution_volume`. Pass that addition directly
+to `calculate_forward_water`. For a mass-dosed aqueous
+`ExactMassFractionTreatmentMaterial`, supply `density` and
+`density_reference_temperature` on the material and pass
+`measurement_temperature` to `treatment_addition`. A positive aqueous dose
+with missing density or a missing or mismatched measurement temperature
+raises a material-specific error. Use `active_ingredient_mass` to resolve
+active mass alone without density.
 
-Under that contract, fully resolved matrix contributions sum directly to
-Final Water on a single final-volume basis. Source concentrations and the
+`result.treatment_result.water_volume` is the starting blend volume.
+`added_solution_volume` and `final_volume` on the same result give the
+total external stock volume and the denominator for final chemistry.
+`volume_assumptions` names the applicable approximations. Fully resolved
+matrix contributions sum directly to Final Water on a single final-volume
+basis. Source concentrations and the
 pre-dose blend remain available separately. Solid-only calculations retain
 their existing volume and concentrations.
 [Final mixture volume](WATER_CHEM_DESIGN.md#9161-final-mixture-volume)

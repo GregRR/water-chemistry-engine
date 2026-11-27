@@ -101,6 +101,12 @@ class TreatmentPreparationInstruction:
     def text(self) -> str:
         """Describe active chemical mass, which may differ from material mass."""
         ingredient = self.addition.ingredient
+        if self.addition.solution_volume is not None:
+            ml = float(self.addition.solution_volume.to("milliliter").magnitude)
+            return (
+                f"Add {_format_magnitude(ml)} mL of stock solution supplying "
+                f"{_format_grams(self.mass)} of {ingredient.name} ({ingredient.formula})."
+            )
         return (
             f"Add {_format_grams(self.mass)} of {ingredient.name} "
             f"({ingredient.formula})."

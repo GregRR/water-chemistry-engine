@@ -990,7 +990,7 @@ thermal correction. The result retains measured volume, measurement
 temperature, solution mass, active chemical mass, the ordinary treatment
 addition, and operator-facing text. Composition and density provenance remain
 separate. This is a manual resolution path and is not admitted to the optimizer.
-Under 9.16.1 the resolver will carry the measured volume into the forward calculation.
+Under 9.16.1 the resolver carries the measured volume into the forward calculation.
 
 An aqueous solution specified directly as exact active chemical mass per
 solution volume has a distinct manual resolution path. It requires the
@@ -1003,15 +1003,14 @@ ordinary treatment addition, and operator-facing text. Its concentration
 source remains distinct from chemical identity. Temperature correction and
 optimizer admission remain unsupported.
 
-The mass-per-volume resolver will likewise pass the measured dose volume to
+The mass-per-volume resolver likewise passes the measured dose volume to
 the forward calculation under the following design.
 
 #### 9.16.1 Final mixture volume
 
-**Planned for 0.5.** The current development implementation resolves liquid
-doses to active chemical mass and uses the pre-dose blend volume for final
-concentrations. Under this design each accepted liquid dose contributes its
-external solution volume to the final mixture.
+Each accepted external liquid dose contributes its solution volume to the
+final mixture. The blend volume and source-report concentrations remain
+available for comparison with final water.
 
 For each conservative linear constituent i:
 

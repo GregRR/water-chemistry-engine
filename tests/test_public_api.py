@@ -294,8 +294,8 @@ def test_volume_dosed_solution_flows_through_package_root_forward_api() -> None:
     assert chloride is not None
     assert resolved.solution_mass.magnitude == pytest.approx(12.0)
     assert resolved.active_chemical_mass.magnitude == pytest.approx(3.9)
-    assert calcium.magnitude == pytest.approx(moles * 40.078 * 100.0)
-    assert chloride.magnitude == pytest.approx(moles * 2 * 35.45 * 100.0)
+    assert calcium.magnitude == pytest.approx(moles * 40.078 * 1000 / 10.010)
+    assert chloride.magnitude == pytest.approx(moles * 2 * 35.45 * 1000 / 10.010)
 
 
 def test_mass_per_volume_solution_flows_through_package_root_forward_api() -> None:
@@ -334,8 +334,79 @@ def test_mass_per_volume_solution_flows_through_package_root_forward_api() -> No
     assert calcium is not None
     assert chloride is not None
     assert resolved.active_chemical_mass.magnitude == pytest.approx(2.5)
-    assert calcium.magnitude == pytest.approx(moles * 40.078 * 100.0)
-    assert chloride.magnitude == pytest.approx(moles * 2 * 35.45 * 100.0)
+    assert calcium.magnitude == pytest.approx(moles * 40.078 * 1000 / 10.025)
+    assert chloride.magnitude == pytest.approx(moles * 2 * 35.45 * 1000 / 10.025)
+
+
+def test_external_bicarbonate_stock_reconciles_final_water_and_matrix() -> None:
+    stock = wce.ExactMassFractionTreatmentMaterial(
+        key="bicarbonate_stock",
+        name="Bicarbonate stock",
+        ingredient=wce.SODIUM_BICARBONATE,
+        form=wce.TreatmentMaterialForm.AQUEOUS_SOLUTION,
+        active_mass_fraction=Q_(1, "percent"),
+        dose_increment=Q_(1, "g"),
+        density=Q_(1.1, "g/mL"),
+        density_reference_temperature=Q_(20, "degree_Celsius"),
+    )
+    dose = stock.treatment_addition(
+        Q_(55, "g"), measurement_temperature=Q_(68, "degree_Fahrenheit")
+    )
+    calcium = wce.IonConcentration.mg_per_liter(wce.Ion.CALCIUM, 100)
+    alkalinity = wce.Alkalinity.mg_per_liter_as_caco3(-1000)
+    source_a = wce.SourceWaterProfile(
+        "A",
+        (calcium, wce.IonConcentration.mg_per_liter(wce.Ion.SODIUM, 20)),
+        alkalinity=alkalinity,
+    )
+    source_b = wce.SourceWaterProfile("B", (calcium,), alkalinity=alkalinity)
+    # Two 55 g doses add 100 mL and 1.1 g NaHCO3 in total.
+    final_alk = (-1000 + 1.1 / 84.00576928 * 50043.45) / 1.1
+    target = wce.TargetWaterProfile(
+        "Final",
+        (wce.IonConcentration.mg_per_liter(wce.Ion.CALCIUM, 100 / 1.1),),
+        alkalinity=wce.Alkalinity.mg_per_liter_as_caco3(final_alk),
+    )
+    result = wce.calculate_forward_water(
+        (
+            wce.ForwardWaterSource(source_a, Q_(0.5, "L")),
+            wce.ForwardWaterSource(source_b, Q_(0.5, "L")),
+        ),
+        source_resolution_policy=wce.SourceResolutionPolicy(False),
+        treatment_additions=(dose, dose),
+        target_profile=target,
+    )
+    assert result.treatment_result.final_volume.to("L").magnitude == pytest.approx(1.1)
+    assert result.treatment_result.water_volume == Q_(1, "L")
+    assert set(result.treatment_result.volume_assumptions) == {
+        "additive_liquid_volumes",
+        "comparable_volume_temperatures",
+        "zero_modeled_carrier_ions_and_alkalinity",
+    }
+    assert (
+        result.final_target_comparison.status
+        is wce.TargetProfileComparisonStatus.SATISFIED
+    )
+    calcium_row = result.contribution_matrix.row_for(wce.Ion.CALCIUM)
+    assert calcium_row.blend_concentration == Q_(100, "mg/L")
+    assert calcium_row.source_contributions[0].source_concentration == Q_(100, "mg/L")
+    assert calcium_row.known_source_contribution_sum.magnitude == pytest.approx(
+        100 / 1.1
+    )
+    sodium_row = result.contribution_matrix.row_for(wce.Ion.SODIUM)
+    assert sodium_row.final_concentration is None
+    assert sodium_row.known_source_contribution_sum.magnitude == pytest.approx(10 / 1.1)
+    assert sodium_row.known_treatment_contribution_sum.magnitude == pytest.approx(
+        1.1 / 84.00576928 * 22989.76928 / 1.1
+    )
+    alk_row = result.contribution_matrix.alkalinity_row
+    assert alk_row.blend_alkalinity == Q_(-1000, "mg/L")
+    assert alk_row.known_source_contribution_sum.magnitude == pytest.approx(-1000 / 1.1)
+    assert (
+        alk_row.known_source_contribution_sum + alk_row.known_treatment_contribution_sum
+    ).magnitude == pytest.approx(final_alk)
+    assert alk_row.final_alkalinity.magnitude == pytest.approx(final_alk)
+    assert "50 mL of stock solution" in result.preparation_instructions.lines[-1]
 
 
 def test_complete_forward_workflow_uses_only_package_root_imports() -> None:

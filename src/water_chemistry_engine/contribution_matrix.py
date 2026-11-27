@@ -129,11 +129,11 @@ class IonContributionMatrixRow:
 
         This is intentionally named a *known contribution sum*.  When one or
         more positive-volume source concentrations are unknown, it is only a
-        partial subtotal and must not be presented as the full blend total.
+        partial subtotal and must not be presented as the final concentration.
         """
         return Q_(
             fsum(
-                float(cell.weighted_contribution.magnitude)
+                float(cell.weighted_contribution.to("mg/L").magnitude)
                 for cell in self.source_contributions
                 if cell.weighted_contribution is not None
             ),
@@ -145,7 +145,7 @@ class IonContributionMatrixRow:
         """Return the complete known treatment contribution for this ion."""
         return Q_(
             fsum(
-                float(cell.contribution.magnitude)
+                float(cell.contribution.to("mg/L").magnitude)
                 for cell in self.treatment_contributions
                 if cell.contribution is not None
             ),
@@ -175,7 +175,7 @@ class AlkalinityContributionMatrixRow:
     def known_source_contribution_sum(self) -> Quantity[float]:
         return Q_(
             fsum(
-                float(cell.weighted_contribution.magnitude)
+                float(cell.weighted_contribution.to("mg/L").magnitude)
                 for cell in self.source_contributions
                 if cell.weighted_contribution is not None
             ),
@@ -186,7 +186,7 @@ class AlkalinityContributionMatrixRow:
     def known_treatment_contribution_sum(self) -> Quantity[float]:
         return Q_(
             fsum(
-                float(cell.contribution.magnitude)
+                float(cell.contribution.to("mg/L").magnitude)
                 for cell in self.treatment_contributions
                 if cell.contribution is not None
             ),
@@ -196,7 +196,7 @@ class AlkalinityContributionMatrixRow:
 
 @dataclass(frozen=True, slots=True)
 class WaterContributionMatrix:
-    """One matrix spanning every source, treatment, and canonical ion."""
+    """Source and treatment contributions expressed per final mixture volume."""
 
     source_columns: tuple[SourceContributionColumn, ...]
     treatment_columns: tuple[TreatmentContributionColumn, ...]
@@ -215,6 +215,7 @@ class WaterContributionMatrix:
 def _source_cells(
     blend_result: WaterBlendResult,
     resolution: ResolvedBlendIon | UnresolvedBlendIon,
+    volume_ratio: float,
 ) -> tuple[SourceContributionCell, ...]:
     if isinstance(resolution, ResolvedBlendIon):
         known_contributions = resolution.source_contributions
@@ -249,7 +250,8 @@ def _source_cells(
                     source_name=source.name,
                     status=SourceContributionCellStatus.KNOWN,
                     source_concentration=contribution.source_concentration,
-                    weighted_contribution=contribution.weighted_contribution,
+                    weighted_contribution=contribution.weighted_contribution
+                    * volume_ratio,
                 )
             )
             continue
@@ -330,6 +332,7 @@ def build_contribution_matrix(
     """
     require_treatment_matches_blend(blend_result, treatment_result)
 
+    volume_ratio = treatment_result.initial_to_final_volume_ratio
     alkalinity_row = None
     if alkalinity_balance is not None:
         source_contributions_by_index = {
@@ -362,7 +365,8 @@ def build_contribution_matrix(
                         source_concentration=(
                             contribution.source_alkalinity.concentration
                         ),
-                        weighted_contribution=contribution.weighted_contribution,
+                        weighted_contribution=contribution.weighted_contribution
+                        * volume_ratio,
                     )
                 )
                 continue
@@ -441,6 +445,7 @@ def build_contribution_matrix(
                 source_contributions=_source_cells(
                     blend_result,
                     blend_resolution,
+                    volume_ratio,
                 ),
                 treatment_contributions=_treatment_cells(
                     treatment_result,

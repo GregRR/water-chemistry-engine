@@ -293,3 +293,36 @@ def test_non_volume_water_size_is_rejected() -> None:
 def test_non_finite_treatment_volume_is_rejected(invalid: float) -> None:
     with pytest.raises(ValueError, match="volume must be finite"):
         apply_treatment_additions(_state(), Q_(invalid, "liter"), ())
+
+
+def test_no_treatment_preserves_concentrations_after_inplace_unit_conversion() -> None:
+    initial = _state(calcium=100)
+    calcium = initial.concentration_for(Ion.CALCIUM)
+    assert calcium is not None
+    calcium.ito("g/L")
+
+    result = apply_treatment_additions(initial, Q_(1, "liter"), ())
+
+    assert _mg_per_liter(result.final_state, Ion.CALCIUM) == pytest.approx(100)
+
+
+def test_zero_volume_stock_dose_needs_no_final_volume() -> None:
+    addition = TreatmentAddition(GYPSUM, Q_(0, "g"), solution_volume=Q_(0, "mL"))
+    result = apply_treatment_additions(_state(calcium=100), Q_(1, "L"), (addition,))
+    assert _mg_per_liter(result.final_state, Ion.CALCIUM) == 100
+    assert result.final_volume == Q_(1, "L")
+
+
+@pytest.mark.parametrize(
+    "volume", [Q_(0, "mL"), Q_(-1, "mL"), Q_(float("inf"), "mL"), Q_(5, "g")]
+)
+def test_invalid_solution_volume_cannot_disguise_a_positive_dose(
+    volume: object,
+) -> None:
+    with pytest.raises(ValueError, match="solution volume"):
+        TreatmentAddition(GYPSUM, Q_(1, "g"), solution_volume=volume)
+
+
+def test_zero_mass_cannot_supply_positive_stock_volume() -> None:
+    with pytest.raises(ValueError, match="zero mass"):
+        TreatmentAddition(GYPSUM, Q_(0, "g"), solution_volume=Q_(5, "mL"))

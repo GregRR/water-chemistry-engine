@@ -421,7 +421,7 @@ The model must keep reported, calculated, and target alkalinity conceptually
 distinct without requiring a breaking replacement of the public `Alkalinity`
 type. Its initial assumptions are:
 
-- source blending uses additive volumes. The planned final-mixture model also
+- source blending uses additive volumes. The final-mixture model also
   counts known external liquid dose volumes in the final-water calculation
   (see [design 9.16.1](WATER_CHEM_DESIGN.md#9161-final-mixture-volume));
 - source alkalinity is resolved under the existing source-resolution policy;
@@ -582,7 +582,7 @@ they construct caller-supplied material definitions at the Engine boundary.
   unlabeled percentage whose meaning could be mass fraction, mass/volume, or
   another convention.
 - Mass-based dosing of aqueous solutions is supported when an exact mass
-  fraction is supplied. The planned 0.5 final-water calculation also requires
+  fraction is supplied. The 0.5 final-water calculation also requires
   density at the matching temperature for a positive aqueous mass dose.
   Manual volume dosing is supported either when exact
   mass fraction, density, density reference temperature, and a matching

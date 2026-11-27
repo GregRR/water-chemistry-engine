@@ -7,7 +7,7 @@ In particular, it does not consume ions through reactions, enforce solubility,
 model precipitation, or redistribute carbonate species.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from math import fsum, isfinite
 from typing import TypeAlias
@@ -29,10 +29,15 @@ from water_chemistry_engine.treatment_stoichiometry import (
 
 @dataclass(frozen=True, slots=True)
 class TreatmentAddition:
-    """One requested mass addition of a specific treatment ingredient."""
+    """Active ingredient mass, optionally supplied in an external solution.
+
+    A mass-only addition models a solid. For an external stock, solution_volume
+    is the whole measured or density-derived dose volume.
+    """
 
     ingredient: TreatmentIngredient
     mass: ScalarQuantity
+    solution_volume: ScalarQuantity | None = None
 
     def __post_init__(self) -> None:
         try:
@@ -47,6 +52,21 @@ class TreatmentAddition:
             raise ValueError("Treatment addition mass must be finite.")
         if magnitude < 0:
             raise ValueError("Treatment addition mass cannot be negative.")
+        if self.solution_volume is not None:
+            try:
+                volume = float(self.solution_volume.to("liter").magnitude)
+            except Exception as exc:
+                raise ValueError("Treatment solution volume must be a volume.") from exc
+            if not isfinite(volume) or volume < 0:
+                raise ValueError(
+                    "Treatment solution volume must be finite and nonnegative."
+                )
+            if magnitude == 0 and volume > 0:
+                raise ValueError(
+                    "A zero mass dose cannot add positive solution volume."
+                )
+            if volume == 0 and magnitude > 0:
+                raise ValueError("A zero solution volume cannot supply positive mass.")
 
 
 @dataclass(frozen=True, slots=True)
@@ -110,6 +130,40 @@ class TreatmentApplicationResult:
     applied_treatments: tuple[AppliedTreatment, ...]
     final_state: AqueousChemicalState
     ion_resolutions: tuple[TreatmentIonResolution, ...]
+    added_solution_volume: Quantity[float] = field(
+        default_factory=lambda: Q_(0.0, "liter")
+    )
+
+    @property
+    def final_volume(self) -> Quantity[float]:
+        """Total mixture volume used for final chemistry."""
+        return self.water_volume + self.added_solution_volume
+
+    @property
+    def volume_assumptions(self) -> tuple[str, ...]:
+        """Named approximations applicable to the actual additions."""
+        assumptions: list[str] = []
+        if self.added_solution_volume.magnitude > 0:
+            assumptions.extend(
+                (
+                    "additive_liquid_volumes",
+                    "comparable_volume_temperatures",
+                    "zero_modeled_carrier_ions_and_alkalinity",
+                )
+            )
+        if any(
+            item.addition.solution_volume is None and item.addition.mass.magnitude > 0
+            for item in self.applied_treatments
+        ):
+            assumptions.append("zero_solid_volume_change")
+        return tuple(assumptions)
+
+    @property
+    def initial_to_final_volume_ratio(self) -> float:
+        """Factor converting initial concentrations to their final-volume basis."""
+        return float(self.water_volume.to("liter").magnitude) / float(
+            self.final_volume.to("liter").magnitude
+        )
 
     def resolution_for(self, ion: Ion) -> TreatmentIonResolution:
         """Return one ion outcome; normal treatment results contain every canonical ion."""
@@ -144,8 +198,9 @@ def apply_treatment_additions(
 ) -> TreatmentApplicationResult:
     """Apply zero or more simple mineral additions to an exact water state.
 
-    Existing known state concentrations and each treatment contribution are
-    summed in canonical mg/L units.  A missing ion in ``initial_state`` remains
+    The initial water volume converts each known concentration to a conserved
+    inventory. Include all external stock volumes in the denominator for both
+    source and treatment contributions. A missing ion in the initial state remains
     unknown: treatment contribution to that ion is recorded, but it is not
     silently promoted to a final total by assuming the unknown starting value
     was zero.  Callers that genuinely know a starting concentration is zero
@@ -157,13 +212,29 @@ def apply_treatment_additions(
     even when a missing initial concentration keeps that total unknown.
     """
     normalized_volume = _normalize_water_volume(water_volume)
+    try:
+        added_liters = fsum(
+            float(addition.solution_volume.to("liter").magnitude)
+            for addition in additions
+            if addition.solution_volume is not None
+        )
+    except OverflowError as exc:
+        raise ValueError("Final mixture volume must be finite.") from exc
+    added_volume = Q_(added_liters, "liter")
+    final_volume = normalized_volume + added_volume
+    if not isfinite(float(final_volume.magnitude)):
+        raise ValueError("Final mixture volume must be finite.")
+    volume_ratio = float(normalized_volume.magnitude) / float(final_volume.magnitude)
 
     initial_concentrations = {
         concentration.ion: concentration
         for concentration in initial_state.concentrations
     }
     concentration_terms_mg_per_liter = {
-        ion: [float(concentration.concentration.magnitude)]
+        ion: [
+            float(concentration.concentration.to("milligram / liter").magnitude)
+            * volume_ratio
+        ]
         for ion, concentration in initial_concentrations.items()
     }
     contributions_by_ion: dict[Ion, list[TreatmentIonContribution]] = {
@@ -175,7 +246,7 @@ def apply_treatment_additions(
         contributions = calculate_ion_contributions(
             addition.ingredient,
             addition.mass,
-            normalized_volume,
+            final_volume,
         )
         applied_treatments.append(
             AppliedTreatment(
@@ -234,6 +305,7 @@ def apply_treatment_additions(
     return TreatmentApplicationResult(
         initial_state=initial_state,
         water_volume=normalized_volume,
+        added_solution_volume=added_volume,
         applied_treatments=tuple(applied_treatments),
         final_state=AqueousChemicalState(concentrations=final_concentrations),
         ion_resolutions=tuple(resolutions),
