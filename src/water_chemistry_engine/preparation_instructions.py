@@ -4,7 +4,7 @@ This module turns an already-calculated fixed blend and treatment result into
 straightforward preparation instructions.  It does not recalculate chemistry or
 change any source, blend, or treatment semantics.
 
-Instruction quantities use stable canonical units (liters and grams) so every
+Instruction quantities use liters, milliliters, grams and degrees Celsius so every
 caller receives deterministic text.  The structured quantities are retained
 alongside that text so a UI can localize or reformat them without parsing prose.
 Zero-volume sources and zero-mass additions are valid no-ops in the underlying
@@ -102,9 +102,19 @@ class TreatmentPreparationInstruction:
         """Describe active chemical mass, which may differ from material mass."""
         ingredient = self.addition.ingredient
         if self.addition.solution_volume is not None:
-            ml = float(self.addition.solution_volume.to("milliliter").magnitude)
+            if self.addition.measured_solution_mass is None:
+                ml = float(self.addition.solution_volume.to("milliliter").magnitude)
+                action = f"Measure {_format_magnitude(ml)} mL"
+            else:
+                grams = float(self.addition.measured_solution_mass.to("gram").magnitude)
+                action = f"Weigh {_format_magnitude(grams)} g"
+            stock = self.addition.stock_name or "stock solution"
+            condition = ""
+            if self.addition.measurement_temperature is not None:
+                celsius = self.addition.measurement_temperature.to("degree_Celsius")
+                condition = f" at {_format_magnitude(float(celsius.magnitude))} °C"
             return (
-                f"Add {_format_magnitude(ml)} mL of stock solution supplying "
+                f"{action} of {stock}{condition} and add it to the blend. This supplies "
                 f"{_format_grams(self.mass)} of {ingredient.name} ({ingredient.formula})."
             )
         return (
@@ -123,13 +133,18 @@ class WaterPreparationInstructions:
 
     blend: BlendPreparationInstruction
     treatments: tuple[TreatmentPreparationInstruction, ...]
+    expected_final_volume: Quantity[float] | None = None
 
     @property
     def lines(self) -> tuple[str, ...]:
         """Return deterministic plain-text instructions in execution order."""
-        return (self.blend.text,) + tuple(
+        lines = (self.blend.text,) + tuple(
             treatment.text for treatment in self.treatments
         )
+        if self.expected_final_volume is not None:
+            volume = _format_liters(self.expected_final_volume)
+            lines += (f"Expected final volume after mixing is {volume}.",)
+        return lines
 
 
 def build_preparation_instructions(
@@ -178,4 +193,9 @@ def build_preparation_instructions(
             total_volume=blend_result.total_volume.to("liter"),
         ),
         treatments=treatment_instructions,
+        expected_final_volume=(
+            treatment_result.final_volume
+            if treatment_result.added_solution_volume.magnitude > 0
+            else None
+        ),
     )

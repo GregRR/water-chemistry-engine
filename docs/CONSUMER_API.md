@@ -151,6 +151,13 @@ pre-dose blend remain available separately. Solid-only calculations retain
 their existing volume and concentrations.
 [Final mixture volume](WATER_CHEM_DESIGN.md#9161-final-mixture-volume)
 
+For a resolved stock dose, `result.preparation_instructions.lines` gives
+the stock name, the quantity to weigh in grams or measure in milliliters,
+and the measurement temperature. For example, a weighed 26.45 g stock dose
+with a density of 1.058 g/mL contributes 25 mL. The instruction says to
+weigh 26.45 g. With 1 L of starting water, the last line reports an expected
+final volume of 1.025 L after mixing.
+
 Both liquid-dose results expose `preparation_text` in milliliters, degrees
 Celsius, and grams. For example, a 25 mL dose at 20 °C supplying 2.5 g of
 active chemical prints those same values after a caller converts the result

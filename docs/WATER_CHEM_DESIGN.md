@@ -1056,6 +1056,12 @@ declares a solid dose with zero modeled volume change. Rebuilding an aqueous
 dose this way from `active_ingredient_mass()` loses the stock volume. The
 active mass alone remains available without density for display or records.
 
+Preparation instructions for resolved stocks identify the stock, the
+quantity the operator weighed or measured, and the measurement temperature.
+The density-derived volume of a weighed stock enters the volume balance.
+After a positive stock addition the instructions report the calculated final
+volume as the expected result of mixing.
+
 ##### Final state and contribution matrix
 
 Final ions, final alkalinity, final target comparison and all matrix

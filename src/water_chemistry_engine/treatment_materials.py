@@ -542,7 +542,7 @@ class ExactMassFractionTreatmentMaterial:
                 f"Aqueous dose {self.key!r} requires density, its reference temperature, "
                 "and measurement temperature for final-water calculation."
             )
-        _temperature_at_reference(
+        temperature = _temperature_at_reference(
             measurement_temperature,
             self.density_reference_temperature,
             basis="density",
@@ -554,7 +554,14 @@ class ExactMassFractionTreatmentMaterial:
             float(measured_mass.to("gram").magnitude) / float(density.magnitude),
             "milliliter",
         )
-        return TreatmentAddition(self.ingredient, active_mass, solution_volume=volume)
+        return TreatmentAddition(
+            self.ingredient,
+            active_mass,
+            solution_volume=volume,
+            measured_solution_mass=measured_mass,
+            measurement_temperature=temperature,
+            stock_name=self.name,
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -739,7 +746,11 @@ class ExactMassPerVolumeDosedSolutionTreatmentMaterial:
             "gram",
         )
         addition = TreatmentAddition(
-            self.ingredient, active_mass, solution_volume=volume
+            self.ingredient,
+            active_mass,
+            solution_volume=volume,
+            measurement_temperature=temperature,
+            stock_name=self.name,
         )
         return ResolvedMassPerVolumeSolutionDose(
             material=self,
@@ -860,7 +871,11 @@ class ExactVolumeDosedSolutionTreatmentMaterial:
             "gram",
         )
         addition = TreatmentAddition(
-            self.ingredient, active_mass, solution_volume=volume
+            self.ingredient,
+            active_mass,
+            solution_volume=volume,
+            measurement_temperature=temperature,
+            stock_name=self.name,
         )
         return ResolvedTreatmentMaterialVolumeDose(
             material=self,

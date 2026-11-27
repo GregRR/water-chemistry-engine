@@ -293,6 +293,13 @@ def test_volume_dosed_solution_flows_through_package_root_forward_api() -> None:
     assert calcium is not None
     assert chloride is not None
     assert resolved.solution_mass.magnitude == pytest.approx(12.0)
+    assert result.preparation_instructions.lines[1:] == (
+        (
+            "Measure 10 mL of Exact calcium chloride solution at 20 °C and add it to the "
+            "blend. This supplies 3.9 g of Calcium chloride anhydrous (CaCl2)."
+        ),
+        "Expected final volume after mixing is 10.01 L.",
+    )
     assert resolved.active_chemical_mass.magnitude == pytest.approx(3.9)
     assert calcium.magnitude == pytest.approx(moles * 40.078 * 1000 / 10.010)
     assert chloride.magnitude == pytest.approx(moles * 2 * 35.45 * 1000 / 10.010)
@@ -334,6 +341,13 @@ def test_mass_per_volume_solution_flows_through_package_root_forward_api() -> No
     assert calcium is not None
     assert chloride is not None
     assert resolved.active_chemical_mass.magnitude == pytest.approx(2.5)
+    assert result.preparation_instructions.lines[1:] == (
+        (
+            "Measure 25 mL of 100 g/L calcium chloride solution at 20 °C and add it to "
+            "the blend. This supplies 2.5 g of Calcium chloride anhydrous (CaCl2)."
+        ),
+        "Expected final volume after mixing is 10.025 L.",
+    )
     assert calcium.magnitude == pytest.approx(moles * 40.078 * 1000 / 10.025)
     assert chloride.magnitude == pytest.approx(moles * 2 * 35.45 * 1000 / 10.025)
 
@@ -406,7 +420,15 @@ def test_external_bicarbonate_stock_reconciles_final_water_and_matrix() -> None:
         alk_row.known_source_contribution_sum + alk_row.known_treatment_contribution_sum
     ).magnitude == pytest.approx(final_alk)
     assert alk_row.final_alkalinity.magnitude == pytest.approx(final_alk)
-    assert "50 mL of stock solution" in result.preparation_instructions.lines[-1]
+    weighed_dose = (
+        "Weigh 55 g of Bicarbonate stock at 20 °C and add it to the blend. "
+        "This supplies 0.55 g of Sodium bicarbonate (NaHCO3)."
+    )
+    assert result.preparation_instructions.lines[1:] == (
+        weighed_dose,
+        weighed_dose,
+        "Expected final volume after mixing is 1.1 L.",
+    )
 
 
 def test_complete_forward_workflow_uses_only_package_root_imports() -> None:

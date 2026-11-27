@@ -36,11 +36,17 @@ class TreatmentAddition:
     It carries the whole measured or density-derived dose volume in
     solution_volume. Rebuilding it from active_ingredient_mass() alone
     discards that volume and models the active chemical as a solid.
+
+    Stock resolvers retain the stock name and measurement temperature for
+    preparation. Only a weighed dose sets measured_solution_mass.
     """
 
     ingredient: TreatmentIngredient
     mass: ScalarQuantity
     solution_volume: ScalarQuantity | None = None
+    measured_solution_mass: ScalarQuantity | None = field(default=None, kw_only=True)
+    measurement_temperature: ScalarQuantity | None = field(default=None, kw_only=True)
+    stock_name: str | None = field(default=None, kw_only=True)
 
     def __post_init__(self) -> None:
         try:
@@ -55,6 +61,40 @@ class TreatmentAddition:
             raise ValueError("Treatment addition mass must be finite.")
         if magnitude < 0:
             raise ValueError("Treatment addition mass cannot be negative.")
+        if self.stock_name is not None and not self.stock_name.strip():
+            raise ValueError("Stock name cannot be empty.")
+        if self.solution_volume is None and any(
+            value is not None
+            for value in (
+                self.measured_solution_mass,
+                self.measurement_temperature,
+                self.stock_name,
+            )
+        ):
+            raise ValueError("Stock dose details require a solution volume.")
+        if self.measured_solution_mass is not None:
+            try:
+                grams = float(self.measured_solution_mass.to("gram").magnitude)
+            except Exception as exc:
+                raise ValueError("Measured stock mass must be a mass.") from exc
+            if (
+                not isfinite(grams)
+                or grams < magnitude
+                or (grams > 0 and magnitude == 0)
+            ):
+                raise ValueError(
+                    "Measured stock mass must be finite, cover its active mass, "
+                    "and be zero for a zero dose."
+                )
+        if self.measurement_temperature is not None:
+            try:
+                celsius = self.measurement_temperature.to("degree_Celsius")
+            except Exception as exc:
+                raise ValueError(
+                    "Stock measurement temperature must be a temperature."
+                ) from exc
+            if not isfinite(float(celsius.magnitude)):
+                raise ValueError("Stock measurement temperature must be finite.")
         if self.solution_volume is not None:
             try:
                 volume = float(self.solution_volume.to("liter").magnitude)

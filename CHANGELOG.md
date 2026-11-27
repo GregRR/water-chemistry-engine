@@ -16,12 +16,14 @@ comparison-expansion milestone is in progress.
 - Require density at the matching temperature to prepare a positive
   mass-dosed aqueous solution for final-water calculation. Active-mass
   resolution alone still needs only the mass fraction and dose mass.
-
 - Restrict optimizer material constraints to solids. Earlier 0.5 development
   builds also admitted mass-dosed aqueous solutions and ranked their plans
   on the pre-dose volume.
 
 ### Fixed
+
+- Preserve the stock dose's measurement method and temperature in forward
+  preparation instructions and report the expected final volume after mixing.
 
 - Accept feasible qualified ion ranges, including a
   minimum of `<20` or `ND(20)` and an exact maximum of 14 mg/L. A supplied
