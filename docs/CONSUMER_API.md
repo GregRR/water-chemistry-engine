@@ -94,8 +94,9 @@ beverage, source-water, mash-water, or other process-volume bases are not
 silently reinterpreted as optimizer total water. The policy is not interpreted
 as a universal safety, sensory, solubility, or regulatory limit.
 
-`OptimizerMaterialConstraint` accepts the pure mass-for-mass material and the
-exact mass-fraction material. Optimizer increments and maximums are measured-
+`OptimizerMaterialConstraint` accepts the pure mass-for-mass material and
+solid exact mass-fraction materials. An aqueous mass-fraction material raises
+`ValueError` when the constraint is constructed. Optimizer increments and maximums are measured-
 material masses; ion and alkalinity coefficients use the resolved active
 chemical mass. Plans report both values. Ranged mass-fraction materials remain
 ineligible because optimization cannot select an unreported composition or
@@ -131,7 +132,6 @@ the measured volume into the forward calculation. For a positive aqueous
 dose measured by mass, final-water calculation requires solution density at
 the matching temperature and identifies the dose in the error if its volume
 cannot be determined. Active mass alone can still be resolved without density.
-The optimizer will accept only solid materials.
 
 Under that contract, fully resolved matrix contributions sum directly to
 Final Water on a single final-volume basis. Source concentrations and the

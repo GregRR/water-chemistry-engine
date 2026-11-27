@@ -969,9 +969,9 @@ permits less than one whole material dose increment at the requested volume,
 the request is rejected rather than treated as permission for a zero-only
 candidate.
 
-The 0.5 development optimizer currently accepts both solid and aqueous exact
-mass-fraction materials. The [final mixture volume design](#9161-final-mixture-volume)
-limits planned admission to solids. Whole increments, request maximums, and mass ranking
+The optimizer admits solid exact mass-fraction materials. See the
+[final mixture volume design](#9161-final-mixture-volume) for the aqueous
+material restriction. Whole increments, request maximums, and mass ranking
 refer to material mass; stoichiometric ion and reviewed alkalinity coefficients
 use the corresponding resolved active chemical mass. Returned plan additions
 retain both quantities and are replayed through the ordinary forward path.
@@ -1070,8 +1070,7 @@ a partial subtotal and the final concentration remains unknown, as in 9.15.
 
 ##### Optimizer and practical-use limits
 
-The planned 0.5 optimizer admits only solid materials. This narrows current
-development behavior, which admits exact mass-fraction aqueous materials.
+The 0.5 optimizer admits only solid materials.
 Future aqueous admission requires a known dose volume, the forward model's
 denominator, ranking by deviation in the reported concentration units, and
 forward replay that reproduces each plan's score and chemistry. A density

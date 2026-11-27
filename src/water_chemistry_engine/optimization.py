@@ -22,6 +22,7 @@ from water_chemistry_engine.target_profiles import TargetWaterProfile
 from water_chemistry_engine.treatment_materials import (
     ExactMassDosedTreatmentMaterial,
     ExactMassFractionTreatmentMaterial,
+    TreatmentMaterialForm,
     TreatmentMaterialUseLimit,
     TreatmentMaterialUseLimitVolumeBasis,
 )
@@ -167,7 +168,7 @@ class OptimizerSource:
 
 @dataclass(frozen=True, slots=True)
 class OptimizerMaterialConstraint:
-    """One permitted exact-composition material and its measured-mass limit.
+    """One permitted exact-composition solid and its measured-mass limit.
 
     ``maximum_mass`` is an explicit operational constraint for this request. It
     prevents an unbounded recommendation but is not represented as a universal
@@ -188,6 +189,13 @@ class OptimizerMaterialConstraint:
             raise TypeError(
                 "Optimizer material constraint requires an exact-composition "
                 "mass-dosed material."
+            )
+        if (
+            isinstance(self.material, ExactMassFractionTreatmentMaterial)
+            and self.material.form is not TreatmentMaterialForm.SOLID
+        ):
+            raise ValueError(
+                f"Optimizer material {self.material.key!r} must be a solid."
             )
         maximum = _positive_mass(
             self.maximum_mass,

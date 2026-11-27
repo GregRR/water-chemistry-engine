@@ -570,9 +570,8 @@ they construct caller-supplied material definitions at the Engine boundary.
   chemical stoichiometry. Exact fractions resolve measured mass to active
   chemical mass; ranged fractions preserve active-mass bounds without an
   implicit midpoint.
-- The development optimizer accepts exact mass-fraction materials. Planned
-  0.5 admission is limited to solids pending volume-aware aqueous plan ranking
-  and forward replay. Dose increments, request maximums, and mass ranking
+- The optimizer admits solid exact mass-fraction materials. Aqueous
+  materials are excluded pending volume-aware ranking and forward replay. Dose increments, request maximums, and mass ranking
   remain measured-material quantities while
   chemistry uses resolved active mass. Ranged materials remain optimizer-
   ineligible until an explicit uncertainty policy exists.

@@ -10,13 +10,16 @@ comparison-expansion milestone is in progress.
 
 ### Planned behavior changes
 
-- Restrict optimizer admission to solid materials pending volume-aware ranking
-  and replay. The current 0.5 development implementation also admits exact
-  mass-fraction aqueous solutions. Manual liquid dosing remains in scope.
 - Require density at the matching temperature for a positive mass-dosed
   aqueous solution in final-water calculations. Active-mass resolution alone
   still needs only the mass fraction and dose mass. Both volume-dose paths
   will use the measured solution volume in final chemistry and matrix cells.
+
+### Changed
+
+- Restrict optimizer material constraints to solids. Earlier 0.5 development
+  builds also admitted mass-dosed aqueous solutions and ranked their plans
+  on the pre-dose volume.
 
 ### Fixed
 
@@ -144,7 +147,7 @@ comparison-expansion milestone is in progress.
   ordinary treatment additions without density; ranged fractions preserve
   active-mass bounds and never select an implicit midpoint. Optional source-
   document metadata retains composition/specification provenance.
-- Extended optimizer admission to exact mass-fraction materials. Operational
+- Extended optimizer admission to solid exact mass-fraction materials. Operational
   increments, limits, and mass ranking use measured material mass while
   chemistry and forward replay use resolved active chemical mass; ranged
   compositions remain rejected. Plan additions provide measured-material

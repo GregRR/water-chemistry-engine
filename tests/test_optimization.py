@@ -424,6 +424,20 @@ def test_optimizer_material_constraint_accepts_exact_mass_fraction() -> None:
     assert constraint.material is material
 
 
+def test_optimizer_material_constraint_rejects_mass_dosed_solution() -> None:
+    solution = ExactMassFractionTreatmentMaterial(
+        key="calcium_chloride_stock",
+        name="Calcium chloride stock",
+        ingredient=CALCIUM_CHLORIDE_ANHYDROUS,
+        form=TreatmentMaterialForm.AQUEOUS_SOLUTION,
+        active_mass_fraction=Q_(33, "percent"),
+        dose_increment=Q_(1, "gram"),
+    )
+
+    with pytest.raises(ValueError, match="calcium_chloride_stock.*solid"):
+        OptimizerMaterialConstraint(solution, Q_(110, "gram"))
+
+
 def test_optimizer_material_constraint_retains_sourced_use_limit() -> None:
     material = ExactMassDosedTreatmentMaterial(
         "gypsum", "Gypsum", GYPSUM, Q_(0.1, "gram")
