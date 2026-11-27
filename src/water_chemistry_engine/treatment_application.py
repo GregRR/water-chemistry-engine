@@ -31,8 +31,11 @@ from water_chemistry_engine.treatment_stoichiometry import (
 class TreatmentAddition:
     """Active ingredient mass, optionally supplied in an external solution.
 
-    A mass-only addition models a solid. For an external stock, solution_volume
-    is the whole measured or density-derived dose volume.
+    TreatmentAddition(ingredient, mass) declares a solid dose. For an aqueous
+    stock, pass the material resolver's addition directly to the calculation.
+    It carries the whole measured or density-derived dose volume in
+    solution_volume. Rebuilding it from active_ingredient_mass() alone
+    discards that volume and models the active chemical as a solid.
     """
 
     ingredient: TreatmentIngredient

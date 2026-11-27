@@ -1047,10 +1047,14 @@ The result records the applicable assumptions by name:
   the batch and returning all that water counts as a solid addition. The
   blend already includes that water and its constituents.
 
-A zero-mass dose contributes nothing and needs no density. A final-water
-calculation must reject a positive aqueous dose whose volume cannot be
-determined and identify the affected dose in the error. Resolving active
-chemical mass from a mass fraction remains possible without density.
+A zero-mass dose contributes nothing and needs no density. For a positive
+mass-dosed aqueous stock, `ExactMassFractionTreatmentMaterial.treatment_addition()`
+must determine the stock volume or raise an error identifying the material
+before the dose enters the forward calculation. Pass the resolved addition
+to the forward calculation. The two-argument `TreatmentAddition(ingredient, mass)`
+declares a solid dose with zero modeled volume change. Rebuilding an aqueous
+dose this way from `active_ingredient_mass()` loses the stock volume. The
+active mass alone remains available without density for display or records.
 
 ##### Final state and contribution matrix
 
@@ -1089,6 +1093,10 @@ a known amount, unknown positive dilution bounds a signed concentration
 between its known-volume estimate and zero. An unknown amount still leaves
 the constituent unresolved. A public volume-basis enum and interval-aware
 target statuses are deferred with that work.
+
+When a consumer needs liquid or acid dosing, revisit retaining the originating
+treatment material on each resolved addition so the forward calculation can
+validate the dose volume against its material form.
 
 ### 9.17 Future TreatmentPlan
 

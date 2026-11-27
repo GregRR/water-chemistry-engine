@@ -510,7 +510,12 @@ class ExactMassFractionTreatmentMaterial:
         )
 
     def active_ingredient_mass(self, measured_mass: ScalarQuantity) -> Quantity[float]:
-        """Resolve measured material mass to exact active chemical mass."""
+        """Resolve the active chemical mass for a measured material mass.
+
+        For aqueous stock this quantity alone is suitable for display or
+        records. Use treatment_addition() for final water so the dose retains
+        its solution volume.
+        """
         measured = _normalized_nonnegative_mass(
             measured_mass,
             label="Measured treatment material mass",

@@ -132,8 +132,14 @@ to `calculate_forward_water`. For a mass-dosed aqueous
 `density_reference_temperature` on the material and pass
 `measurement_temperature` to `treatment_addition`. A positive aqueous dose
 with missing density or a missing or mismatched measurement temperature
-raises a material-specific error. Use `active_ingredient_mass` to resolve
-active mass alone without density.
+raises a material-specific error. Pass the addition returned by
+`material.treatment_addition(measured_mass, measurement_temperature=temperature)`
+directly to `calculate_forward_water`.
+
+For an aqueous stock, use `active_ingredient_mass(measured_mass)` alone
+only to display or record the amount of active chemical. Wrapping that
+quantity in `TreatmentAddition(ingredient, mass)` declares a solid dose
+and omits the stock volume from final concentrations.
 
 `result.treatment_result.water_volume` is the starting blend volume.
 `added_solution_volume` and `final_volume` on the same result give the
