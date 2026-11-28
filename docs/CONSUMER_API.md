@@ -151,6 +151,13 @@ pre-dose blend remain available separately. Solid-only calculations retain
 their existing volume and concentrations.
 [Final mixture volume](WATER_CHEM_DESIGN.md#9161-final-mixture-volume)
 
+When calling `water_chemistry_engine.contribution_matrix.build_contribution_matrix`
+with an alkalinity balance, pass the same blend and treatment result instances used to calculate
+that balance. For example, use `result.blend_result`, `result.treatment_result`
+and `result.alkalinity_balance` from one forward result. The builder raises
+`ValueError` if the balance cannot be linked to both stages. Omit the balance
+to build an ion-only matrix.
+
 For a resolved stock dose, `result.preparation_instructions.lines` gives
 the stock name, the quantity to weigh in grams or measure in milliliters,
 and the measurement temperature. For example, a weighed 26.45 g stock dose

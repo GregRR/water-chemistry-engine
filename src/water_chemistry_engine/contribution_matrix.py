@@ -328,13 +328,15 @@ def build_contribution_matrix(
     The function consumes the existing per-ion audit records rather than
     recalculating weighted source chemistry or treatment stoichiometry.  The
     treatment stage must therefore start from the supplied blend state and use
-    the supplied blend volume.
+    the supplied blend volume. An optional alkalinity balance must have been
+    calculated with these same two stage instances.
     """
     require_treatment_matches_blend(blend_result, treatment_result)
 
     volume_ratio = treatment_result.initial_to_final_volume_ratio
     alkalinity_row = None
     if alkalinity_balance is not None:
+        alkalinity_balance.require_matching_stages(blend_result, treatment_result)
         source_contributions_by_index = {
             contribution.source_index: contribution
             for contribution in alkalinity_balance.blend.source_contributions

@@ -6,7 +6,7 @@ treatment contributions.  It does not calculate carbonate speciation, pH,
 precipitation, dissolution, carbon-dioxide exchange, or unmodeled reactions.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from math import fsum, isfinite, ulp
 from typing import TypeAlias
@@ -261,6 +261,24 @@ class AlkalinityBalanceResult:
     limitations: tuple[AlkalinityModelLimitation, ...] = (
         CONSERVATIVE_EQUIVALENT_ALKALINITY_LIMITATIONS
     )
+    _workflow: tuple[WaterBlendResult, TreatmentApplicationResult] | None = field(
+        default=None, kw_only=True, repr=False, compare=False
+    )
+
+    def require_matching_stages(
+        self,
+        blend_result: WaterBlendResult,
+        treatment_result: TreatmentApplicationResult,
+    ) -> None:
+        """Check the original stage instances before joining positional audit records."""
+        if (
+            self._workflow is None
+            or self._workflow[0] is not blend_result
+            or self._workflow[1] is not treatment_result
+        ):
+            raise ValueError(
+                "Alkalinity balance must come from the supplied blend and treatment results."
+            )
 
 
 def resolve_source_alkalinity(
@@ -436,4 +454,5 @@ def calculate_alkalinity_balance(
         source_resolutions=source_resolutions,
         blend=blended,
         final=final,
+        _workflow=(blend_result, treatment_result),
     )

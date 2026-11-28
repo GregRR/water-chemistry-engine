@@ -5,6 +5,7 @@ from fermunits import Q_
 
 from water_chemistry_engine.alkalinity_balance import (
     CONSERVATIVE_EQUIVALENT_ALKALINITY_MODEL,
+    AlkalinityBalanceResult,
     AlkalinityModelLimitation,
     ResolvedSourceAlkalinity,
     SourceAlkalinityResolutionMethod,
@@ -15,6 +16,7 @@ from water_chemistry_engine.concentrations import IonConcentration
 from water_chemistry_engine.contribution_matrix import (
     SourceContributionCellStatus,
     TreatmentContributionCellStatus,
+    build_contribution_matrix,
 )
 from water_chemistry_engine.forward_calculator import (
     ForwardWaterSource,
@@ -35,7 +37,10 @@ from water_chemistry_engine.target_comparison import (
     compare_state_to_target,
 )
 from water_chemistry_engine.target_profiles import TargetWaterProfile
-from water_chemistry_engine.treatment_application import TreatmentAddition
+from water_chemistry_engine.treatment_application import (
+    TreatmentAddition,
+    apply_treatment_additions,
+)
 from water_chemistry_engine.treatment_ingredients import (
     CALCIUM_CHLORIDE_DIHYDRATE,
     GYPSUM,
@@ -62,6 +67,60 @@ def _source(
         concentrations=concentrations,
         alkalinity=alkalinity,
     )
+
+
+def test_matrix_rejects_alkalinity_from_a_different_blend() -> None:
+    # Ion states, source labels and volumes can match even when the reports
+    # differ in alkalinity. Only the source report carries that measurement.
+    low, high = (
+        calculate_forward_water(
+            (
+                ForwardWaterSource(
+                    _source("Well", Alkalinity.mg_per_liter_as_caco3(value)), Q_(1, "L")
+                ),
+            ),
+            source_resolution_policy=REPORTED_ONLY,
+        )
+        for value in (10, 100)
+    )
+    assert low.blend_result == high.blend_result
+    linked = build_contribution_matrix(
+        low.blend_result, low.treatment_result, low.alkalinity_balance
+    )
+    assert linked.alkalinity_row.final_alkalinity == Q_(10, "mg/L")
+    with pytest.raises(ValueError, match="Alkalinity balance must come from"):
+        build_contribution_matrix(
+            low.blend_result, high.treatment_result, high.alkalinity_balance
+        )
+
+
+def test_matrix_rejects_alkalinity_from_a_different_treatment() -> None:
+    result = calculate_forward_water(
+        (
+            ForwardWaterSource(
+                _source("Well", Alkalinity.mg_per_liter_as_caco3(10)), Q_(1, "L")
+            ),
+        ),
+        source_resolution_policy=REPORTED_ONLY,
+    )
+    treated = apply_treatment_additions(
+        result.blend_state,
+        Q_(1, "L"),
+        (TreatmentAddition(SODIUM_BICARBONATE, Q_(1, "g")),),
+    )
+    with pytest.raises(ValueError, match="Alkalinity balance must come from"):
+        build_contribution_matrix(
+            result.blend_result, treated, result.alkalinity_balance
+        )
+
+    balance = result.alkalinity_balance
+    unlinked = AlkalinityBalanceResult(
+        balance.source_resolutions, balance.blend, balance.final
+    )
+    with pytest.raises(ValueError, match="Alkalinity balance must come from"):
+        build_contribution_matrix(
+            result.blend_result, result.treatment_result, unlinked
+        )
 
 
 def test_exact_source_alkalinity_resolves_without_deriving_bicarbonate() -> None:

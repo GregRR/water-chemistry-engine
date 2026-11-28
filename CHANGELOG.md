@@ -22,6 +22,9 @@ comparison-expansion milestone is in progress.
 
 ### Fixed
 
+- Reject an alkalinity balance from a different blend or treatment when
+  building a contribution matrix.
+
 - Preserve the stock dose's measurement method and temperature in forward
   preparation instructions and report the expected final volume after mixing.
 
