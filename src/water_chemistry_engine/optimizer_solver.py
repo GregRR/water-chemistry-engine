@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from decimal import ROUND_FLOOR, Decimal
+from fractions import Fraction
 from math import fabs, fsum, inf, isclose, isfinite, nextafter
 from typing import Protocol, cast
 
@@ -1052,6 +1053,17 @@ def _build_plan(
     summary_label: str,
     explain_unavoidable_overshoot: bool = False,
 ) -> tuple[OptimizerPlan | None, OptimizerDiagnostic | None]:
+    if request.blend_policy is OptimizerBlendPolicy.PROPORTIONAL_DILUTION:
+        for index, entry in enumerate(source_volumes):
+            if capacity_liters(entry.volume) > capacity_liters(
+                entry.source.maximum_volume
+            ):
+                return None, OptimizerDiagnostic(
+                    code=OptimizerDiagnosticCode.SOLVER_POSTVALIDATION_FAILED,
+                    message="The reported proportional-dilution volume exceeds the source maximum.",
+                    source_index=index,
+                    source_name=entry.source.source_profile.name,
+                )
     additions = _material_additions(request, material_counts)
     sources = tuple(
         ForwardWaterSource(entry.source.source_profile, entry.volume)
@@ -1177,26 +1189,26 @@ def _build_plan(
 
 def _proportional_dilution_bounds(
     request: OptimizerRequest,
-) -> tuple[float, float] | None:
+) -> tuple[Fraction, Fraction] | None:
     assert request.diluent_source is not None
-    total_liters = float(request.total_volume.to("liter").magnitude)
+    total_liters = capacity_liters(request.total_volume)
     current_liters = tuple(
-        float(source.current_volume.to("liter").magnitude) for source in request.sources
+        capacity_liters(source.current_volume) for source in request.sources
     )
-    current_total = fsum(current_liters)
+    current_total = sum(current_liters)
     maximum_non_diluent = total_liters
     for source, current in zip(request.sources, current_liters, strict=True):
-        if current == 0.0:
+        if current == 0:
             continue
         proportion = current / current_total
-        maximum = float(source.maximum_volume.to("liter").magnitude)
+        maximum = capacity_liters(source.maximum_volume)
         maximum_non_diluent = min(maximum_non_diluent, maximum / proportion)
 
     diluent_maximum = min(
         total_liters,
-        float(request.diluent_source.maximum_volume.to("liter").magnitude),
+        capacity_liters(request.diluent_source.maximum_volume),
     )
-    diluent_minimum = max(0.0, total_liters - maximum_non_diluent)
+    diluent_minimum = total_liters - maximum_non_diluent
     if diluent_minimum > diluent_maximum:
         return None
     return diluent_minimum, diluent_maximum
@@ -1204,26 +1216,26 @@ def _proportional_dilution_bounds(
 
 def _proportional_source_volumes(
     request: OptimizerRequest,
-    diluent_liters: float,
+    diluent_liters: Fraction,
 ) -> tuple[OptimizerSourceVolume, ...]:
     assert request.diluent_source is not None
-    total_liters = float(request.total_volume.to("liter").magnitude)
+    total_liters = capacity_liters(request.total_volume)
     current_liters = tuple(
-        float(source.current_volume.to("liter").magnitude) for source in request.sources
+        capacity_liters(source.current_volume) for source in request.sources
     )
-    current_total = fsum(current_liters)
+    current_total = sum(current_liters)
     non_diluent_liters = total_liters - diluent_liters
     volumes = tuple(
         OptimizerSourceVolume(
             source=source,
-            volume=Q_(non_diluent_liters * current / current_total, "liter"),
+            volume=Q_(float(non_diluent_liters * current / current_total), "liter"),
         )
         for source, current in zip(request.sources, current_liters, strict=True)
     )
     return volumes + (
         OptimizerSourceVolume(
             source=request.diluent_source,
-            volume=Q_(diluent_liters, "liter"),
+            volume=Q_(float(diluent_liters), "liter"),
         ),
     )
 
@@ -1249,7 +1261,7 @@ def _dilution_coefficients(
         request.diluent_source.source_profile,
         policy=request.source_resolution_policy,
     )
-    total_liters = float(request.total_volume.to("liter").magnitude)
+    total_liters = float(capacity_liters(request.total_volume))
     coefficients: list[float] = []
     diagnostics: list[OptimizerDiagnostic] = []
     for comparison in comparisons:
@@ -1634,7 +1646,8 @@ def _optimize_proportional_dilution(request: OptimizerRequest) -> OptimizerResul
             diagnostics=(diagnostic,),
             solver_report=None,
         )
-    diluent_minimum, diluent_maximum = bounds
+    minimum, maximum = bounds
+    diluent_minimum, diluent_maximum = float(minimum), float(maximum)
     if diluent_maximum >= _LARGEST_SOLVER_BOUND:
         return _unsupported_result(
             request,
@@ -1650,7 +1663,21 @@ def _optimize_proportional_dilution(request: OptimizerRequest) -> OptimizerResul
             ),
         )
 
-    no_dilution_source_volumes = _proportional_source_volumes(request, 0.0)
+    def selected_source_volumes(
+        decisions: _ValidatedDecisions,
+    ) -> tuple[OptimizerSourceVolume, ...]:
+        # At a solver bound, replay the declared capacity before subtracting
+        # the diluent from the batch and allocating the ordinary sources.
+        value = decisions.continuous_values[0]
+        if value == diluent_minimum:
+            selected = minimum
+        elif value == diluent_maximum:
+            selected = maximum
+        else:
+            selected = Fraction(str(value))
+        return _proportional_source_volumes(request, selected)
+
+    no_dilution_source_volumes = _proportional_source_volumes(request, Fraction(0))
     initial = calculate_forward_water(
         tuple(
             ForwardWaterSource(entry.source.source_profile, entry.volume)
@@ -1707,10 +1734,9 @@ def _optimize_proportional_dilution(request: OptimizerRequest) -> OptimizerResul
     )
     if decisions is None:
         return _solver_failure_result(request, solver_report)
-    diluent_liters = decisions.continuous_values[0]
     primary_plan, postvalidation_diagnostic = _build_plan(
         request,
-        source_volumes=_proportional_source_volumes(request, diluent_liters),
+        source_volumes=selected_source_volumes(decisions),
         material_counts=decisions.material_counts,
         solver_report=solver_report,
         plan_id="closest_absolute_mg_per_liter_v1:1",
@@ -1731,10 +1757,7 @@ def _optimize_proportional_dilution(request: OptimizerRequest) -> OptimizerResul
         _fewest_material_candidate(
             request,
             comparisons,
-            source_volumes_for=lambda candidate: _proportional_source_volumes(
-                request,
-                candidate.continuous_values[0],
-            ),
+            source_volumes_for=selected_source_volumes,
             continuous_coefficients=(dilution_coefficients,),
             continuous_lower_bounds=(diluent_minimum,),
             continuous_upper_bounds=(diluent_maximum,),
@@ -1759,7 +1782,7 @@ def _optimize_proportional_dilution(request: OptimizerRequest) -> OptimizerResul
             plans.append(explained_alternative)
 
     if request.request_no_dilution_plan:
-        if diluent_minimum > 0.0:
+        if minimum > 0:
             result_diagnostics.append(
                 OptimizerDiagnostic(
                     code=OptimizerDiagnosticCode.NO_DILUTION_PLAN_INFEASIBLE,
@@ -1790,7 +1813,7 @@ def _optimize_proportional_dilution(request: OptimizerRequest) -> OptimizerResul
             else:
                 no_dilution_plan, postvalidation_diagnostic = _build_plan(
                     request,
-                    source_volumes=_proportional_source_volumes(request, 0.0),
+                    source_volumes=no_dilution_source_volumes,
                     material_counts=no_dilution_decisions.material_counts,
                     solver_report=no_dilution_report,
                     plan_id=(

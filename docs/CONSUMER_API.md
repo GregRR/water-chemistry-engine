@@ -625,6 +625,13 @@ permitted source from zero through its declared maximum while enforcing the
 requested total volume. The optional no-dilution comparison is valid only for
 `PROPORTIONAL_DILUTION`.
 
+For proportional dilution, the ordinary source that reaches its maximum
+first limits how much of the ordinary blend is available. The optimizer
+compares the remaining volume with the declared diluent maximum before
+converting the feasible interval to solver precision.
+If a plan volume rounds above its declared source maximum, that candidate
+fails postvalidation. The diagnostic identifies the source.
+
 The first returned plan is the closest absolute mg/L solution with lower total
 measured material mass as its tie-breaker. A second preferred plan appears only
 when an equally close solution uses fewer treatment products. A requested,

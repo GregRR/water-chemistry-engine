@@ -22,6 +22,9 @@ comparison-expansion milestone is in progress.
 
 ### Fixed
 
+- Accept proportional-dilution blends that exactly fill the batch at the
+  declared source and diluent limits. A genuine shortage remains infeasible.
+
 - Reject fixed-blend optimizer requests whose declared source volumes fall
   short of or exceed the requested total, including at very small volumes.
 

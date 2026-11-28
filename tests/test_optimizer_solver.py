@@ -1781,6 +1781,98 @@ def test_proportional_dilution_honors_source_availability() -> None:
     assert plan.target_fit is OptimizerTargetFitStatus.OUTSIDE_TARGET
 
 
+def test_proportional_dilution_uses_exact_capacity_at_the_limit() -> None:
+    # At a 1:3 ratio the first source caps the ordinary blend at 9.7 L,
+    # even though the second source has more water available.
+    sources = (
+        _available_source("A", current_liters=1, maximum_liters=2.425, calcium=100),
+        _available_source("B", current_liters=3, maximum_liters=8, calcium=100),
+    )
+    diluent = replace(
+        _source(calcium=0), current_volume=Q_(0, "L"), maximum_volume=Q_(300, "mL")
+    )
+    request = OptimizerRequest(
+        Q_(10, "L"),
+        sources,
+        (),
+        _POLICY,
+        OptimizerBlendPolicy.PROPORTIONAL_DILUTION,
+        target_profile=_target(97),
+        diluent_source=diluent,
+        request_no_dilution_plan=True,
+    )
+    result = optimize_treatment(request)
+    assert result.feasibility is OptimizerFeasibilityStatus.FEASIBLE
+    (plan,) = result.plans
+    assert tuple(entry.volume.magnitude for entry in plan.source_volumes) == (
+        2.425,
+        7.275,
+        0.3,
+    )
+    assert plan.target_fit is OptimizerTargetFitStatus.WITHIN_TARGET
+    assert plan.calculation.final_state.concentration_for(Ion.CALCIUM).to(
+        "mg/L"
+    ).magnitude == pytest.approx(97)
+    assert OptimizerDiagnosticCode.NO_DILUTION_PLAN_INFEASIBLE in {
+        item.code for item in result.diagnostics
+    }
+
+    short = replace(diluent, maximum_volume=Q_(Decimal("299.99999999999999999"), "mL"))
+    result = optimize_treatment(replace(request, diluent_source=short))
+    assert result.feasibility is OptimizerFeasibilityStatus.INFEASIBLE
+    assert (
+        result.diagnostics[0].code
+        is OptimizerDiagnosticCode.SOURCE_VOLUME_CONSTRAINTS_INFEASIBLE
+    )
+    assert result.plans == ()
+
+
+def test_proportional_dilution_preserves_small_ordinary_volume_at_capacity() -> None:
+    # Subtracting two nearly equal float volumes would distort this source.
+    source = _source(volume_liters=1e-8, calcium=100)
+    diluent = replace(
+        _source(calcium=0),
+        current_volume=Q_(0, "L"),
+        maximum_volume=Q_(Decimal("9.99999999"), "L"),
+    )
+    request = OptimizerRequest(
+        Q_(10, "L"),
+        (source,),
+        (),
+        _POLICY,
+        OptimizerBlendPolicy.PROPORTIONAL_DILUTION,
+        diluent_source=diluent,
+    )
+    (plan,) = optimize_treatment(request).plans
+    assert tuple(entry.volume.magnitude for entry in plan.source_volumes) == (
+        1e-8,
+        9.99999999,
+    )
+
+
+def test_proportional_plan_rejects_diluent_rounded_above_capacity() -> None:
+    source = _source(volume_liters=1e-16)
+    diluent = replace(
+        _source(),
+        current_volume=Q_(0, "L"),
+        maximum_volume=Q_(Decimal("9.9999999999999999"), "L"),
+    )
+    request = OptimizerRequest(
+        Q_(10, "L"),
+        (source,),
+        (),
+        _POLICY,
+        OptimizerBlendPolicy.PROPORTIONAL_DILUTION,
+        diluent_source=diluent,
+    )
+    result = optimize_treatment(request)
+    assert result.plans == ()
+    assert result.feasibility is OptimizerFeasibilityStatus.INDETERMINATE
+    (diagnostic,) = result.diagnostics
+    assert diagnostic.code is OptimizerDiagnosticCode.SOLVER_POSTVALIDATION_FAILED
+    assert diagnostic.source_index == 1
+
+
 def test_proportional_dilution_reports_infeasible_volume_limits() -> None:
     source = OptimizerSource(
         SourceWaterProfile(
