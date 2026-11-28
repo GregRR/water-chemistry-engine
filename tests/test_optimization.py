@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 from fermunits import Q_
 
@@ -215,6 +217,48 @@ def test_fixed_blend_accepts_cross_unit_equivalent_volume_sum() -> None:
     )
 
     assert request.total_volume == Q_(1000, "milliliter")
+
+
+@pytest.mark.parametrize("supplied_liters", [0, 1e-15, 1.5e-12])
+def test_fixed_blend_rejects_mismatched_small_volumes(supplied_liters: float) -> None:
+    source = OptimizerSource(
+        SourceWaterProfile("Source", ()), Q_(supplied_liters, "L"), Q_(2e-12, "L")
+    )
+    with pytest.raises(ValueError, match="must sum"):
+        OptimizerRequest(
+            Q_(1e-12, "L"),
+            (source,),
+            (),
+            SourceResolutionPolicy(False),
+            OptimizerBlendPolicy.FIXED,
+        )
+
+
+def test_fixed_blend_compares_declared_total_before_float_rounding() -> None:
+    with pytest.raises(ValueError, match="must sum"):
+        OptimizerRequest(
+            Q_(Decimal("1.00000000000000000001"), "L"),
+            (_source(),),
+            (),
+            SourceResolutionPolicy(False),
+            OptimizerBlendPolicy.FIXED,
+        )
+
+
+def test_fixed_blend_accepts_small_mixed_unit_volume_sum() -> None:
+    profile = SourceWaterProfile("Source", ())
+    sources = (
+        OptimizerSource(profile, Q_(0.3, "pL"), Q_(1, "pL")),
+        OptimizerSource(profile, Q_(700, "fL"), Q_(1, "pL")),
+    )
+    request = OptimizerRequest(
+        Q_(1e-12, "L"),
+        sources,
+        (),
+        SourceResolutionPolicy(False),
+        OptimizerBlendPolicy.FIXED,
+    )
+    assert request.sources == sources
 
 
 @pytest.mark.parametrize("invalid_policy", ["fixed", "totally_made_up_policy"])

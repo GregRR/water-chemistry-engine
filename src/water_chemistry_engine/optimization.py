@@ -112,8 +112,6 @@ class OptimizerDiagnosticCode(StrEnum):
     TARGET_NOT_MET = "target_not_met"
 
 
-_VOLUME_REL_TOL = 1e-12
-_VOLUME_ABS_TOL_LITERS = 1e-12
 _MASS_REL_TOL = 1e-12
 _MASS_ABS_TOL_GRAMS = 1e-12
 
@@ -420,10 +418,6 @@ class OptimizerRequest:
                     "practical use limit for the requested total volume."
                 )
 
-        current_total = fsum(
-            float(source.current_volume.to("liter").magnitude)
-            for source in self.sources
-        )
         if self.blend_policy is OptimizerBlendPolicy.FIXED:
             if self.request_no_dilution_plan:
                 raise ValueError(
@@ -433,12 +427,10 @@ class OptimizerRequest:
                 raise ValueError(
                     "A fixed-blend request cannot specify a diluent source."
                 )
-            if not isclose(
-                current_total,
-                float(total.magnitude),
-                rel_tol=_VOLUME_REL_TOL,
-                abs_tol=_VOLUME_ABS_TOL_LITERS,
-            ):
+            fixed_liters = sum(
+                capacity_liters(source.current_volume) for source in self.sources
+            )
+            if fixed_liters != capacity_liters(self.total_volume):
                 raise ValueError(
                     "Fixed-blend source volumes must sum to optimizer total volume."
                 )
@@ -455,6 +447,10 @@ class OptimizerRequest:
                 raise ValueError(
                     "A proportional-dilution diluent must have zero current volume."
                 )
+            current_total = fsum(
+                float(source.current_volume.to("liter").magnitude)
+                for source in self.sources
+            )
             if current_total <= 0:
                 raise ValueError(
                     "A proportional-dilution request requires a positive current blend."

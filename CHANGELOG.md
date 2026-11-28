@@ -22,6 +22,9 @@ comparison-expansion milestone is in progress.
 
 ### Fixed
 
+- Reject fixed-blend optimizer requests whose declared source volumes fall
+  short of or exceed the requested total, including at very small volumes.
+
 - Reject an alkalinity balance from a different blend or treatment when
   building a contribution matrix.
 

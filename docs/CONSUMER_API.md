@@ -533,6 +533,10 @@ interpretation boundary for presentation code.
 
 ## Automatic treatment optimizer example
 
+For a fixed blend, supply current source volumes that sum to the requested
+pre-dose volume. The request validates the declared quantities across volume
+units and raises `ValueError` for either a shortfall or an excess.
+
 This fixed-blend example asks the engine to select a practical gypsum dose in
 whole 0.1 g increments. The batch-specific 2 g maximum is caller policy, not a
 universal use or safety limit:
