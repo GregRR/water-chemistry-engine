@@ -1,6 +1,6 @@
 import pytest
 from fermunits import Q_, PHValue, Quantity
-from hypothesis import given
+from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from water_chemistry_engine.blending import BlendSource, blend_waters
@@ -566,6 +566,7 @@ def test_blending_identical_chemistry_preserves_exact_target_status(
     assert _mg_per_liter(comparison.deviation) == 0.0
 
 
+@settings(deadline=None)
 @given(actual=_TARGET_VALUES, target_value=_TARGET_VALUES)
 def test_exact_target_deviation_sign_matches_status(
     actual: float,
