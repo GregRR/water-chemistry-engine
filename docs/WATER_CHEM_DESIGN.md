@@ -1608,14 +1608,21 @@ constraint. ADR 0006 records the dependency, Python-compatibility constraint,
 and division of responsibility between the numerical solver and the engine's
 validation and result semantics.
 
-The optimizer admits ions and material contributions only through an explicit,
-exhaustive operation-specific capability policy. Bicarbonate and carbonate are
-not supported optimizer targets. A material that contributes either species,
-including sodium bicarbonate, is rejected with a structured diagnostic even if
-the request would otherwise use it only to improve a sodium objective. This
-fail-closed boundary remains until a separately named and validated carbonate-
-system/alkalinity policy defines sufficient inputs, equations, assumptions, and
-reference cases.
+The optimizer admits ions and material contributions through its
+operation-specific capability policy. Bicarbonate and carbonate species
+targets remain unsupported. With a supported total-alkalinity criterion,
+starting alkalinity must be resolved and every permitted material must have
+a reviewed effect under `conservative_equivalent_alkalinity_v1`. A reviewed
+effect may be zero. Unknown required starting alkalinity makes an otherwise
+supported request indeterminate. An unreviewed material effect makes the
+request unsupported.
+
+A material contributing bicarbonate or carbonate additionally requires a
+reviewed **nonzero** alkalinity effect and a supported total-alkalinity
+criterion. Sodium bicarbonate is currently the only reviewed ingredient
+that meets this condition. Its sodium contribution is included in the ion
+balance, but a sodium target alone does not authorize its selection.
+Carbonate speciation and pH remain outside this policy.
 
 The initial integration deliberately limits each material variable to
 1,000,000 dose increments. Requests above that project-tested numerical range
@@ -1676,7 +1683,9 @@ its concentration as zero.
 
 ### 20.2 Constraints
 
-- Source fractions sum to the required volume.
+- Source volume fractions sum to one. Under every blend policy, the selected
+  source volumes, including any diluent, must sum to the requested pre-dose
+  blend volume.
 - Source amounts remain within availability bounds.
 - Treatment-material quantities remain within validated limits.
 - Material assay/concentration semantics are sufficient to resolve each candidate dose to an active chemical amount.
