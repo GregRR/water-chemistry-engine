@@ -175,8 +175,11 @@ by `SourceWaterProfile`: reported pH and disinfectants, source-document
 metadata, water and physical-source identity, observation/result context,
 reported statistics, alkalinity, hardness, TDS, and conductivity. Exporting
 these representation types does not make them automatic forward-calculation
-inputs. Only explicitly modeled ion concentrations currently enter source
-resolution.
+inputs. In 0.5, `resolve_source_profile` resolves modeled ion concentrations
+and separately evaluates reported total alkalinity under the source-resolution
+policy. An observation explicitly identified as acid-neutralizing capacity
+(ANC) remains unresolved for total alkalinity. See the
+[total-alkalinity calculation contract](#05-total-alkalinity-calculation-contract).
 
 Source and target concentration constructors require an `Ion` enum member.
 When reading a serialized identifier, convert it first, for example with
