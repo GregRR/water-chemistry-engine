@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
-from decimal import ROUND_FLOOR, Decimal
 from fractions import Fraction
 from math import fabs, fsum, inf, isclose, isfinite, nextafter
 from typing import Protocol, cast
@@ -27,7 +26,7 @@ from scipy.optimize import (  # type: ignore[import-untyped]
     milp,
 )
 
-from water_chemistry_engine._volume_precision import capacity_liters
+from water_chemistry_engine._quantity_precision import capacity_liters, dose_grams
 from water_chemistry_engine.alkalinity_balance import (
     ResolvedSourceAlkalinity,
     calculate_treatment_alkalinity_contribution,
@@ -356,11 +355,9 @@ def _input_diagnostics(
 
 
 def _maximum_increment_count(constraint: OptimizerMaterialConstraint) -> int:
-    maximum = Decimal(str(float(constraint.maximum_mass.to("gram").magnitude)))
-    increment = Decimal(
-        str(float(constraint.material.normalized_dose_increment.magnitude))
+    return dose_grams(constraint.maximum_mass) // dose_grams(
+        constraint.material.dose_increment
     )
-    return int((maximum / increment).to_integral_value(rounding=ROUND_FLOOR))
 
 
 def _increment_coefficients(
@@ -371,7 +368,7 @@ def _increment_coefficients(
     by_material = []
     for constraint in request.material_constraints:
         increment_addition = constraint.material.treatment_addition(
-            constraint.material.normalized_dose_increment
+            Q_(float(dose_grams(constraint.material.dose_increment)), "gram")
         )
         per_increment = {
             contribution.ion: float(
@@ -802,7 +799,7 @@ def _solve_increment_counts(
     )
 
     material_mass_objective = [
-        float(constraint.material.normalized_dose_increment.magnitude)
+        float(dose_grams(constraint.material.dose_increment))
         for constraint in request.material_constraints
     ] + [0.0] * (continuous_count + usage_count + 2 * comparison_count)
     if prefer_fewest_materials:
@@ -1027,8 +1024,8 @@ def _material_additions(
     ):
         if increment_count == 0:
             continue
-        increment_grams = float(constraint.material.normalized_dose_increment.magnitude)
-        measured = Q_(increment_count * increment_grams, "gram")
+        increment_grams = dose_grams(constraint.material.dose_increment)
+        measured = Q_(float(increment_count * increment_grams), "gram")
         addition = constraint.material.treatment_addition(measured)
         active_chemical_mass = addition.mass.to("gram")
         additions.append(
@@ -1065,6 +1062,15 @@ def _build_plan(
                     source_name=entry.source.source_profile.name,
                 )
     additions = _material_additions(request, material_counts)
+    for entry_addition in additions:
+        if dose_grams(entry_addition.measured_mass) > dose_grams(
+            entry_addition.constraint.maximum_mass
+        ):
+            return None, OptimizerDiagnostic(
+                code=OptimizerDiagnosticCode.SOLVER_POSTVALIDATION_FAILED,
+                message="The reported material mass exceeds its declared maximum.",
+                material_key=entry_addition.constraint.material.key,
+            )
     sources = tuple(
         ForwardWaterSource(entry.source.source_profile, entry.volume)
         for entry in source_volumes

@@ -1,5 +1,5 @@
 from dataclasses import replace
-from decimal import Decimal
+from decimal import Decimal, localcontext
 from fractions import Fraction
 from itertools import product
 from types import SimpleNamespace
@@ -36,6 +36,7 @@ from water_chemistry_engine.optimization import (
 )
 from water_chemistry_engine.optimizer_solver import optimize_treatment
 from water_chemistry_engine.profiles import SourceWaterProfile
+from water_chemistry_engine.quantity_types import ScalarQuantity
 from water_chemistry_engine.reported_properties import Alkalinity
 from water_chemistry_engine.reported_values import SourceResolutionPolicy
 from water_chemistry_engine.source_document import SourceDocumentMetadata
@@ -202,6 +203,57 @@ def _fixed_request(
         blend_policy=OptimizerBlendPolicy.FIXED,
         target_profile=target,
     )
+
+
+@pytest.mark.parametrize(
+    ("increment", "maximum", "expected_grams"),
+    [
+        (Q_(1, "oz"), Q_(56.69904625, "g"), 56.69904625),
+        (Q_(1, "oz"), Q_(2, "oz"), 56.69904625),
+        (Q_(9, "mg"), Q_(0.09, "g"), 0.09),
+        (Q_(Decimal("12.3"), "mg"), Q_(0.123, "g"), 0.123),
+        (Q_(0.1, "g"), Q_(0.29, "g"), 0.2),
+        (Q_(1, "g"), Q_(Decimal("1.99999999999999999999"), "g"), 1.0),
+    ],
+)
+def test_optimizer_returns_whole_increments_within_declared_maximum(
+    increment: ScalarQuantity, maximum: ScalarQuantity, expected_grams: float
+) -> None:
+    with localcontext() as context:
+        context.prec = 1
+        material = replace(_gypsum_constraint().material, dose_increment=increment)
+        constraint = OptimizerMaterialConstraint(material, maximum)
+        request = _fixed_request(
+            source=_source(calcium=0), target=_target(10000), constraints=(constraint,)
+        )
+        plan = optimize_treatment(request).plans[0]
+    assert plan.material_additions[0].measured_mass == Q_(expected_grams, "g")
+
+
+def test_optimizer_rejects_maximum_just_below_one_increment() -> None:
+    material = replace(_gypsum_constraint().material, dose_increment=Q_(1, "g"))
+    with pytest.raises(ValueError, match="at least one dose increment"):
+        OptimizerMaterialConstraint(
+            material, Q_(Decimal("0.99999999999999999999"), "g")
+        )
+
+
+def test_optimizer_rejects_reported_dose_rounded_above_maximum() -> None:
+    maximum = Q_(Decimal("0.99999999999999999999"), "g")
+    material = replace(_gypsum_constraint().material, dose_increment=maximum)
+    request = _fixed_request(
+        source=_source(calcium=0),
+        target=_target(100),
+        constraints=(OptimizerMaterialConstraint(material, maximum),),
+    )
+    result = optimize_treatment(request)
+    assert result.plans == ()
+    assert result.feasibility is OptimizerFeasibilityStatus.INDETERMINATE
+    assert (
+        result.diagnostics[0].code
+        is OptimizerDiagnosticCode.SOLVER_POSTVALIDATION_FAILED
+    )
+    assert result.diagnostics[0].material_key == material.key
 
 
 def _failed_solver_report(message: str) -> OptimizerSolverReport:

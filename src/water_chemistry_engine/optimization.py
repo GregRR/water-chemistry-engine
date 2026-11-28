@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 
 from fermunits import Q_, Quantity
 
-from water_chemistry_engine._volume_precision import capacity_liters
+from water_chemistry_engine._quantity_precision import capacity_liters, dose_grams
 from water_chemistry_engine.profiles import SourceWaterProfile
 from water_chemistry_engine.quantity_types import ScalarQuantity
 from water_chemistry_engine.reported_values import SourceResolutionPolicy
@@ -195,11 +195,11 @@ class OptimizerMaterialConstraint:
             raise ValueError(
                 f"Optimizer material {self.material.key!r} must be a solid."
             )
-        maximum = _positive_mass(
+        _positive_mass(
             self.maximum_mass,
             label="Optimizer material maximum mass",
         )
-        if maximum.magnitude < self.material.normalized_dose_increment.magnitude:
+        if dose_grams(self.maximum_mass) < dose_grams(self.material.dose_increment):
             raise ValueError(
                 "Optimizer material maximum mass must permit at least one dose "
                 "increment."

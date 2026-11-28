@@ -22,6 +22,9 @@ comparison-expansion milestone is in progress.
 
 ### Fixed
 
+- Count whole material dose increments against the declared batch maximum
+  consistently across equivalent mass units and decimal precision settings.
+
 - Accept proportional-dilution blends that exactly fill the batch at the
   declared source and diluent limits. A genuine shortage remains infeasible.
 

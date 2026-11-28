@@ -98,7 +98,10 @@ as a universal safety, sensory, solubility, or regulatory limit.
 solid exact mass-fraction materials. An aqueous mass-fraction material raises
 `ValueError` when the constraint is constructed. Optimizer increments and maximums are measured-
 material masses; ion and alkalinity coefficients use the resolved active
-chemical mass. Plans report both values. Ranged mass-fraction materials remain
+chemical mass. The optimizer counts whole increments against the declared
+maximum before converting to solver floats. If the reported dose rounds
+above that maximum, plan validation returns `SOLVER_POSTVALIDATION_FAILED`.
+Plans report both measured and active masses. Ranged mass-fraction materials remain
 ineligible because optimization cannot select an unreported composition or
 silently use a midpoint. Use
 `OptimizerMaterialAddition.preparation_text` (and its structured measured/active
