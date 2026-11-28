@@ -302,6 +302,36 @@ def test_positive_volume_unknown_propagates_but_known_contributions_remain() -> 
     assert len(result.alkalinity_balance.final.treatment_contributions) == 1
 
 
+def test_matrix_subtotals_preserve_concentrations_after_unit_conversion() -> None:
+    source = SourceWaterProfile(
+        name="Known",
+        concentrations=(IonConcentration.mg_per_liter(Ion.SODIUM, 40),),
+        alkalinity=Alkalinity.mg_per_liter_as_caco3(80),
+    )
+    result = calculate_forward_water(
+        (ForwardWaterSource(source, Q_(1, "L")),),
+        source_resolution_policy=REPORTED_ONLY,
+        treatment_additions=(TreatmentAddition(SODIUM_BICARBONATE, Q_(1, "g")),),
+    )
+    matrix = result.contribution_matrix
+    assert matrix.alkalinity_row is not None
+    for row, expected_source in (
+        (matrix.row_for(Ion.SODIUM), Q_(40, "mg/L")),
+        (matrix.alkalinity_row, Q_(80, "mg/L")),
+    ):
+        source_cell = row.source_contributions[0].weighted_contribution
+        treatment_cell = row.treatment_contributions[0].contribution
+        assert source_cell is not None and treatment_cell is not None
+        expected_treatment = treatment_cell.to("mg/L")
+        assert expected_treatment.magnitude > 0
+
+        source_cell.ito("g/L")
+        treatment_cell.ito("g/L")
+
+        assert row.known_source_contribution_sum == expected_source
+        assert row.known_treatment_contribution_sum == expected_treatment
+
+
 def test_alkalinity_matrix_distinguishes_zero_unknown_and_known_sources() -> None:
     zero_volume = _source("Zero volume", None)
     unknown = _source("Unknown", None)
