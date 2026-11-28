@@ -642,6 +642,37 @@ def test_one_sided_numeric_target_bounds_are_supported() -> None:
     assert upper_plan.target_fit is OptimizerTargetFitStatus.OUTSIDE_TARGET
 
 
+@pytest.mark.parametrize(
+    ("bound_type", "direction"),
+    [(IonConcentrationUpperBound, 1), (IonConcentrationLowerBound, -1)],
+)
+@pytest.mark.parametrize("excursion", [0.0, 0.5e-9, 2e-9])
+def test_one_sided_ion_fit_at_replay_boundary(
+    bound_type: type[IonConcentrationUpperBound] | type[IonConcentrationLowerBound],
+    direction: int,
+    excursion: float,
+) -> None:
+    limit = 20.0
+    target = TargetWaterProfile(
+        "Calcium limit", (bound_type.mg_per_liter(Ion.CALCIUM, limit),)
+    )
+    request = _fixed_request(
+        source=_source(calcium=limit + direction * excursion),
+        target=target,
+        constraints=(),
+    )
+    plan = optimize_treatment(request).plans[0]
+    assert plan.target_comparison is not None
+    calcium = plan.target_comparison.comparison_for(Ion.CALCIUM)
+    assert calcium is not None and calcium.deviation is not None
+    if excursion <= 1e-9:
+        assert plan.target_fit is OptimizerTargetFitStatus.WITHIN_TARGET
+        assert calcium.deviation.magnitude == 0
+    else:
+        assert plan.target_fit is OptimizerTargetFitStatus.OUTSIDE_TARGET
+        assert calcium.deviation.magnitude == pytest.approx(direction * excursion)
+
+
 def test_unknown_nontarget_counterion_remains_unknown_without_blocking_plan() -> None:
     request = _fixed_request(
         source=_source(calcium=0.0),

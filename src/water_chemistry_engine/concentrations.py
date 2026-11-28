@@ -303,7 +303,7 @@ class IonConcentrationRange:
 
 @dataclass(frozen=True, slots=True)
 class IonConcentrationUpperBound:
-    """Reported ion concentration known only to be below an upper bound."""
+    """Strict upper reporting limit in a source, inclusive maximum in a target."""
 
     ion: Ion
     maximum: ScalarQuantity
@@ -328,7 +328,7 @@ class IonConcentrationUpperBound:
 
 @dataclass(frozen=True, slots=True)
 class IonConcentrationLowerBound:
-    """Reported ion concentration known only to exceed a lower bound."""
+    """Strict lower reporting limit in a source, inclusive minimum in a target."""
 
     ion: Ion
     minimum: ScalarQuantity

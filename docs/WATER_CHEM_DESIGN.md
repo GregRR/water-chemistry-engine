@@ -1240,7 +1240,11 @@ Consequences:
 - historical city profiles belong under target/reference data unless there is a specific historical source-water analysis being represented;
 - an achieved treated liquor from a prior successful batch may later be saved as a target for reproduction without pretending it was the original source water.
 
-The deterministic comparison boundary operates on an exact derived `AqueousChemicalState`. Exact target values are closed point criteria; ordinary exact-ended target ranges are inclusive; and standalone numeric upper/lower bounds are one-sided criteria. Signed deviation is negative below a criterion, positive above it, and zero when the criterion is satisfied. A missing state ion remains indeterminate rather than becoming zero. Qualified source-style ranges and `ND` target records remain representable for provenance but are explicitly unsupported for numeric matching until a concrete target semantics exists. A target pH is likewise retained as not calculated until the reusable working-water pH model is implemented; reported source pH is never substituted for derived working-water pH.
+The deterministic comparison boundary operates on an exact derived `AqueousChemicalState`. Exact target values are closed point criteria. Ordinary exact-ended target ranges include both endpoints.
+
+For ions, `IonConcentrationUpperBound` and `IonConcentrationLowerBound` express strict qualifiers in source reports (< and >) and inclusive limits in targets (≤ and ≥). Target comparison accepts equality and treats an excursion within an absolute tolerance of 1e-9 mg/L as zero deviation. Optimizer plans take their target fit from forward replay. Any workflow converting a source observation into a target must ask the caller to choose that target explicitly and identify any change in meaning, such as converting a reported <20 mg/L to a requested maximum of 20 mg/L.
+
+Signed deviation is negative below a criterion, positive above it, and zero when the criterion is satisfied. A missing state ion remains indeterminate rather than becoming zero. Qualified source-style ranges and `ND` target records remain representable for provenance but are explicitly unsupported for numeric matching until a concrete target semantics exists. A target pH is likewise retained as not calculated until the reusable working-water pH model is implemented; reported source pH is never substituted for derived working-water pH.
 
 ## 12. Reference data and real-world fixtures
 

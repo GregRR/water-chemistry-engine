@@ -185,6 +185,15 @@ Source and target concentration constructors require an `Ion` enum member.
 When reading a serialized identifier, convert it first, for example with
 `Ion("calcium")`. Passing the string directly raises `TypeError`.
 
+In a source report, `IonConcentrationUpperBound` and
+`IonConcentrationLowerBound` mean strictly below and strictly above the
+reported limit. In a target profile they mean at most and at least,
+respectively. Forward comparison accepts equality and excursions within
+1e-9 mg/L of the limit (absolute tolerance), with zero deviation.
+Optimizer plan target fit comes from that forward comparison. When turning
+a source observation into a target, require an explicit choice and show how
+the meaning changes (for example, source <20 mg/L to target ≤20 mg/L).
+
 For an ion range, pass a running annual average, percentile, or other named
 summary as `reported_statistic_value` together with its `reported_statistic`
 metadata. Supply an independently reported ordinary mean as `reported_average`.
