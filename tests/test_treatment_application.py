@@ -326,3 +326,55 @@ def test_invalid_solution_volume_cannot_disguise_a_positive_dose(
 def test_zero_mass_cannot_supply_positive_stock_volume() -> None:
     with pytest.raises(ValueError, match="zero mass"):
         TreatmentAddition(GYPSUM, Q_(0, "g"), solution_volume=Q_(5, "mL"))
+
+
+@pytest.mark.parametrize("name", ["", "   "])
+def test_stock_name_cannot_be_blank(name: str) -> None:
+    with pytest.raises(ValueError, match="Stock name cannot be empty"):
+        TreatmentAddition(SODIUM_CHLORIDE, Q_(1, "g"), Q_(10, "mL"), stock_name=name)
+
+
+@pytest.mark.parametrize(
+    "detail",
+    [
+        {"stock_name": "Brine"},
+        {"measured_solution_mass": Q_(10, "g")},
+        {"measurement_temperature": Q_(0, "degC")},
+    ],
+    ids=["name", "mass", "temperature"],
+)
+def test_stock_details_require_solution_volume(detail) -> None:
+    with pytest.raises(
+        ValueError, match="Stock dose details require a solution volume"
+    ):
+        TreatmentAddition(SODIUM_CHLORIDE, Q_(1, "g"), **detail)
+
+
+def test_measured_stock_mass_cannot_be_less_than_active_mass() -> None:
+    with pytest.raises(ValueError, match="cover its active mass"):
+        TreatmentAddition(
+            SODIUM_CHLORIDE,
+            Q_(1, "g"),
+            Q_(1, "mL"),
+            measured_solution_mass=Q_(999, "mg"),
+        )
+
+
+def test_zero_dose_cannot_have_positive_measured_stock_mass() -> None:
+    with pytest.raises(ValueError, match="be zero for a zero dose"):
+        TreatmentAddition(
+            SODIUM_CHLORIDE, Q_(0, "g"), Q_(0, "mL"), measured_solution_mass=Q_(1, "g")
+        )
+
+
+@pytest.mark.parametrize("celsius", [float("nan"), float("inf"), float("-inf")])
+def test_stock_measurement_temperature_must_be_finite(celsius: float) -> None:
+    with pytest.raises(
+        ValueError, match="Stock measurement temperature must be finite"
+    ):
+        TreatmentAddition(
+            SODIUM_CHLORIDE,
+            Q_(1, "g"),
+            Q_(10, "mL"),
+            measurement_temperature=Q_(celsius, "degC"),
+        )
